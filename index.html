@@ -854,7 +854,7 @@ function route() {
   if (h === "design" && isStaff()) return renderDesign();
   if (h === "questions" && isStaff()) return renderQuestions();
   if (h === "dashboard" && isReviewerish()) return renderDashboard();
-  const cm = h.match(/^compare(?:-(\d+))?$/);
+  const cm = h.match(/^(?:analysis|compare)(?:-(\d+))?$/);
   if (cm && isReviewerish()) return renderCompare(cm[1] ? +cm[1] : null);
   if (h === "" && isStaff()) return renderDashboard();
   if (h === "board") { S.listView = "board"; return renderList(); }
@@ -864,11 +864,11 @@ function route() {
 
 function renderBar() {
   const h = location.hash.slice(1);
-  const cur = h === "people" || h === "contacts" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const cur = h === "people" || h === "contacts" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
   document.getElementById("bar").innerHTML = `
     ${brandHTML()}
-    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#compare", "Compare") : ""}${link("list", "#applications", "Applications")}${isStaff() ? link("questions", "#questions", "Questions") + link("people", "#people", "People") + link("design", "#design", "Design") : ""}</nav>
+    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#analysis", "Analysis") : ""}${link("list", "#applications", "Applications")}${isStaff() ? link("questions", "#questions", "Questions") + link("people", "#people", "People") + link("design", "#design", "Design") : ""}</nav>
     <div class="who"><div class="bell-wrap" id="bell"></div><a class="me-link" href="#account" title="My account">${esc(S.me.full_name || S.me.email)}</a><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
   document.getElementById("signOut")?.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = ""; });
   if (S.me) drawBell();
@@ -1581,7 +1581,7 @@ async function renderDashboard() {
   const bar = (label, v, cls) => `<div class="bar-line"><span>${label}</span><div class="track"><i class="${cls}" style="width:${v ?? 0}%"></i></div><span class="mono">${v == null ? "–" : v + "%"}</span></div>`;
   const bars = (rows) => rows.length ? `<div class="bars">${rows.map((d) => `<div class="bar-row"><b>${esc(d.name)} <span class="muted">${d.n}</span></b><div class="bar-pair">${bar("Prep", d.prep, "prep")}${bar("Wrap", d.wrap, "wrap")}</div></div>`).join("")}</div>
     <div class="scale" aria-hidden="true"><span></span><div><span>0%</span><span>50%</span><span>100%</span></div></div>` : `<p class="muted">Appears once applications are submitted.</p>`;
-  const plist = (list) => list.map((x) => `<div class="practice"><a href="#compare-${x.q.question_id}" title="Compare productions that did and didn't">${esc(qTitle(x.q))}</a><span class="mono">${x.v}%</span><div class="track"><i class="wrap" style="width:${x.v}%"></i></div></div>`).join("");
+  const plist = (list) => list.map((x) => `<div class="practice"><a href="#analysis-${x.q.question_id}" title="Compare productions that did and didn't">${esc(qTitle(x.q))}</a><span class="mono">${x.v}%</span><div class="track"><i class="wrap" style="width:${x.v}%"></i></div></div>`).join("");
 
   $app.innerHTML = `
     <div class="page-head">
@@ -1809,7 +1809,7 @@ function drawCompare() {
 
   $app.innerHTML = `
     <div class="page-head">
-      <div><p class="eyebrow">Best practices & footprint</p><h1>Compare productions</h1>
+      <div><p class="eyebrow">Best practices & footprint</p><h1>Analysis</h1>
         <p class="muted" style="max-width:66ch">Split submitted productions into those that follow best practices and those that don't, then compare their carbon, electricity, fuel, water and waste. Amounts are per shoot day so productions of different lengths compare fairly.</p></div>
     </div>
     <div class="panel cmp-controls">
@@ -1889,8 +1889,8 @@ function drawCompare() {
     </section>`;
 
   // Controls
-  document.getElementById("cmp-mode").addEventListener("change", (e) => { S.cmp.mode = e.target.value; history.replaceState(null, "", S.cmp.mode === "practice" ? "#compare-" + S.cmp.q : "#compare"); drawCompare(); });
-  document.getElementById("cmp-q")?.addEventListener("change", (e) => { S.cmp.q = +e.target.value; history.replaceState(null, "", "#compare-" + S.cmp.q); drawCompare(); });
+  document.getElementById("cmp-mode").addEventListener("change", (e) => { S.cmp.mode = e.target.value; history.replaceState(null, "", S.cmp.mode === "practice" ? "#analysis-" + S.cmp.q : "#analysis"); drawCompare(); });
+  document.getElementById("cmp-q")?.addEventListener("change", (e) => { S.cmp.q = +e.target.value; history.replaceState(null, "", "#analysis-" + S.cmp.q); drawCompare(); });
   const th = document.getElementById("cmp-th");
   th?.addEventListener("input", () => { document.getElementById("cmp-th-out").textContent = th.value + "%"; });
   th?.addEventListener("change", () => { S.cmp.threshold = +th.value; drawCompare(); document.getElementById("cmp-th")?.focus(); });
@@ -1899,7 +1899,7 @@ function drawCompare() {
   $app.querySelectorAll("tr[data-metric]").forEach((tr) => tr.addEventListener("click", () => { S.cmp.metric = tr.dataset.metric; drawCompare(); }));
   document.getElementById("impactAll")?.addEventListener("click", () => { S.cmpShowAll = !S.cmpShowAll; drawCompare(); document.getElementById("impactAll")?.focus(); });
   $app.querySelectorAll(".impact tr[data-q]").forEach((tr) => tr.addEventListener("click", () => {
-    S.cmp.q = +tr.dataset.q; S.cmp.mode = "practice"; history.replaceState(null, "", "#compare-" + S.cmp.q); drawCompare(); window.scrollTo({ top: 0, behavior: "smooth" });
+    S.cmp.q = +tr.dataset.q; S.cmp.mode = "practice"; history.replaceState(null, "", "#analysis-" + S.cmp.q); drawCompare(); window.scrollTo({ top: 0, behavior: "smooth" });
   }));
 
   // Filters (redraw, then put focus back on the control the viewer used)
