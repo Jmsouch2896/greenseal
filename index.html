@@ -1010,7 +1010,7 @@ function route() {
   const m = h.match(/^app-(\d+)$/);
   if (h === "new") return openApp(null);
   if (m) return openApp(+m[1]);
-  if (h === "people" && isStaff()) return renderPeople("users");
+  if ((h === "admin" || h === "people") && isStaff()) return renderPeople("users");
   if (h === "contacts" && isStaff()) return renderPeople("contacts");
   if (h === "companies" && isStaff()) return renderPeople("companies");
   if (h === "account") return renderAccount();
@@ -1027,11 +1027,11 @@ function route() {
 
 function renderBar() {
   const h = location.hash.slice(1);
-  const cur = h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
   document.getElementById("bar").innerHTML = `
     ${brandHTML()}
-    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#analysis", "Analysis") : ""}${link("list", "#applications", "Applications")}${isStaff() ? link("questions", "#questions", "Questions") + link("people", "#people", "People") + link("design", "#design", "Design") : ""}</nav>
+    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#analysis", "Analysis") : ""}${link("list", "#applications", "Applications")}${isStaff() ? link("questions", "#questions", "Questions") + link("people", "#admin", "Admin") + link("design", "#design", "Design") : ""}</nav>
     <div class="who"><div class="bell-wrap" id="bell"></div><a class="me-link" href="#account" title="My account">${esc(S.me.full_name || S.me.email)}</a><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
   document.getElementById("signOut")?.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = ""; });
   if (S.me) drawBell();
@@ -2750,11 +2750,11 @@ async function renderPeople(tab = "users") {
     (S.contactUse[x.contact_id] ||= new Set()).add(x.production_id);
   S.peopleSearch ??= ""; S.peopleFilter ??= "all"; S.contactDept ??= ""; S.showArchived ??= false;
   $app.innerHTML = `
-    <div class="page-head"><div><p class="eyebrow">Staff</p><h1>People</h1></div>
+    <div class="page-head"><div><p class="eyebrow">Staff</p><h1>Admin</h1></div>
       <div class="head-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="primary" id="addPersonBtn">${tab === "contacts" ? "Add a contact" : tab === "companies" ? "Add a company" : "Add a person"}</button>
       <div class="seg" role="tablist" aria-label="People">
-        <button role="tab" aria-pressed="${tab === "users"}" data-ptab="people">Portal users <span class="cnt mono">${S.people.length}</span></button>
+        <button role="tab" aria-pressed="${tab === "users"}" data-ptab="admin">Portal users <span class="cnt mono">${S.people.length}</span></button>
         <button role="tab" aria-pressed="${tab === "contacts"}" data-ptab="contacts">Contacts <span class="cnt mono">${S.contacts.filter((c) => !c.archived).length}</span></button>
         <button role="tab" aria-pressed="${tab === "companies"}" data-ptab="companies">Companies <span class="cnt mono">${S.companies.filter((c) => !c.archived).length}</span></button>
       </div></div></div>
