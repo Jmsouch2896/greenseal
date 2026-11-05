@@ -272,6 +272,39 @@ body:has(.actions) main { padding-bottom: 140px; }
 .practice .track { grid-column: 1 / -1; height: 6px; }
 .practice .mono { text-align: right; }
 .export { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Activity & comments */
+.activity { margin-top: 22px; scroll-margin-top: 16px; }
+#toActivity { white-space: nowrap; }
+.activity .block-head { align-items: center; flex-wrap: wrap; }
+.activity .seg button { border: 0; border-radius: 0; padding: 7px 12px; font-size: .84rem; }
+.activity .seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.composer { display: grid; gap: 10px; margin-bottom: 18px; }
+.composer textarea { width: 100%; resize: vertical; min-height: 4.5rem; }
+.composer-row { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.seg.vis { border: 1px solid var(--line); padding: 0; margin: 0; }
+.seg.vis label { position: relative; cursor: pointer; }
+.seg.vis input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg.vis span { display: block; padding: 7px 12px; font-size: .86rem; font-weight: 600; }
+.seg.vis small { display: block; font-weight: 400; color: var(--muted); font-size: .76rem; }
+.seg.vis label + label span { border-left: 1px solid var(--line); }
+.seg.vis input:checked + span { background: var(--accent-soft); box-shadow: inset 0 -3px 0 var(--accent); }
+.seg.vis input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.timeline > li { padding: 10px 0; border-top: 1px solid var(--line); }
+.timeline > li:first-child { border-top: 0; }
+.tl-event { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto; gap: 8px; align-items: baseline; font-size: .9rem; color: var(--muted); }
+.tl-event b { color: var(--ink); font-weight: 600; }
+.tl-ico { text-align: center; color: var(--accent); }
+.timeline time { font: .78rem var(--mono); color: var(--muted); white-space: nowrap; }
+.tl-comment { padding: 12px 14px !important; margin: 6px 0; border: 1px solid var(--line) !important; border-radius: var(--r); background: var(--surface); }
+.tl-comment.internal { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 30%, var(--line)) !important; }
+.tl-comment + li { border-top: 0; }
+.tl-head { display: flex; gap: 8px 10px; align-items: baseline; flex-wrap: wrap; }
+.tl-head time { margin-left: auto; }
+.tl-body { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tag-internal { background: var(--warn); color: var(--surface); }
+.tag-shared { background: var(--info-soft); color: var(--info); }
+@media (max-width: 600px) { .tl-event { grid-template-columns: 1.4rem minmax(0, 1fr); } .tl-event time { grid-column: 2; } }
 .page-head > .export { flex: 1 1 auto; justify-content: flex-end; }
 .chart-block [data-astable] { white-space: nowrap; }
 /* Dashboard layout (rearrangeable) */
@@ -970,6 +1003,7 @@ async function start() {
 function route() {
   if (!S.me) return;
   if (location.hash.slice(1) !== "design" && S.theme) applyTheme(S.theme); // drop any unsaved preview
+  if (S.actChannel) { sb.removeChannel(S.actChannel); S.actChannel = null; }
   S.dashRO?.disconnect(); S.dashRO = null; document.getElementById("chartDlg")?.close?.();
   $actions.innerHTML = "";
   const h = location.hash.slice(1);
@@ -1001,6 +1035,107 @@ function renderBar() {
     <div class="who"><div class="bell-wrap" id="bell"></div><a class="me-link" href="#account" title="My account">${esc(S.me.full_name || S.me.email)}</a><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
   document.getElementById("signOut")?.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = ""; });
   if (S.me) drawBell();
+}
+
+// ── Activity log & comments (application page) ─────────────────────────────
+// Events are written by database triggers (status, reviewer, details, footprint,
+// answers, scoring, evidence). Comments are permanent; internal ones are for
+// reviewers and staff only, shared ones are visible to the submitter too.
+const FIELD_LABELS = Object.fromEntries([...DETAILS.map(([k, l]) => [k, l]), ...FOOTPRINT.map(([k, l]) => [k, l])]);
+const whoName = (id) => (!id ? "System" : id === S.me.id ? "You" : personName(id) || (isReviewerish() ? "Former user" : "EMA reviewer"));
+function eventText(e) {
+  const d = e.detail || {}, n = d.count || 1, fields = (d.fields || []).map((f) => FIELD_LABELS[f] || f);
+  const list = (arr) => (arr.length > 3 ? `${arr.slice(0, 3).join(", ")} and ${arr.length - 3} more` : arr.join(", "));
+  switch (e.kind) {
+    case "created": return "started the application";
+    case "status": {
+      if (d.from === "draft" && d.to === "submitted") return "submitted the application";
+      return { draft: "returned it to draft for changes", submitted: "moved it back to Submitted", in_review: "moved it to In review", approved: "approved the application", rejected: "marked it Not approved" }[d.to] || `changed the status to ${STATUS[d.to] || d.to}`;
+    }
+    case "assigned": return !d.to ? "removed the assigned reviewer" : d.to === e.actor ? "took this application for review" : `assigned it to ${personName(d.to) || "a reviewer"}`;
+    case "details": return `edited production details${fields.length ? ` (${list(fields)})` : ""}`;
+    case "footprint": return `updated the footprint${fields.length ? ` (${list(fields)})` : ""}`;
+    case "answers": { const st = (d.stages || []).map((s) => (s === "prep" ? "prep" : "wrap")); return `saved ${n} answer${n === 1 ? "" : "s"}${st.length ? ` at ${st.join(" and ")}` : ""}`; }
+    case "scoring": return `updated verified points or notes on ${n} action${n === 1 ? "" : "s"}`;
+    case "evidence_added": return `uploaded evidence: ${d.file || "a file"}`;
+    case "evidence_removed": return `removed evidence: ${d.file || "a file"}`;
+    default: return e.kind;
+  }
+}
+const EVENT_ICON = { created: "＋", status: "◆", assigned: "◎", details: "✎", footprint: "✎", answers: "✓", scoring: "★", evidence_added: "⇪", evidence_removed: "⇩" };
+function activityComposer(app) {
+  const own = app.submitted_by === S.me.id;
+  if (!isReviewerish() && !own) return "";
+  return `<form class="composer" id="composer" novalidate>
+    <label class="sr" for="cm-body">Comment</label>
+    <textarea id="cm-body" rows="3" maxlength="5000" placeholder="${isReviewerish() ? "Add a note or a comment for the submitter" : "Ask the reviewers a question or reply to a comment"}"></textarea>
+    <div class="composer-row">
+      ${isReviewerish() ? `<fieldset class="seg vis" aria-label="Who can see it">
+        <label><input type="radio" name="cm-vis" value="internal" ${S.cmVis !== "shared" ? "checked" : ""}><span>Internal note <small>reviewers &amp; staff</small></span></label>
+        <label><input type="radio" name="cm-vis" value="shared" ${S.cmVis === "shared" ? "checked" : ""}><span>Comment <small>submitter sees it too</small></span></label></fieldset>`
+        : `<span class="muted small">Reviewers and EMA staff will see this.</span>`}
+      <button class="primary" type="submit">Post</button>
+    </div></form>`;
+}
+async function loadActivity(pid) {
+  const [c, e] = await Promise.all([
+    sb.from("application_comments").select("*").eq("production_id", pid).order("created_at", { ascending: false }).limit(300),
+    sb.from("application_events").select("*").eq("production_id", pid).order("updated_at", { ascending: false }).limit(300),
+  ]);
+  if (S.current?.app?.production_id !== pid) return;
+  S.activity = { pid, comments: c.error ? [] : c.data, events: e.error ? [] : e.data.filter((x) => x.kind !== "comment" && x.kind !== "note"), error: c.error || e.error };
+  drawTimeline();
+}
+function drawTimeline() {
+  const el = document.getElementById("timeline"); if (!el || !S.activity) return;
+  const f = S.actFilter || "all", A = S.activity;
+  const items = [
+    ...(f !== "events" ? A.comments.map((c) => ({ t: c.created_at, c })) : []),
+    ...(f !== "comments" ? A.events.map((e) => ({ t: e.updated_at || e.created_at, e })) : []),
+  ].sort((x, y) => new Date(y.t) - new Date(x.t));
+  const cnt = document.getElementById("actCount"); if (cnt) cnt.textContent = A.comments.length ? ` (${A.comments.length} comment${A.comments.length === 1 ? "" : "s"})` : "";
+  const when = (iso) => `<time datetime="${esc(iso)}" title="${esc(new Date(iso).toLocaleString())}">${esc(since(iso))}</time>`;
+  el.innerHTML = A.error && !items.length ? `<li class="muted">Couldn't load activity. ${esc(friendly(A.error))}</li>`
+    : items.map(({ c, e }) => c ? `<li class="tl-comment ${c.internal ? "internal" : "shared"}" data-cid="${c.comment_id}">
+        <div class="tl-head"><b>${esc(whoName(c.author))}</b>${c.internal ? '<span class="tag tag-internal">Internal note</span>' : !isReviewerish() ? "" : c.author && c.author === S.current?.app?.submitted_by ? '<span class="tag tag-shared">From the submitter</span>' : '<span class="tag tag-shared">Shared with submitter</span>'}${when(c.created_at)}
+          ${isStaff() ? `<button type="button" class="link danger small" data-delc>Remove</button>` : ""}</div>
+        <p class="tl-body">${esc(c.body)}</p></li>`
+      : `<li class="tl-event"><span class="tl-ico" aria-hidden="true">${EVENT_ICON[e.kind] || "•"}</span><span><b>${esc(whoName(e.actor))}</b> ${esc(eventText(e))}</span>${when(e.updated_at || e.created_at)}</li>`).join("")
+      || `<li class="muted">${f === "comments" ? "No comments yet." : "Nothing recorded yet. Changes made from now on will show here."}</li>`;
+  el.querySelectorAll("[data-delc]").forEach((b) => b.addEventListener("click", async () => {
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm remove?"; return; }
+    const id = +b.closest("li").dataset.cid;
+    const { error } = await sb.from("application_comments").delete().eq("comment_id", id);
+    if (error) return fail(error);
+    A.comments = A.comments.filter((x) => x.comment_id !== id); drawTimeline(); toast("Comment removed");
+  }));
+}
+function wireActivity(app) {
+  const pid = app.production_id;
+  document.getElementById("toActivity")?.addEventListener("click", () => { const s = document.getElementById("activity"); s.scrollIntoView({ behavior: "smooth", block: "start" }); document.getElementById("cm-body")?.focus({ preventScroll: true }); });
+  document.querySelectorAll("[data-actf]").forEach((b) => b.addEventListener("click", () => {
+    S.actFilter = b.dataset.actf; document.querySelectorAll("[data-actf]").forEach((x) => x.setAttribute("aria-pressed", x === b)); drawTimeline();
+  }));
+  document.querySelectorAll("input[name=cm-vis]").forEach((r) => r.addEventListener("change", () => (S.cmVis = r.value)));
+  document.getElementById("composer")?.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const ta = document.getElementById("cm-body"), body = ta.value.trim();
+    if (!body) { ta.focus(); return toast("Write something first.", "bad"); }
+    const internal = isReviewerish() ? document.querySelector("input[name=cm-vis]:checked")?.value !== "shared" : false;
+    const btn = ev.currentTarget.querySelector("button[type=submit]"); btn.disabled = true;
+    const { data, error } = await sb.from("application_comments").insert({ production_id: pid, author: S.me.id, body, internal }).select().single();
+    btn.disabled = false;
+    if (error) return fail(error);
+    if (!S.activity.comments.some((x) => x.comment_id === data.comment_id)) S.activity.comments.unshift(data);
+    ta.value = ""; drawTimeline(); toast(internal ? "Internal note posted" : "Comment posted");
+  });
+  // Live: new comments from others appear without reloading.
+  if (S.actChannel) sb.removeChannel(S.actChannel);
+  S.actChannel = sb.channel("comments-" + pid)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "application_comments", filter: `production_id=eq.${pid}` }, (p) => {
+      if (S.activity?.pid !== pid || S.activity.comments.some((x) => x.comment_id === p.new.comment_id)) return;
+      S.activity.comments.unshift(p.new); drawTimeline();
+    }).subscribe();
 }
 
 // ── Notifications bell ─────────────────────────────────────────────────────
@@ -1357,7 +1492,7 @@ function drawApp() {
     <div class="page-head">
       <div><p class="eyebrow">${isNew ? "New application" : "Application #" + app.production_id}</p>
         <h1>${esc(app.production_name || "Untitled production")}</h1>
-        ${isNew ? "" : `<div class="meta">${pill(app.status)}${app.submission_date ? `<span>Submitted ${esc(date(app.submission_date))}</span>` : ""}${app.source_file ? `<span class="mono">${esc(app.source_file)}</span>` : ""}${isReviewerish() && app.submitted_by ? `<span>By ${esc(personName(app.submitted_by) || "unknown")}</span>` : ""}</div>`}
+        ${isNew ? "" : `<div class="meta">${pill(app.status)}${app.submission_date ? `<span>Submitted ${esc(date(app.submission_date))}</span>` : ""}${app.source_file ? `<span class="mono">${esc(app.source_file)}</span>` : ""}${isReviewerish() && app.submitted_by ? `<span>By ${esc(personName(app.submitted_by) || "unknown")}</span>` : ""}<button type="button" class="link" id="toActivity">Activity &amp; comments<span id="actCount"></span></button></div>`}
       </div>
     </div>
     <div class="panel tally" id="tally"></div>
@@ -1378,6 +1513,13 @@ function drawApp() {
           <label class="field"><span>Assigned reviewer</span><select id="rv-assign"><option value="">Unassigned</option>${reviewers.map((p) => `<option value="${esc(p.id)}" ${app.assigned_reviewer === p.id ? "selected" : ""}>${esc(p.full_name || p.email)}</option>`).join("")}</select></label>
         </div></section>` : ""}
     </form>
+    ${isNew ? "" : `<section class="panel block activity" id="activity" aria-labelledby="actTitle">
+      <div class="block-head"><h2 id="actTitle">Activity &amp; comments</h2>
+        <div class="seg" role="group" aria-label="Show">${[["all", "All"], ["comments", "Comments"], ["events", "Activity"]].map(([k, l]) => `<button type="button" data-actf="${k}" aria-pressed="${(S.actFilter || "all") === k}">${l}</button>`).join("")}</div></div>
+      <div class="block-body">
+        ${activityComposer(app)}
+        <ol class="timeline" id="timeline"><li class="muted">Loading activity…</li></ol>
+      </div></section>`}
     <datalist id="contact-names">${contactOptions()}</datalist>
     <datalist id="studio-names">${companyOptions("studio")}</datalist>
     <datalist id="types"><option value="Film"><option value="Television"><option value="Commercial"><option value="Music video"></datalist>
@@ -1406,7 +1548,7 @@ function drawApp() {
   document.getElementById("openAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = true)));
   document.getElementById("closeAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = false)));
   updateTally();
-  if (!isNew) loadEvidence();
+  if (!isNew) { loadEvidence(); loadActivity(app.production_id); wireActivity(app); }
 }
 
 // ── Evidence files ─────────────────────────────────────────────────────────
@@ -1584,6 +1726,7 @@ function drawActions() {
 }
 
 async function saveApp({ submit = false } = {}) {
+  setTimeout(() => S.current?.app?.production_id && loadActivity(S.current.app.production_id), 1200);
   let { app } = S.current; const P = perms(app); const { fd, checked } = readForm();
   let id = app.production_id;
   setBusy(true);
