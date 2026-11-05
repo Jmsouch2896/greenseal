@@ -579,7 +579,7 @@ const DETAILS = [
   ["production_type", "Type", false, "types"],
   ["production_sub_type", "Format", false, "subtypes"],
   ["production_location", "Location"],
-  ["studio_affiliation", "Studio"],
+  ["studio_affiliation", "Studio", false, "studio-names"],
   ["upm", "UPM (unit production manager)"],
   ["poc", "Point of contact"],
   ["spr", "SPR"],
@@ -676,15 +676,40 @@ async function reloadQuestions() {
   S.qs = q.data; S.allDepts = d.data;
   S.depts = d.data.filter((x) => S.qs.some((y) => y.department_id === x.department_id));
 }
-// Crew contacts: people named as having answered a department or an action.
+// Contacts: people named as having answered a department or an action.
 const norm = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
 const contactById = (id) => (S.contacts || []).find((c) => c.contact_id === id) || null;
 const contactByName = (name) => (S.contacts || []).find((c) => !c.archived && norm(c.full_name) === norm(name)) || null;
 async function loadContacts() {
-  const r = await fetchAll(() => sb.from("contacts").select("*").order("full_name").order("contact_id"));
+  const [r, c] = await Promise.all([
+    fetchAll(() => sb.from("contacts").select("*").order("full_name").order("contact_id")),
+    fetchAll(() => sb.from("companies").select("*").order("name").order("company_id")),
+  ]);
   S.contacts = r.error ? [] : r.data;
+  S.companies = c.error ? [] : c.data;
   return S.contacts;
 }
+// Companies: studios, production companies and vendors. Productions and contacts store the name.
+const COMPANY_KINDS = [["studio", "Studio"], ["production_company", "Production company"], ["vendor", "Vendor"], ["other", "Other"]];
+const kindLabel = (k) => COMPANY_KINDS.find(([v]) => v === k)?.[1] || "";
+const companyById = (id) => (S.companies || []).find((c) => c.company_id === id) || null;
+const companyByName = (name) => (S.companies || []).find((c) => norm(c.name) === norm(name)) || null;
+// Add a company the first time its name is used; a missing type is filled in when known.
+async function ensureCompany(name, kind = null) {
+  const clean = String(name || "").trim().replace(/\s+/g, " ");
+  if (!clean) return null;
+  const c = companyByName(clean);
+  if (c) {
+    if (kind && !c.kind && isStaff()) { const { error } = await sb.from("companies").update({ kind }).eq("company_id", c.company_id); if (!error) c.kind = kind; }
+    return c;
+  }
+  const { data, error } = await sb.from("companies").insert({ name: clean, kind, created_by: S.me.id }).select().single();
+  if (error) { if (error.code !== "23505") console.warn("Couldn't add company", error); return null; } // someone else just added it
+  (S.companies ||= []).push(data); S.companies.sort((a, b) => a.name.localeCompare(b.name));
+  return data;
+}
+const companyOptions = (kind) => (S.companies || []).filter((c) => !c.archived && (!kind || !c.kind || c.kind === kind))
+  .map((c) => `<option value="${esc(c.name)}">${esc([kindLabel(c.kind), c.location].filter(Boolean).join(" · "))}</option>`).join("");
 // Find a contact by name, or add one. Fills in a missing title/department on contacts the user may edit.
 async function ensureContact(name, title, deptId) {
   const clean = String(name || "").trim().replace(/\s+/g, " ");
@@ -850,6 +875,7 @@ function route() {
   if (m) return openApp(+m[1]);
   if (h === "people" && isStaff()) return renderPeople("users");
   if (h === "contacts" && isStaff()) return renderPeople("contacts");
+  if (h === "companies" && isStaff()) return renderPeople("companies");
   if (h === "account") return renderAccount();
   if (h === "design" && isStaff()) return renderDesign();
   if (h === "questions" && isStaff()) return renderQuestions();
@@ -864,7 +890,7 @@ function route() {
 
 function renderBar() {
   const h = location.hash.slice(1);
-  const cur = h === "people" || h === "contacts" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const cur = h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
   document.getElementById("bar").innerHTML = `
     ${brandHTML()}
@@ -1250,6 +1276,7 @@ function drawApp() {
         </div></section>` : ""}
     </form>
     <datalist id="contact-names">${contactOptions()}</datalist>
+    <datalist id="studio-names">${companyOptions("studio")}</datalist>
     <datalist id="types"><option value="Film"><option value="Television"><option value="Commercial"><option value="Music video"></datalist>
     <datalist id="subtypes"><option value="Feature"><option value="MOW"><option value="Half Hour"><option value="Hour"><option value="Limited series"></datalist>`;
 
@@ -1475,6 +1502,7 @@ async function saveApp({ submit = false } = {}) {
         const { error } = await sb.from("productions").update(det).eq("production_id", id);
         if (error) throw error;
       }
+      if (det.studio_affiliation) await ensureCompany(det.studio_affiliation, "studio");
     }
     // Who answered: department level, then per-answer overrides.
     const byQ = {};
@@ -1974,12 +2002,15 @@ async function renderPeople(tab = "users") {
   renderBar();
   S.peopleTab = tab;
   $app.innerHTML = `<p class="loading">Loading people…</p>`;
-  const [p, da, r] = await Promise.all([
+  const [p, da, r, , prods] = await Promise.all([
     sb.from("profiles").select("id,full_name,email,role,title,created_at,deactivated_at").order("created_at"),
     fetchAll(() => sb.from("department_answerers").select("production_id,contact_id").order("production_id")),
     fetchAll(() => sb.from("responses").select("production_id,answered_by").not("answered_by", "is", null).order("response_id")),
     loadContacts(),
+    fetchAll(() => sb.from("productions").select("production_id,studio_affiliation").order("production_id")),
   ]);
+  S.studioUse = {};
+  for (const x of prods.data || []) if (x.studio_affiliation) S.studioUse[norm(x.studio_affiliation)] = (S.studioUse[norm(x.studio_affiliation)] || 0) + 1;
   if (p.error) { fail(p.error); $app.innerHTML = notice("Couldn't load people", friendly(p.error)); return; }
   S.people = p.data;
   S.contactUse = {};
@@ -1989,14 +2020,15 @@ async function renderPeople(tab = "users") {
   $app.innerHTML = `
     <div class="page-head"><div><p class="eyebrow">Staff</p><h1>People</h1></div>
       <div class="head-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="primary" id="addPersonBtn">${tab === "contacts" ? "Add a contact" : "Add a person"}</button>
+      <button class="primary" id="addPersonBtn">${tab === "contacts" ? "Add a contact" : tab === "companies" ? "Add a company" : "Add a person"}</button>
       <div class="seg" role="tablist" aria-label="People">
         <button role="tab" aria-pressed="${tab === "users"}" data-ptab="people">Portal users <span class="cnt mono">${S.people.length}</span></button>
-        <button role="tab" aria-pressed="${tab === "contacts"}" data-ptab="contacts">Crew contacts <span class="cnt mono">${S.contacts.filter((c) => !c.archived).length}</span></button>
+        <button role="tab" aria-pressed="${tab === "contacts"}" data-ptab="contacts">Contacts <span class="cnt mono">${S.contacts.filter((c) => !c.archived).length}</span></button>
+        <button role="tab" aria-pressed="${tab === "companies"}" data-ptab="companies">Companies <span class="cnt mono">${S.companies.filter((c) => !c.archived).length}</span></button>
       </div></div></div>
     <div id="peopleBody"></div>`;
   $app.querySelectorAll("[data-ptab]").forEach((b) => b.addEventListener("click", () => { location.hash = b.dataset.ptab; }));
-  tab === "contacts" ? drawContacts() : drawUsers();
+  tab === "contacts" ? drawContacts() : tab === "companies" ? drawCompanies() : drawUsers();
   document.getElementById("addPersonBtn").addEventListener("click", () => {
     const box = document.querySelector("#peopleBody .addbox"); if (!box) return;
     box.open = true; box.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2165,7 +2197,7 @@ function deleteRow(x) {
       ${r ? `<p>${r} application${r === 1 ? " is" : "s are"} assigned to them for review and will become unassigned.</p>` : ""}`;
   }
   return `<tr class="delrow"><td colspan="6"><div class="delbox" role="group" aria-label="Delete ${name}">
-    <p><b>Delete ${name} permanently?</b> They can't sign in again and this can't be undone. Answers, reviews and crew contacts they entered stay in the portal.</p>
+    <p><b>Delete ${name} permanently?</b> They can't sign in again and this can't be undone. Answers, reviews, contacts and companies they entered stay in the portal.</p>
     ${body}
     <label class="field"><span>Type <b>delete</b> to confirm</span><input id="delType" autocomplete="off" spellcheck="false"></label>
     <div class="row-actions"><button class="danger-fill" id="delConfirm" ${info ? "" : "disabled"}>Delete permanently</button><button id="delCancel">Cancel</button></div>
@@ -2187,7 +2219,7 @@ function drawContacts() {
         <label class="field"><span>Full name *</span><input id="nc-name" autocomplete="off"></label>
         <label class="field"><span>Title</span><input id="nc-title" placeholder="e.g. Gaffer" autocomplete="off"></label>
         <label class="field"><span>Department</span><select id="nc-dept">${deptOpts("")}</select></label>
-        <label class="field"><span>Company</span><input id="nc-company" autocomplete="off"></label>
+        <label class="field"><span>Company</span><input id="nc-company" list="company-names" autocomplete="off"></label>
         <label class="field"><span>Email</span><input id="nc-email" type="email" autocomplete="off"></label>
         <label class="field"><span>Phone</span><input id="nc-phone" autocomplete="off"></label>
         <div class="add-actions"><button class="primary" type="submit">Add contact</button></div>
@@ -2204,7 +2236,7 @@ function drawContacts() {
           <td><div class="namecell"><input class="inline" data-k="full_name" value="${esc(c.full_name)}" aria-label="Name">
             <input class="inline sub" data-k="title" value="${esc(c.title)}" aria-label="Title" placeholder="Add a title"></div></td>
           <td><select class="inline" data-k="department_id" aria-label="Department">${deptOpts(c.department_id ?? "")}</select></td>
-          <td><input class="inline" data-k="company" value="${esc(c.company)}" aria-label="Company" placeholder="–"></td>
+          <td><input class="inline" data-k="company" list="company-names" value="${esc(c.company)}" aria-label="Company" placeholder="–"></td>
           <td><div class="namecell"><input class="inline small" data-k="email" value="${esc(c.email)}" aria-label="Email" placeholder="Email">
             <input class="inline small sub" data-k="phone" value="${esc(c.phone)}" aria-label="Phone" placeholder="Phone"></div></td>
           <td class="num mono">${S.contactUse[c.contact_id]?.size || 0}</td>
@@ -2212,6 +2244,7 @@ function drawContacts() {
             <button class="link ${c.archived ? "" : "danger"}" data-archive>${c.archived ? "Restore" : "Archive"}</button></td>
         </tr>`).join("") || `<tr><td colspan="6" class="muted">No contacts match.</td></tr>`}</tbody>
     </table></div>
+    <datalist id="company-names">${companyOptions()}</datalist>
     <p class="muted small" style="margin-top:10px">Contacts are added automatically when someone types a new name under "Answered by". Archived contacts stay on past applications but aren't suggested any more. Edit a field, then click away to save.</p>`;
   const contactBox = el.querySelector(".addbox");
   contactBox.addEventListener("toggle", () => (S.addContactOpen = contactBox.open));
@@ -2226,6 +2259,7 @@ function drawContacts() {
     if (contactByName(row.full_name)) return toast(`${row.full_name} is already a contact.`, "bad");
     const { data, error } = await sb.from("contacts").insert(row).select().single();
     if (error) return fail(error);
+    if (row.company) await ensureCompany(row.company);
     S.contacts.push(data); S.contacts.sort((a, b) => a.full_name.localeCompare(b.full_name)); S.addContactOpen = true;
     toast(`${row.full_name} added`); drawContacts(); document.getElementById("nc-name")?.focus();
   });
@@ -2235,6 +2269,7 @@ function drawContacts() {
     if (k === "full_name" && !v) { toast("A contact needs a name.", "bad"); inp.value = contactById(id).full_name; return; }
     const { error } = await sb.from("contacts").update({ [k]: v }).eq("contact_id", id);
     if (error) return fail(error);
+    if (k === "company" && v) await ensureCompany(v);
     Object.assign(contactById(id), { [k]: v }); toast("Saved");
   }));
   el.querySelectorAll("[data-archive]").forEach((b) => b.addEventListener("click", async () => {
@@ -2242,6 +2277,95 @@ function drawContacts() {
     const { error } = await sb.from("contacts").update({ archived: !c.archived }).eq("contact_id", id);
     if (error) return fail(error);
     c.archived = !c.archived; toast(`${c.full_name} ${c.archived ? "archived" : "restored"}`); drawContacts();
+  }));
+}
+
+function drawCompanies() {
+  const el = document.getElementById("peopleBody");
+  const q = norm(S.peopleSearch), kf = S.companyKind ?? "";
+  const addedBy = (id) => S.people.find((p) => p.id === id)?.full_name || "";
+  const contactsAt = (c) => S.contacts.filter((x) => norm(x.company) === norm(c.name)).length;
+  const rows = S.companies.filter((c) => (S.showArchived || !c.archived) && (!kf || (kf === "none" ? !c.kind : c.kind === kf)) &&
+    (!q || norm(`${c.name} ${c.location} ${c.website} ${c.notes}`).includes(q)));
+  const kindOpts = (sel) => `<option value="">Not set</option>${COMPANY_KINDS.map(([v, l]) => `<option value="${v}" ${sel === v ? "selected" : ""}>${l}</option>`).join("")}`;
+  const live = S.companies.filter((c) => !c.archived);
+  const counts = { "": live.length, none: live.filter((c) => !c.kind).length };
+  for (const [v] of COMPANY_KINDS) counts[v] = live.filter((c) => c.kind === v).length;
+  el.innerHTML = `
+    <details class="panel block addbox" ${S.addCompanyOpen ? "open" : ""}>
+      <summary class="block-head"><h2>Add a company</h2><span class="muted">Studios, production companies and vendors</span></summary>
+      <form id="addCompany" class="block-body grid" novalidate>
+        <label class="field"><span>Name *</span><input id="nco-name" autocomplete="off"></label>
+        <label class="field"><span>Type</span><select id="nco-kind">${kindOpts("")}</select></label>
+        <label class="field"><span>Location</span><input id="nco-location" placeholder="e.g. Atlanta, GA" autocomplete="off"></label>
+        <label class="field"><span>Website</span><input id="nco-website" type="url" placeholder="https://" autocomplete="off"></label>
+        <label class="field" style="grid-column:1/-1"><span>Notes</span><input id="nco-notes" autocomplete="off"></label>
+        <div class="add-actions"><button class="primary" type="submit">Add company</button></div>
+      </form>
+    </details>
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Type">${[["", "All"], ...COMPANY_KINDS, ["none", "Not set"]].map(([k, l]) =>
+        `<button class="chip" data-kf="${k}" aria-pressed="${kf === k}">${l} <span class="cnt mono">${counts[k] || 0}</span></button>`).join("")}</div>
+      <label class="check"><input type="checkbox" id="showArchived" ${S.showArchived ? "checked" : ""}>Show archived</label>
+      <input type="search" id="companySearch" placeholder="Search name, location or notes" value="${esc(S.peopleSearch)}" aria-label="Search companies">
+    </div>
+    <div class="panel table-scroll"><table class="ptable">
+      <thead><tr><th>Name</th><th>Type</th><th>Location &amp; website</th><th class="num">Productions</th><th class="num">Contacts</th><th class="num">Actions</th></tr></thead>
+      <tbody>${rows.map((c) => `<tr data-coid="${c.company_id}" class="${c.archived ? "off" : ""}">
+          <td><div class="namecell"><input class="inline" data-k="name" value="${esc(c.name)}" aria-label="Name">
+            <input class="inline sub" data-k="notes" value="${esc(c.notes)}" aria-label="Notes" placeholder="Add a note"></div></td>
+          <td><select class="inline" data-k="kind" aria-label="Type">${kindOpts(c.kind || "")}</select></td>
+          <td><div class="namecell"><input class="inline small" data-k="location" value="${esc(c.location)}" aria-label="Location" placeholder="Location">
+            <input class="inline small sub" data-k="website" value="${esc(c.website)}" aria-label="Website" placeholder="Website"></div></td>
+          <td class="num mono">${S.studioUse?.[norm(c.name)] || 0}</td>
+          <td class="num mono">${contactsAt(c)}</td>
+          <td class="num actions-cell"><span class="muted small">${addedBy(c.created_by) ? `Added by ${esc(addedBy(c.created_by))}` : ""}</span>
+            <button class="link ${c.archived ? "" : "danger"}" data-archive>${c.archived ? "Restore" : "Archive"}</button></td>
+        </tr>`).join("") || `<tr><td colspan="6" class="muted">No companies match.</td></tr>`}</tbody>
+    </table></div>
+    <p class="muted small" style="margin-top:10px">Companies are added automatically when someone types a new studio on an application or a new company on a contact, and they're suggested as people type. Renaming a company here also updates the applications and contacts that use it. Productions counts applications with this company as their studio. Archived companies aren't suggested any more. Edit a field, then click away to save.</p>`;
+  const box = el.querySelector(".addbox");
+  box.addEventListener("toggle", () => (S.addCompanyOpen = box.open));
+  document.getElementById("companySearch").addEventListener("input", (e) => { S.peopleSearch = e.target.value; const pos = e.target.selectionStart; drawCompanies(); const s = document.getElementById("companySearch"); s.focus(); s.setSelectionRange(pos, pos); });
+  el.querySelectorAll("[data-kf]").forEach((b) => b.addEventListener("click", () => { S.companyKind = b.dataset.kf; drawCompanies(); }));
+  document.getElementById("showArchived").addEventListener("change", (e) => { S.showArchived = e.target.checked; drawCompanies(); });
+  const okUrl = (v) => !v || /^https?:\/\/\S+\.\S+/i.test(v);
+  document.getElementById("addCompany").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = (id) => document.getElementById(id).value.trim().replace(/\s+/g, " ") || null;
+    const row = { name: v("nco-name"), kind: v("nco-kind"), location: v("nco-location"), website: v("nco-website"), notes: v("nco-notes"), created_by: S.me.id };
+    if (!row.name) return toast("Enter the company's name.", "bad");
+    if (companyByName(row.name)) return toast(`${row.name} is already listed.`, "bad");
+    if (row.website && !/^https?:\/\//i.test(row.website)) row.website = "https://" + row.website;
+    if (!okUrl(row.website)) return toast("Enter a full website address, like https://example.com.", "bad");
+    const { data, error } = await sb.from("companies").insert(row).select().single();
+    if (error) return fail(error.code === "23505" ? new Error(`${row.name} is already listed.`) : error);
+    S.companies.push(data); S.companies.sort((a, b) => a.name.localeCompare(b.name)); S.addCompanyOpen = true;
+    toast(`${row.name} added`); drawCompanies(); document.getElementById("nco-name")?.focus();
+  });
+  el.querySelectorAll("tr[data-coid] .inline").forEach((inp) => inp.addEventListener("change", async () => {
+    const id = +inp.closest("tr").dataset.coid, k = inp.dataset.k, c = companyById(id);
+    let v = inp.value.trim().replace(/\s+/g, " ") || null;
+    if (k === "name" && !v) { toast("A company needs a name.", "bad"); inp.value = c.name; return; }
+    if (k === "name" && norm(v) !== norm(c.name) && companyByName(v)) { toast(`${v} is already listed.`, "bad"); inp.value = c.name; return; }
+    if (k === "website" && v && !/^https?:\/\//i.test(v)) v = "https://" + v;
+    if (k === "website" && !okUrl(v)) { toast("Enter a full website address, like https://example.com.", "bad"); return; }
+    const { error } = await sb.from("companies").update({ [k]: v }).eq("company_id", id);
+    if (error) return fail(error);
+    if (k === "name") { // the database renamed it on applications and contacts too
+      const old = norm(c.name);
+      if (S.studioUse?.[old]) { S.studioUse[norm(v)] = S.studioUse[old]; delete S.studioUse[old]; }
+      S.contacts.forEach((x) => { if (norm(x.company) === old) x.company = v; });
+      (S.apps || []).forEach((a) => { if (norm(a.studio_affiliation) === old) a.studio_affiliation = v; });
+    }
+    c[k] = v; if (k === "website") inp.value = v || "";
+    toast(k === "name" ? "Renamed everywhere it's used" : "Saved");
+  }));
+  el.querySelectorAll("[data-archive]").forEach((b) => b.addEventListener("click", async () => {
+    const id = +b.closest("tr").dataset.coid, c = companyById(id);
+    const { error } = await sb.from("companies").update({ archived: !c.archived }).eq("company_id", id);
+    if (error) return fail(error);
+    c.archived = !c.archived; toast(`${c.name} ${c.archived ? "archived" : "restored"}`); drawCompanies();
   }));
 }
 
