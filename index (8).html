@@ -1,0 +1,1845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>EMA Application Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
+<style>
+/* Layout: call-sheet ledger. Department blocks with PREP / WRAP columns, one sticky action bar. */
+:root {
+  --bg: #F2F4F1;
+  --surface: #FFFFFF;
+  --sunk: #E8ECE7;
+  --ink: #15211B;
+  --muted: #58675F;
+  --line: #D3DBD5;
+  --accent: #1D6447;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #DDEBE3;
+  --ok: #1B7346; --ok-soft: #DCEFE3;
+  --warn: #9A5F05; --warn-soft: #F6E8CF;
+  --bad: #A8352B; --bad-soft: #F6DEDA;
+  --info: #285C8A; --info-soft: #DCE7F2;
+  --display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Public Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --r: 6px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101713; --surface: #18211C; --sunk: #0C120F; --ink: #E5ECE7; --muted: #95A69C;
+    --line: #2B3730; --accent: #5FBF92; --accent-ink: #08130D; --accent-soft: #1C3328;
+    --ok: #6CC795; --ok-soft: #173325; --warn: #E2AE57; --warn-soft: #3A2C12;
+    --bad: #EE8A7F; --bad-soft: #3D1D19; --info: #8DB7E2; --info-soft: #1A2A3A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101713; --surface: #18211C; --sunk: #0C120F; --ink: #E5ECE7; --muted: #95A69C;
+  --line: #2B3730; --accent: #5FBF92; --accent-ink: #08130D; --accent-soft: #1C3328;
+  --ok: #6CC795; --ok-soft: #173325; --warn: #E2AE57; --warn-soft: #3A2C12;
+  --bad: #EE8A7F; --bad-soft: #3D1D19; --info: #8DB7E2; --info-soft: #1A2A3A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 var(--body);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+h1, h2, h3 { font-family: var(--display); font-stretch: 78%; line-height: 1.1; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 750; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+h3 { font-size: 1rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+p { margin: 0; }
+a { color: var(--accent); }
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.eyebrow, .label {
+  font: 600 .72rem/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+}
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Top bar */
+.bar { background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.bar .wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: var(--ink); }
+.brand b { font: 800 1.25rem/1 var(--display); font-stretch: 70%; letter-spacing: .02em; }
+.brand span { font-size: .85rem; color: var(--muted); }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav a { padding: 6px 10px; border-radius: var(--r); text-decoration: none; color: var(--muted); font-weight: 600; font-size: .9rem; }
+.nav a[aria-current="page"] { color: var(--ink); background: var(--sunk); }
+.who { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: .9rem; }
+
+/* Controls */
+button, .btn {
+  font: 600 .9rem/1 var(--body); border-radius: var(--r); padding: 10px 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+button:hover, .btn:hover { border-color: var(--muted); }
+button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button.primary:hover { filter: brightness(1.08); }
+button.danger { color: var(--bad); }
+button.link { border: 0; background: none; padding: 4px 0; color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .55; cursor: progress; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input, select, textarea {
+  font: 400 .95rem/1.4 var(--body); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 9px 10px; width: 100%; min-width: 0;
+}
+input:disabled, select:disabled, textarea:disabled { background: var(--sunk); color: var(--muted); }
+textarea { resize: vertical; }
+.field { display: grid; gap: 5px; }
+.field > span { font-size: .82rem; font-weight: 600; color: var(--muted); }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px;
+  font: 600 .75rem/1.4 var(--body); letter-spacing: .03em; white-space: nowrap;
+  background: var(--sunk); color: var(--muted);
+}
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.s-submitted { background: var(--info-soft); color: var(--info); }
+.s-in_review { background: var(--warn-soft); color: var(--warn); }
+.s-approved  { background: var(--ok-soft); color: var(--ok); }
+.s-rejected  { background: var(--bad-soft); color: var(--bad); }
+.role { background: var(--accent-soft); color: var(--accent); }
+.role::before { display: none; }
+
+main { padding-block: 28px 64px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.page-head > div { display: grid; gap: 6px; min-width: 0; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.notice { padding: 28px; display: grid; gap: 10px; justify-items: start; }
+.loading { color: var(--muted); padding: 40px 0; }
+
+/* List */
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { padding: 7px 11px; font-size: .84rem; border-radius: 999px; }
+.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.toolbar input[type=search] { max-width: 260px; margin-left: auto; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th { text-align: left; font: 600 .72rem/1.2 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 13px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+tbody tr.row { cursor: pointer; }
+tbody tr.row:hover td { background: var(--sunk); }
+td .name { font-weight: 650; color: var(--ink); text-decoration: none; }
+td .sub { font-size: .82rem; color: var(--muted); }
+.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Application */
+.back { display: inline-block; margin-bottom: 14px; font-weight: 600; text-decoration: none; }
+.meta { display: flex; gap: 8px 14px; flex-wrap: wrap; color: var(--muted); font-size: .9rem; }
+.tally { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 22px; }
+.tally > div { padding: 14px 16px; border-right: 1px solid var(--line); display: grid; gap: 4px; }
+.tally > div:last-child { border-right: 0; }
+.tally strong { font: 600 1.35rem/1 var(--mono); font-variant-numeric: tabular-nums; }
+.tally strong small { font-size: .8rem; color: var(--muted); font-weight: 400; }
+section.block { margin-bottom: 22px; }
+.block-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.block-body { padding: 18px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+
+.dept { border-top: 1px solid var(--line); }
+.dept:first-of-type { border-top: 0; }
+.dept-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 12px 18px; background: var(--sunk);
+}
+.dept-head .mono { font-size: .85rem; color: var(--muted); }
+.q { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 20px; padding: 16px 18px; border-top: 1px solid var(--line); }
+.dept-head + .q { border-top: 0; }
+.q-text { display: grid; gap: 6px; align-content: start; }
+.q-text p { font-weight: 550; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font: 500 .72rem/1.5 var(--mono); padding: 0 6px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
+.q-ans { display: flex; gap: 14px; align-items: start; }
+.yn { border: 0; margin: 0; padding: 0; display: grid; gap: 4px; }
+.yn legend { padding: 0; margin-bottom: 4px; }
+.yn .opts { display: flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.yn label { position: relative; padding: 7px 13px; font-weight: 600; font-size: .86rem; cursor: pointer; color: var(--muted); background: var(--surface); }
+.yn label + label { border-left: 1px solid var(--line); }
+.yn input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.yn label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -2px; }
+.yn label:has(input[value="yes" i]:checked) { background: var(--ok-soft); color: var(--ok); }
+.yn label:has(input[value="no" i]:checked) { background: var(--bad-soft); color: var(--bad); }
+.yn label:has(input:disabled) { cursor: default; }
+.q-wide { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.q-score { display: grid; grid-template-columns: 110px 110px minmax(0, 1fr); gap: 10px; padding: 12px; border-radius: var(--r); background: var(--accent-soft); }
+.q-score input { background: var(--surface); }
+.earned { font-size: .86rem; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+.earned b { color: var(--ink); font-family: var(--mono); }
+
+.confirm { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 12px 14px; border-radius: var(--r); background: var(--warn-soft); color: var(--ink); }
+.actions {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--line);
+  padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -4px 18px rgb(0 0 0 / .06);
+}
+body:has(.actions) main { padding-bottom: 140px; }
+.actions .wrap { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+.actions .hint { margin-right: auto; color: var(--muted); font-size: .88rem; }
+
+/* Auth */
+.auth { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 40px; align-items: start; padding-top: 24px; }
+.auth-intro { display: grid; gap: 14px; max-width: 30rem; padding-top: 12px; }
+.auth-intro ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); display: grid; gap: 4px; }
+.auth form { display: grid; gap: 14px; padding: 24px; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; border: 0; border-radius: 0; background: none; padding: 14px; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.form-msg { font-size: .9rem; padding: 10px 12px; border-radius: var(--r); background: var(--info-soft); color: var(--ink); }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(88px + env(safe-area-inset-bottom, 0px)); z-index: 20;
+  background: var(--ink); color: var(--bg); padding: 11px 16px; border-radius: var(--r); font-weight: 600; font-size: .9rem;
+  max-width: calc(100vw - 32px); box-shadow: 0 6px 24px rgb(0 0 0 / .2);
+}
+.toast.bad { background: var(--bad); color: #fff; }
+
+.evidence { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: .9rem; }
+.files { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; min-width: 0; }
+.files li { display: inline-flex; gap: 8px; align-items: baseline; min-width: 0; }
+.files .link { padding: 0; font-size: .9rem; text-align: left; overflow-wrap: anywhere; }
+.files .mono { font-size: .78rem; }
+.ev-add { padding: 6px 10px; font-size: .84rem; margin-left: auto; }
+.ev-add:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ev-hint { font-size: .84rem; margin-left: auto; }
+
+/* Dashboard */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 22px; }
+.kpi { padding: 18px; border-right: 1px solid var(--line); display: grid; gap: 6px; align-content: start; }
+.kpi:last-child { border-right: 0; }
+.kpi strong { font: 650 2rem/1 var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.kpi small { color: var(--muted); font-size: .84rem; }
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.dash-grid > section { margin: 0; min-width: 0; }
+.pipe { display: flex; height: 34px; border-radius: var(--r); overflow: hidden; background: var(--sunk); }
+.pipe span { display: block; height: 100%; min-width: 3px; }
+.legend { display: flex; gap: 8px 16px; flex-wrap: wrap; margin-top: 12px; font-size: .86rem; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.c-draft { background: var(--line); } .c-submitted { background: var(--info); } .c-in_review { background: var(--warn); }
+.c-approved { background: var(--ok); } .c-rejected { background: var(--bad); }
+.bars { display: grid; gap: 14px; }
+.bar-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; align-items: center; }
+.bar-row > b { font: 700 .78rem/1.2 var(--body); letter-spacing: .08em; text-transform: uppercase; }
+.bar-pair { display: grid; gap: 4px; }
+.bar-line { display: grid; grid-template-columns: 38px minmax(0, 1fr) 44px; gap: 8px; align-items: center; font-size: .78rem; color: var(--muted); }
+.track { height: 12px; background: var(--sunk); border-radius: 3px; position: relative; overflow: hidden; }
+.track > i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.track .prep { background: var(--info); opacity: .75; }
+.track .wrap { background: var(--accent); }
+.bar-line .mono { color: var(--ink); text-align: right; }
+.scale { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 12px; font: .72rem var(--mono); color: var(--muted); }
+.scale > div { display: flex; justify-content: space-between; margin: 0 52px 0 46px; }
+.practice { display: grid; grid-template-columns: minmax(0, 1fr) 52px; gap: 6px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: .9rem; }
+.practice:first-child { border-top: 0; padding-top: 0; }
+.practice .track { grid-column: 1 / -1; height: 6px; }
+.practice .mono { text-align: right; }
+.export { display: flex; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 860px) {
+  .dash-grid { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(2) { border-right: 0; }
+  .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .bar-row, .scale { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .scale > span { display: none; }
+}
+
+/* Compare */
+.practice a { color: var(--ink); text-decoration: none; }
+.practice a:hover { color: var(--accent); text-decoration: underline; }
+.cmp-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto minmax(0, 1fr); gap: 14px; padding: 16px 18px; margin-bottom: 14px; align-items: end; }
+.cmp-title { font-size: 1.6rem; margin-bottom: 8px; }
+.cmp-filters { margin-bottom: 26px; }
+.fhead { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 12px 18px; }
+.fhead .muted { margin-left: auto; font-size: .9rem; }
+.fhead .muted b { color: var(--ink); }
+.ftoggle { display: inline-flex; align-items: center; gap: 8px; }
+.fgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px 24px; padding: 16px 18px 18px; border-top: 1px solid var(--line); }
+.facet { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.facet legend { padding: 0; margin-bottom: 8px; }
+.facet .chips { gap: 6px; }
+.facet small { font-size: .78rem; }
+.fchip { padding: 6px 10px; font-size: .82rem; }
+.fchip .cnt { font: 500 .72rem/1 var(--mono); color: var(--muted); margin-left: 2px; }
+.fchip[aria-pressed="true"] .cnt { color: inherit; opacity: .75; }
+.fchip:disabled { opacity: .4; cursor: default; }
+.frange { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: center; }
+.frange input { padding: 7px 8px; font-size: .88rem; }
+.fsummary { padding: 0 18px 14px; font-size: .86rem; }
+.cmp-title .muted { display: block; font: 600 .78rem/1.6 var(--body); letter-spacing: .08em; text-transform: uppercase; margin-top: 6px; }
+.cmp-verdict { font-size: 1.05rem; margin-bottom: 18px; max-width: 70ch; }
+.cmp-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 22px; }
+.cmp-card { border-top: 4px solid var(--line); }
+.cmp-card.yes { border-top-color: var(--accent); }
+.cmp-card.no { border-top-color: var(--warn); }
+.cmp-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px 0; }
+.cmp-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; gap: 12px; padding: 12px 18px 16px; border-bottom: 1px solid var(--line); }
+.cmp-stats div { display: grid; gap: 4px; align-content: start; }
+.cmp-stats strong { font: 650 1.7rem/1 var(--mono); font-variant-numeric: tabular-nums; }
+.cmp-card.yes .cmp-stats strong { color: var(--accent); }
+.cmp-card.no .cmp-stats strong { color: var(--warn); }
+.cmp-stats small { color: var(--muted); font-size: .8rem; line-height: 1.3; }
+.cmp-list { list-style: none; margin: 0; padding: 8px 18px 14px; display: grid; }
+.cmp-list li { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: .92rem; flex-wrap: wrap; }
+.cmp-list li:first-child { border-top: 0; }
+.cmp-list a { font-weight: 600; color: var(--ink); text-decoration: none; }
+.cmp-list a:hover { color: var(--accent); }
+.cmp-list .pill { margin-left: auto; }
+.impact td { vertical-align: middle; }
+.impact tr.sel td, .matrix tr.sel td, .mtable tr.sel td { background: var(--accent-soft); }
+.mtable tbody tr.row { cursor: pointer; }
+.mtable tbody tr.row:hover td { background: var(--sunk); }
+.duo { min-width: 200px; }
+.duo-line { display: grid; grid-template-columns: 44px minmax(0, 1fr) 54px; gap: 8px; align-items: center; font-size: .8rem; }
+.duo-line + .duo-line { margin-top: 4px; }
+.duo-line .mono { text-align: right; }
+.track .no { background: var(--warn); }
+.duo-line .k { color: var(--muted); }
+.cmp-stats .lead strong { font-size: 2.3rem; }
+.co2-out { grid-column: span 2; }
+.co2-out output { font-size: .92rem; padding: 6px 0; font-family: var(--body); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+@media (max-width: 760px) { .co2-out { grid-column: auto; } }
+.co2-out output b { font-size: 1.15rem; color: var(--accent); }
+.thresh { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 10px; align-items: center; min-height: 40px; }
+.thresh input { padding: 0; accent-color: var(--accent); border: 0; background: none; }
+.thresh output { font-weight: 600; text-align: right; }
+.sample-note { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .9rem; color: var(--muted); margin-bottom: 10px; }
+.sample-note .tag { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.cmp-foot { margin: -8px 0 22px; font-size: .88rem; max-width: 80ch; }
+.co2-chip { font-size: .8rem; color: var(--muted); }
+b.good { color: var(--ok); } b.worse { color: var(--bad); }
+td.ok-txt { color: var(--ok); } td.warn-txt { color: var(--warn); }
+.matrix th { white-space: normal; min-width: 92px; vertical-align: bottom; text-transform: none; letter-spacing: 0; font-size: .82rem; }
+.matrix th a { color: var(--ink); text-decoration: none; }
+.matrix th:first-child, .matrix td:first-child { position: sticky; left: 0; background: var(--surface); min-width: 220px; z-index: 1; }
+.matrix tr.sel td:first-child { background: var(--accent-soft); }
+.matrix td { font-size: .86rem; }
+.matrix .cell { text-align: center; font-weight: 600; color: var(--muted); }
+.matrix .cell.y { color: var(--ok); background: var(--ok-soft); }
+.matrix .cell.n { color: var(--bad); background: var(--bad-soft); }
+.matrix tr.total td { font-weight: 700; border-top: 2px solid var(--line); text-align: center; }
+@media (max-width: 860px) {
+  .cmp-controls { grid-template-columns: minmax(0, 1fr); }
+  .cmp-grid { grid-template-columns: minmax(0, 1fr); }
+  .matrix th:first-child, .matrix td:first-child { min-width: 150px; }
+}
+
+.factor-row { grid-template-columns: minmax(0, 1.3fr) 110px minmax(0, 1.2fr) auto; }
+/* Board */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; padding: 8px 14px; font-size: .86rem; color: var(--muted); background: none; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.board-scroll { overflow-x: auto; padding-bottom: 6px; }
+.board { display: grid; grid-template-columns: repeat(var(--cols), minmax(186px, 1fr)); gap: 12px; min-width: calc(var(--cols) * 198px); }
+.kcol { background: var(--sunk); border-radius: var(--r); display: flex; flex-direction: column; min-height: 320px; border: 2px solid transparent; transition: border-color .12s, background .12s; }
+.kcol.over { border-color: var(--accent); background: var(--accent-soft); }
+.khead { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px 10px; font: 700 .78rem/1 var(--body); letter-spacing: .08em; text-transform: uppercase; border-top: 4px solid var(--line); border-radius: var(--r) var(--r) 0 0; }
+.khead b { font-size: .85rem; color: var(--muted); }
+.c-top-submitted { border-top-color: var(--info); } .c-top-in_review { border-top-color: var(--warn); }
+.c-top-approved { border-top-color: var(--ok); } .c-top-rejected { border-top-color: var(--bad); }
+.kbody { display: grid; gap: 10px; padding: 0 10px 12px; align-content: start; flex: 1; }
+.kempty { color: var(--muted); font-size: .85rem; text-align: center; padding: 22px 8px; border: 1px dashed var(--line); border-radius: var(--r); margin: 0; }
+.kcard { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 8px; cursor: pointer; box-shadow: 0 1px 2px rgb(0 0 0 / .04); }
+.kcard[draggable="true"] { cursor: grab; }
+.kcard:hover { border-color: var(--muted); }
+.kcard.dragging { opacity: .45; }
+.kname { font-weight: 700; color: var(--ink); text-decoration: none; line-height: 1.25; overflow-wrap: anywhere; }
+.kname:hover { color: var(--accent); }
+.kcard .sub { font-size: .8rem; color: var(--muted); margin-top: -4px; }
+.kmeta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .8rem; }
+.kmeta:empty { display: none; }
+.kmeta .mono { color: var(--muted); }
+.avatar { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 .66rem/1 var(--body); background: var(--accent-soft); color: var(--accent); }
+.ktag-warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.kfoot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 8px; font-size: .78rem; border-top: 1px solid var(--line); padding-top: 8px; }
+.kstale { color: var(--warn); font-weight: 600; }
+.kmove { position: relative; }
+.kmove select { font-size: .76rem; padding: 3px 6px; width: auto; max-width: 112px; }
+.board-hint { font-size: .85rem; margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { .kcol { transition: none; } }
+
+/* Notifications */
+.bell-wrap { position: relative; }
+.bell { position: relative; padding: 7px 9px; border-radius: 999px; color: var(--muted); }
+.bell[aria-expanded="true"] { color: var(--ink); border-color: var(--muted); }
+.bell-count { position: absolute; top: -5px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--bad); color: #fff; font: 700 .68rem/18px var(--body); text-align: center; }
+.bell-panel { position: absolute; right: 0; top: calc(100% + 8px); width: min(360px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; z-index: 30; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 12px 36px rgb(0 0 0 / .16); }
+.bell-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+.bell-panel ul { list-style: none; margin: 0; padding: 0; }
+.bell-panel li + li { border-top: 1px solid var(--line); }
+.bell-panel a { display: flex; gap: 10px; align-items: baseline; padding: 11px 14px; color: var(--ink); text-decoration: none; font-size: .9rem; line-height: 1.35; }
+.bell-panel a:hover { background: var(--sunk); }
+.bell-panel li.unread a { background: var(--accent-soft); font-weight: 600; }
+.bell-panel small { display: block; color: var(--muted); font-weight: 400; font-size: .78rem; margin-top: 2px; }
+.bell-panel .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; transform: translateY(-1px); }
+.bell-empty { padding: 18px 14px; color: var(--muted); font-size: .9rem; }
+@media (max-width: 760px) {
+  .bell-panel { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto; top: calc(env(safe-area-inset-top, 0px) + 120px); }
+}
+
+/* PEACH form */
+details.dept { border-top: 1px solid var(--line); }
+details.dept:first-of-type { border-top: 0; }
+details.dept > summary { list-style: none; cursor: pointer; }
+details.dept > summary::-webkit-details-marker { display: none; }
+details.dept > summary h3::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); transition: transform .12s; }
+details.dept[open] > summary h3::before { transform: rotate(90deg); }
+.dept-sum { font-size: .8rem; color: var(--muted); text-align: right; }
+.dept-sum.done { color: var(--ok); }
+.dept-tools { display: flex; gap: 14px; flex-wrap: wrap; }
+.q-text .eyebrow { display: block; }
+.q-text p b { font-weight: 700; }
+.q-text .doc { font-size: .84rem; color: var(--muted); display: flex; gap: 8px; align-items: baseline; }
+.q-text .doc .label { flex: none; }
+.tag-innov { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.yn label.na:has(input:checked) { background: var(--sunk); color: var(--ink); }
+.q-tier .q-ans { flex-direction: column; align-items: stretch; min-width: 230px; }
+.tier { display: grid; gap: 4px; }
+.tier select { padding: 7px 8px; font-size: .86rem; }
+.tally .tsub { display: block; font-size: .78rem; color: var(--muted); line-height: 1.35; }
+@media (max-width: 760px) { .q-tier .q-ans { min-width: 0; } .dept-sum { display: none; } }
+
+/* PEACH dashboard + admin */
+.plabel { margin: 4px 0 10px; }
+.plabel ~ .plabel { margin-top: 18px; }
+.impact-more { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--line); padding-block: 12px; font-size: .88rem; }
+.heat .cell { font-family: var(--mono); font-weight: 600; font-size: .82rem; }
+.heat .cell.h4 { background: var(--ok-soft); color: var(--ok); }
+.heat .cell.h3 { background: color-mix(in srgb, var(--ok-soft) 45%, var(--surface)); color: var(--ink); }
+.heat .cell.h2 { background: var(--warn-soft); color: var(--warn); }
+.heat .cell.h1 { background: var(--bad-soft); color: var(--bad); }
+details.qdept > summary { list-style: none; cursor: pointer; }
+details.qdept > summary::-webkit-details-marker { display: none; }
+details.qdept > summary h3::before { content: "▸"; display: inline-block; width: 1.1em; color: var(--muted); }
+details.qdept[open] > summary h3::before { content: "▾"; }
+.qrow { display: grid; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--line); }
+.qrow-head { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; font-size: .82rem; }
+.qrow-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto; gap: 10px 14px; align-items: end; }
+.optline { font-size: .84rem; color: var(--muted); padding: 9px 0; margin: 0; overflow-wrap: anywhere; }
+.qnew { background: var(--sunk); }
+@media (max-width: 760px) { .qrow-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.admin-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto auto auto; gap: 10px; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line); }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: .86rem; white-space: nowrap; }
+.check input { width: auto; }
+
+@media (max-width: 760px) {
+  .auth { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .q { grid-template-columns: minmax(0, 1fr); }
+  .q-score { grid-template-columns: 1fr 1fr; }
+  .q-score .note { grid-column: 1 / -1; }
+  .tally { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tally > div:nth-child(2) { border-right: 0; }
+  .tally > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .toolbar input[type=search] { max-width: none; margin-left: 0; }
+  .admin-row { grid-template-columns: minmax(0, 1fr) 80px; }
+  .who { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap" id="bar"></div></header>
+<main class="wrap" id="app"><p class="loading">Loading…</p></main>
+<div id="actionsSlot"></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+// ── Connection ─────────────────────────────────────────────────────────────
+// The publishable key is meant for browsers; row-level security on the
+// database decides what each signed-in person can read and change.
+const SUPABASE_URL = "https://pdgfeniatfaktiwdabrh.supabase.co";
+const SUPABASE_KEY = "sb_publishable_yfDtATQZTYR5V21NwC6dWw_GAdBfp5g";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── State & helpers ────────────────────────────────────────────────────────
+const S = { session: null, me: null, depts: [], qs: [], people: [], apps: [], scores: {}, filter: "all", search: "", current: null, recovery: false, authMode: "signin" };
+const $app = document.getElementById("app");
+const $actions = document.getElementById("actionsSlot");
+const STATUS = { draft: "Draft", submitted: "Submitted", in_review: "In review", approved: "Approved", rejected: "Rejected" };
+const DETAILS = [
+  ["production_name", "Production name", true],
+  ["production_type", "Type", false, "types"],
+  ["production_sub_type", "Format", false, "subtypes"],
+  ["production_location", "Location"],
+  ["studio_affiliation", "Studio"],
+  ["upm", "UPM (unit production manager)"],
+  ["poc", "Point of contact"],
+  ["spr", "SPR"],
+];
+
+// Footprint: activity data → tonnes of CO2 using the emission_factors table.
+const FOOTPRINT = [
+  ["shoot_days", "Shoot days", ""],
+  ["diesel_gal", "Diesel", "gallons"],
+  ["gasoline_gal", "Gasoline", "gallons"],
+  ["electricity_kwh", "Grid electricity", "kWh"],
+  ["air_miles", "Air travel", "passenger-miles"],
+  ["water_gal", "Water", "gallons"],
+  ["waste_landfill_lbs", "Waste to landfill", "lbs"],
+  ["waste_recycled_lbs", "Waste recycled", "lbs"],
+  ["waste_composted_lbs", "Waste composted", "lbs"],
+];
+const WASTE = ["waste_landfill_lbs", "waste_recycled_lbs", "waste_composted_lbs"];
+const FOOTPRINT_COLS = FOOTPRINT.map(([k]) => k).join(",");
+function tonnesCO2(a) {
+  let kg = 0, any = false;
+  for (const f of S.factors || []) { const v = a?.[f.column_name]; if (v != null && v !== "") { kg += Number(v) * Number(f.kg_co2_per_unit); any = true; } }
+  return any ? kg / 1000 : null;
+}
+function tonnesPerDay(a) { const t = tonnesCO2(a); return t != null && a?.shoot_days ? t / a.shoot_days : null; }
+const t1 = (n) => (n == null ? "–" : n >= 100 ? Math.round(n).toLocaleString() : n.toFixed(1));
+const perDayOf = (a, v) => (v != null && a?.shoot_days ? v / a.shoot_days : null);
+const sumOf = (a, ks) => { let t = 0, any = false; for (const k of ks) { const v = a?.[k]; if (v != null && v !== "") { t += +v; any = true; } } return any ? t : null; };
+const diversionOf = (a) => { const t = sumOf(a, WASTE); return t ? (((+a.waste_recycled_lbs || 0) + (+a.waste_composted_lbs || 0)) / t) * 100 : null; };
+// Metrics productions can be compared on. All except diversion are per shoot day, lower is better.
+const METRICS = [
+  { key: "co2", label: "CO₂ per shoot day", short: "CO₂", unit: "t", verb: "emitted", noun: "CO₂", get: tonnesPerDay },
+  { key: "kwh", label: "Grid electricity per shoot day", short: "electricity", unit: "kWh", verb: "used", noun: "grid electricity", get: (a) => perDayOf(a, num(a?.electricity_kwh)) },
+  { key: "diesel", label: "Diesel per shoot day", short: "diesel", unit: "gal", verb: "burned", noun: "diesel", get: (a) => perDayOf(a, num(a?.diesel_gal)) },
+  { key: "water", label: "Water per shoot day", short: "water", unit: "gal", verb: "used", noun: "water", get: (a) => perDayOf(a, num(a?.water_gal)) },
+  { key: "waste", label: "Waste per shoot day", short: "waste", unit: "lbs", verb: "generated", noun: "waste", get: (a) => perDayOf(a, sumOf(a, WASTE)) },
+  { key: "landfill", label: "Landfill waste per shoot day", short: "landfill waste", unit: "lbs", verb: "sent", noun: "waste to landfill", get: (a) => perDayOf(a, num(a?.waste_landfill_lbs)) },
+  { key: "diversion", label: "Waste diversion rate", short: "diversion", unit: "%", higher: true, get: diversionOf },
+];
+const metricOf = (k) => METRICS.find((m) => m.key === k) || METRICS[0];
+const mfmt = (m, v) => (v == null ? "–" : m.unit === "%" ? Math.round(v) + "%" : `${t1(v)} ${m.unit}`);
+// Difference between two group averages: percent for amounts, percentage points for the diversion rate.
+const mdiff = (m, a, b) => (a == null || b == null ? null : m.unit === "%" ? Math.round(a - b) : b ? Math.round(((a - b) / b) * 100) : null);
+const mgood = (m, d) => (d == null || d === 0 ? null : m.higher ? d > 0 : d < 0);
+const mdiffText = (m, d) => (d == null ? "–" : (d > 0 ? "+" : "") + d + (m.unit === "%" ? " pts" : "%"));
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const num = (v) => (v === null || v === undefined || String(v).trim() === "" ? null : Number(v));
+const fmt = (n) => (n == null ? "–" : Number.isInteger(+n) ? String(+n) : (+n).toFixed(1));
+const role = () => S.me?.role;
+const isStaff = () => role() === "staff";
+const isReviewerish = () => role() === "reviewer" || role() === "staff";
+const pill = (st) => `<span class="pill s-${esc(st)}">${esc(STATUS[st] || st)}</span>`;
+// PEACH scoring: each answer earns its option's points; N/A removes the
+// question from the points available; Innovation questions are bonus points.
+const optsOf = (q) => q.answer_options || [{ label: "Yes", points: +q.points_possible || 0, na: false }, { label: "No", points: 0, na: false }];
+const isYesNo = (q) => { const l = optsOf(q).map((o) => o.label).join("|"); return l === "Yes|No|N/A" || l === "Yes|No"; };
+const optOf = (q, label) => (label == null ? null : optsOf(q).find((o) => o.label === label) || null);
+const ansPts = (q, label) => { const o = optOf(q, label); return o ? +o.points : null; };
+// "yes" = earned points, "no" = answered with no points, "na" = not applicable, null = blank
+const ansState = (q, label) => { const o = optOf(q, label); return !o ? null : o.na ? "na" : +o.points > 0 ? "yes" : "no"; };
+const possible = () => S.qs.filter((q) => !q.is_innovation).reduce((t, q) => t + (+q.points_possible || 0), 0);
+const bonusPossible = () => S.qs.filter((q) => q.is_innovation).reduce((t, q) => t + (+q.points_possible || 0), 0);
+// Score a set of answers ({question_id: label}) the way the PEACH workbook does.
+function peachScore(answers, qs = S.qs) {
+  let earned = 0, available = 0, bonus = 0, answered = 0, na = 0;
+  for (const q of qs) {
+    const label = answers[q.question_id], o = optOf(q, label);
+    if (o) answered++;
+    if (q.is_innovation) { bonus += o ? +o.points : 0; continue; }
+    if (o?.na) { na++; continue; }
+    available += +q.points_possible || 0;
+    earned += o ? +o.points : 0;
+  }
+  return { earned, available, bonus, answered, na, pct: available ? (earned / available) * 100 : null };
+}
+// Supabase returns at most 1,000 rows per request, so page through large reads.
+async function fetchAll(make) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await make().range(from, from + 999);
+    if (error) return { data: null, error };
+    out.push(...data);
+    if (data.length < 1000) return { data: out, error: null };
+  }
+}
+const qTitle = (q) => { const t = q.question_text.replace(/^\[Innovation\]\s*/i, ""); const m = t.match(/^([^:]{2,70}):/); return (q.code ? q.code + " · " : "") + (m ? m[1] : t.length > 90 ? t.slice(0, 88) + "…" : t); };
+async function reloadQuestions() {
+  const [d, q] = await Promise.all([
+    sb.from("departments").select("*").order("sort_order").order("department_id"),
+    sb.from("questions").select("*").eq("active", true).order("sort_order").order("question_id"),
+  ]);
+  if (d.error || q.error) throw d.error || q.error;
+  S.qs = q.data; S.allDepts = d.data;
+  S.depts = d.data.filter((x) => S.qs.some((y) => y.department_id === x.department_id));
+}
+// Collect each production's prep and wrap answers to active questions.
+function answersByApp(rows) {
+  const ids = new Set(S.qs.map((q) => q.question_id)), out = {};
+  for (const r of rows) {
+    if (!ids.has(r.question_id)) continue;
+    const a = (out[r.production_id] ||= { prep: {}, wrap: {}, rows: [] });
+    if (r.prep_answer) a.prep[r.question_id] = r.prep_answer;
+    if (r.wrap_answer) a.wrap[r.question_id] = r.wrap_answer;
+    a.rows.push(r);
+  }
+  return out;
+}
+const personName = (id) => { const p = S.people.find((x) => x.id === id); return p ? p.full_name || p.email : ""; };
+const date = (d) => (d ? new Date(d + (d.length === 10 ? "T12:00:00" : "")).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "");
+
+let toastTimer;
+function toast(msg, kind = "ok") {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = "toast" + (kind === "bad" ? " bad" : ""); t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), kind === "bad" ? 7000 : 3000);
+}
+function fail(e) { console.error(e); toast(friendly(e), "bad"); }
+function friendly(e) {
+  const m = e?.message || String(e);
+  if (/row-level security|permission denied/i.test(m)) return "You don't have permission to make that change.";
+  if (/Invalid login credentials/i.test(m)) return "That email and password don't match an account.";
+  if (/Email not confirmed/i.test(m)) return "Confirm your email first. Check your inbox for the link.";
+  return m;
+}
+function setBusy(on) { document.querySelectorAll("button").forEach((b) => (b.disabled = on)); }
+function notice(title, body, extra = "") { return `<div class="panel notice"><h2>${esc(title)}</h2><p class="muted">${esc(body)}</p>${extra}</div>`; }
+
+// ── Boot & routing ─────────────────────────────────────────────────────────
+async function boot() {
+  const { data } = await sb.auth.getSession();
+  S.session = data.session;
+  sb.auth.onAuthStateChange((event, session) => {
+    const changed = (session?.user?.id || null) !== (S.session?.user?.id || null);
+    S.session = session;
+    if (event === "PASSWORD_RECOVERY") S.recovery = true;
+    if (changed || event === "PASSWORD_RECOVERY") setTimeout(start, 0);
+  });
+  window.addEventListener("hashchange", route);
+  start();
+}
+
+async function start() {
+  S.me = null; $actions.innerHTML = ""; S.notes = []; S.bellOpen = false;
+  if (S.noteChannel) { sb.removeChannel(S.noteChannel); S.noteChannel = null; }
+  clearInterval(S.notePoll);
+  if (S.recovery) { renderBar(); return renderRecovery(); }
+  if (!S.session) { renderBar(); return renderAuth(); }
+  $app.innerHTML = `<p class="loading">Loading your workspace…</p>`;
+  try {
+    const uid = S.session.user.id;
+    const [me, d, q, f] = await Promise.all([
+      sb.from("profiles").select("*").eq("id", uid).maybeSingle(),
+      sb.from("departments").select("*").order("sort_order").order("department_id"),
+      sb.from("questions").select("*").eq("active", true).order("sort_order").order("question_id"),
+      sb.from("emission_factors").select("*").order("key"),
+    ]);
+    for (const r of [me, d, q]) if (r.error) throw r.error;
+    S.me = me.data; S.qs = q.data; S.factors = f.error ? [] : f.data;
+    S.allDepts = d.data;
+    S.depts = d.data.filter((x) => S.qs.some((q) => q.department_id === x.department_id));
+    if (!S.me) { renderBar(); $app.innerHTML = notice("Your account isn't set up yet", "There's no profile for this login. Ask a staff member to check your account in Supabase."); return; }
+    S.people = [];
+    if (isReviewerish()) {
+      const p = await sb.from("profiles").select("id,full_name,email,role").order("full_name");
+      if (p.error) throw p.error; S.people = p.data;
+    }
+    renderBar(); route();
+    loadNotes(); subscribeNotes();
+  } catch (e) {
+    fail(e); renderBar();
+    $app.innerHTML = notice("Couldn't load the portal", friendly(e), `<button class="primary" onclick="start()">Try again</button>`);
+  }
+}
+
+function route() {
+  if (!S.me) return;
+  $actions.innerHTML = "";
+  const h = location.hash.slice(1);
+  const m = h.match(/^app-(\d+)$/);
+  if (h === "new") return openApp(null);
+  if (m) return openApp(+m[1]);
+  if (h === "people" && isStaff()) return renderPeople();
+  if (h === "questions" && isStaff()) return renderQuestions();
+  if (h === "dashboard" && isReviewerish()) return renderDashboard();
+  const cm = h.match(/^compare(?:-(\d+))?$/);
+  if (cm && isReviewerish()) return renderCompare(cm[1] ? +cm[1] : null);
+  if (h === "" && isStaff()) return renderDashboard();
+  if (h === "board") { S.listView = "board"; return renderList(); }
+  if (h === "applications") S.listView = "list";
+  return renderList();
+}
+
+function renderBar() {
+  const h = location.hash.slice(1);
+  const cur = h === "people" ? "people" : h === "questions" ? "questions" : h.startsWith("compare") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
+  document.getElementById("bar").innerHTML = `
+    <a class="brand" href="#"><b>EMA</b><span>Application Portal</span></a>
+    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#compare", "Compare") : ""}${link("list", "#applications", "Applications")}${isStaff() ? link("questions", "#questions", "Questions") + link("people", "#people", "People") : ""}</nav>
+    <div class="who"><div class="bell-wrap" id="bell"></div><span>${esc(S.me.full_name || S.me.email)}</span><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
+  document.getElementById("signOut")?.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = ""; });
+  if (S.me) drawBell();
+}
+
+// ── Notifications bell ─────────────────────────────────────────────────────
+// Rows are created by a database trigger whenever an application's status or
+// reviewer changes; this shows them live (realtime) with a 60-second fallback poll.
+const since = (iso) => {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.floor(m / 60)} h ago` : ago(Math.floor(m / 1440));
+};
+async function loadNotes() {
+  const { data, error } = await sb.from("notifications").select("*").order("created_at", { ascending: false }).limit(30);
+  if (!error) { S.notes = data; drawBell(); }
+}
+function subscribeNotes() {
+  if (!S.me) return;
+  S.noteChannel = sb.channel("notes-" + S.me.id)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${S.me.id}` }, (payload) => {
+      if (S.notes.some((n) => n.id === payload.new.id)) return;
+      S.notes.unshift(payload.new); drawBell(); toast(payload.new.message);
+    })
+    .subscribe();
+  S.notePoll = setInterval(loadNotes, 60000);
+}
+function drawBell() {
+  const el = document.getElementById("bell"); if (!el) return;
+  const unread = S.notes.filter((n) => !n.read_at).length;
+  el.innerHTML = `
+    <button class="bell" id="bellBtn" aria-haspopup="true" aria-expanded="${!!S.bellOpen}" aria-label="Notifications${unread ? `, ${unread} unread` : ""}">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      ${unread ? `<span class="bell-count">${unread > 9 ? "9+" : unread}</span>` : ""}
+    </button>
+    ${S.bellOpen ? `<div class="bell-panel" role="dialog" aria-label="Notifications">
+      <div class="bell-head"><b>Notifications</b>${unread ? `<button class="link" id="readAll">Mark all read</button>` : ""}</div>
+      <ul>${S.notes.map((n) => `<li class="${n.read_at ? "" : "unread"}"><a href="${n.production_id ? "#app-" + n.production_id : "#"}" data-note="${n.id}">
+        ${n.status ? `<i class="dot c-${esc(n.status)}"></i>` : ""}<span>${esc(n.message)}<small>${esc(since(n.created_at))}</small></span></a></li>`).join("")
+        || `<li class="bell-empty">You're all caught up. Status changes on your applications will show up here.</li>`}</ul>
+    </div>` : ""}`;
+  document.getElementById("bellBtn").addEventListener("click", (e) => { e.stopPropagation(); S.bellOpen = !S.bellOpen; drawBell(); });
+  document.getElementById("readAll")?.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const now = new Date().toISOString(); S.notes.forEach((n) => (n.read_at ||= now)); drawBell();
+    await sb.from("notifications").update({ read_at: now }).is("read_at", null);
+  });
+  el.querySelectorAll("[data-note]").forEach((a) => a.addEventListener("click", () => {
+    const n = S.notes.find((x) => x.id === +a.dataset.note); S.bellOpen = false;
+    if (n && !n.read_at) { n.read_at = new Date().toISOString(); sb.from("notifications").update({ read_at: n.read_at }).eq("id", n.id).then(() => {}); }
+    drawBell();
+  }));
+}
+document.addEventListener("click", (e) => { if (S.bellOpen && !e.target.closest(".bell-panel")) { S.bellOpen = false; drawBell(); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && S.bellOpen) { S.bellOpen = false; drawBell(); document.getElementById("bellBtn")?.focus(); } });
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+function renderAuth(msg = "") {
+  const up = S.authMode === "signup";
+  $app.innerHTML = `
+  <div class="auth">
+    <div class="auth-intro">
+      <p class="eyebrow">EMA · Production sustainability</p>
+      <h1>Submit, review and score production applications</h1>
+      <p class="muted">Productions answer each department's questions at prep and again at wrap. Reviewers score every answer against its points and move the application to a decision.</p>
+      <ul><li>Submitters create and submit their own applications</li><li>Reviewers score submitted applications</li><li>Staff manage questions, people and every application</li></ul>
+    </div>
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="${!up}" data-mode="signin">Sign in</button>
+        <button role="tab" aria-selected="${up}" data-mode="signup">Create account</button>
+      </div>
+      <form id="authForm" novalidate>
+        ${msg ? `<p class="form-msg">${esc(msg)}</p>` : ""}
+        ${up ? `<label class="field"><span>Full name</span><input id="au-name" autocomplete="name" required></label>` : ""}
+        <label class="field"><span>Email</span><input id="au-email" type="email" autocomplete="email" required></label>
+        <label class="field"><span>Password</span><input id="au-pass" type="password" autocomplete="${up ? "new-password" : "current-password"}" minlength="6" required></label>
+        <button class="primary" type="submit">${up ? "Create account" : "Sign in"}</button>
+        ${up ? `<p class="muted" style="font-size:.86rem">New accounts start as submitters. Staff can change your role.</p>` : `<button class="link" type="button" id="forgot">Forgot your password?</button>`}
+      </form>
+    </div>
+  </div>`;
+  $app.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { S.authMode = b.dataset.mode; renderAuth(); }));
+  document.getElementById("forgot")?.addEventListener("click", async () => {
+    const email = document.getElementById("au-email").value.trim();
+    if (!email) return toast("Enter your email above first.", "bad");
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if (error) return fail(error);
+    renderAuth("If that email has an account, a reset link is on its way.");
+  });
+  document.getElementById("authForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const email = document.getElementById("au-email").value.trim();
+    const password = document.getElementById("au-pass").value;
+    if (!email || password.length < 6) return toast("Enter an email and a password of at least 6 characters.", "bad");
+    setBusy(true);
+    try {
+      if (up) {
+        const full_name = document.getElementById("au-name").value.trim();
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name }, emailRedirectTo: location.origin + location.pathname } });
+        if (error) throw error;
+        if (!data.session) { S.authMode = "signin"; renderAuth("Check your email for a confirmation link, then sign in."); }
+      } else {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (e) { fail(e); } finally { setBusy(false); }
+  });
+}
+
+function renderRecovery() {
+  $app.innerHTML = `<div class="panel" style="max-width:420px"><form id="recForm" style="display:grid;gap:14px;padding:24px">
+    <h2>Set a new password</h2>
+    <label class="field"><span>New password</span><input id="rec-pass" type="password" autocomplete="new-password" minlength="6" required></label>
+    <button class="primary" type="submit">Save password</button></form></div>`;
+  document.getElementById("recForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const password = document.getElementById("rec-pass").value;
+    if (password.length < 6) return toast("Use at least 6 characters.", "bad");
+    const { error } = await sb.auth.updateUser({ password });
+    if (error) return fail(error);
+    S.recovery = false; toast("Password updated"); start();
+  });
+}
+
+// ── Application list ───────────────────────────────────────────────────────
+async function renderList() {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading applications…</p>`;
+  const { data, error } = await sb.from("productions")
+    .select("production_id,production_name,production_type,production_sub_type,studio_affiliation,status,submission_date,submitted_by,assigned_reviewer,updated_at," + FOOTPRINT_COLS)
+    .order("updated_at", { ascending: false });
+  if (error) { fail(error); $app.innerHTML = notice("Couldn't load applications", friendly(error)); return; }
+  S.apps = data; S.scores = {};
+  if (data.length) {
+    const ids = data.map((a) => a.production_id);
+    const r = await fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer").in("production_id", ids).order("response_id"));
+    if (!r.error) {
+      const by = answersByApp(r.data);
+      for (const [pid, a] of Object.entries(by)) S.scores[pid] = { prep: peachScore(a.prep), wrap: peachScore(a.wrap) };
+    }
+  }
+  const submitter = role() === "submitter";
+  const filters = [["all", "All"], ...(submitter || isStaff() ? [["draft", "Draft"]] : []), ["submitted", "Submitted"], ["in_review", "In review"], ["approved", "Approved"], ["rejected", "Rejected"], ...(isReviewerish() ? [["mine", "Assigned to me"]] : [])];
+  if (!filters.some((f) => f[0] === S.filter)) S.filter = "all";
+  $app.innerHTML = `
+    <div class="page-head">
+      <div><p class="eyebrow">${submitter ? "Your work" : role() === "reviewer" ? "Review queue" : "All productions"}</p><h1>${submitter ? "Your applications" : "Applications"}</h1></div>
+      ${!submitter && role() === "reviewer" ? "" : `<a class="btn primary" href="#new">New application</a>`}
+    </div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="View">${[["list", "List"], ["board", "Board"]].map(([k, l]) => `<button data-view="${k}" aria-pressed="${S.listView === k}">${l}</button>`).join("")}</div>
+      ${S.listView === "board"
+        ? (isReviewerish() ? `<div class="chips"><button class="chip" data-mine aria-pressed="${S.filter === "mine"}">Assigned to me</button></div>` : "")
+        : `<div class="chips" role="group" aria-label="Filter by status">${filters.map(([k, l]) => `<button class="chip" data-f="${k}" aria-pressed="${S.filter === k}">${l}</button>`).join("")}</div>`}
+      <input type="search" id="search" placeholder="Search productions or studios" value="${esc(S.search)}" aria-label="Search">
+    </div>
+    <div id="rows"></div>`;
+  $app.querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", () => {
+    S.filter = b.dataset.f; $app.querySelectorAll("[data-f]").forEach((x) => x.setAttribute("aria-pressed", x === b)); drawRows();
+  }));
+  $app.querySelector("[data-mine]")?.addEventListener("click", (e) => {
+    S.filter = S.filter === "mine" ? "all" : "mine"; e.currentTarget.setAttribute("aria-pressed", S.filter === "mine"); drawRows();
+  });
+  $app.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    if (S.listView === b.dataset.view) return;
+    S.listView = b.dataset.view; try { localStorage.setItem("ema-view", S.listView); } catch {}
+    if (S.filter !== "all" && S.filter !== "mine") S.filter = "all";
+    history.replaceState(null, "", S.listView === "board" ? "#board" : "#applications");
+    renderList();
+  }));
+  document.getElementById("search").addEventListener("input", (e) => { S.search = e.target.value; drawRows(); });
+  drawRows();
+}
+
+const scoreCell = (sc) => (sc && sc.answered ? `${Math.round(sc.pct ?? 0)}%<span class="muted"> · ${fmt(sc.earned)}/${fmt(sc.available)}</span>` : '<span class="muted">–</span>');
+function drawRows() {
+  if (S.listView === "board") return drawBoard();
+  const q = S.search.trim().toLowerCase();
+  const rows = S.apps.filter((a) =>
+    (S.filter === "all" || (S.filter === "mine" ? a.assigned_reviewer === S.me.id : a.status === S.filter)) &&
+    (!q || [a.production_name, a.studio_affiliation, a.production_type].some((v) => (v || "").toLowerCase().includes(q))));
+  const el = document.getElementById("rows");
+  if (!S.apps.length) {
+    el.innerHTML = `<div class="panel notice"><h2>No applications yet</h2><p class="muted">${role() === "reviewer" ? "Applications appear here once a production submits one." : "Start an application to answer each department's prep and wrap questions."}</p>${role() === "reviewer" ? "" : `<a class="btn primary" href="#new">Start an application</a>`}</div>`;
+    return;
+  }
+  if (!rows.length) { el.innerHTML = `<div class="panel notice"><p class="muted">No applications match this filter.</p></div>`; return; }
+  const tot = possible(); const showRev = isReviewerish();
+  el.innerHTML = `<div class="panel table-scroll"><table>
+    <thead><tr><th>Production</th><th>Status</th><th>Submitted</th>${showRev ? "<th>Reviewer</th>" : ""}<th class="num" title="Self-assessed PEACH score at prep">Prep</th><th class="num" title="Self-assessed PEACH score at wrap">Wrap</th></tr></thead>
+    <tbody>${rows.map((a) => {
+      const s = S.scores[a.production_id];
+      return `<tr class="row" data-id="${a.production_id}">
+        <td><a class="name" href="#app-${a.production_id}">${esc(a.production_name)}</a><div class="sub">${esc([a.production_type, a.production_sub_type, a.studio_affiliation].filter(Boolean).join(" · "))}</div></td>
+        <td>${pill(a.status)}</td>
+        <td class="mono">${esc(date(a.submission_date)) || '<span class="muted">–</span>'}</td>
+        ${showRev ? `<td>${esc(personName(a.assigned_reviewer)) || '<span class="muted">Unassigned</span>'}</td>` : ""}
+        <td class="num">${scoreCell(s?.prep)}</td>
+        <td class="num">${scoreCell(s?.wrap)}</td>
+      </tr>`;
+    }).join("")}</tbody></table></div>`;
+  el.querySelectorAll("tr.row").forEach((tr) => tr.addEventListener("click", (e) => { if (!e.target.closest("a")) location.hash = "app-" + tr.dataset.id; }));
+}
+
+// ── Board (kanban) ─────────────────────────────────────────────────────────
+// Reviewers and staff drag cards between stages (or use the Stage menu on a
+// card). Final decisions ask for confirmation, because the submitter is emailed.
+const daysSince = (d) => (d ? Math.floor((Date.now() - new Date(d + (d.length === 10 ? "T12:00:00" : "")).getTime()) / 86400000) : null);
+const ago = (n) => (n == null ? "" : n <= 0 ? "today" : n === 1 ? "1 day ago" : `${n} days ago`);
+const initials = (name) => (name || "?").split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+function boardColumns() { return role() === "reviewer" ? ["submitted", "in_review", "approved", "rejected"] : ["draft", "submitted", "in_review", "approved", "rejected"]; }
+function canMoveCards() { return isReviewerish(); }
+
+function drawBoard() {
+  const q = S.search.trim().toLowerCase();
+  const apps = S.apps.filter((a) => (S.filter !== "mine" || a.assigned_reviewer === S.me.id) &&
+    (!q || [a.production_name, a.studio_affiliation, a.production_type].some((v) => (v || "").toLowerCase().includes(q))));
+  const cols = boardColumns(), move = canMoveCards(), tot = possible();
+  const el = document.getElementById("rows");
+  const card = (a) => {
+    const s = S.scores[a.production_id], rev = personName(a.assigned_reviewer), perDay = tonnesPerDay(a);
+    const waiting = a.status === "submitted" ? daysSince(a.submission_date) : null;
+    return `<article class="kcard" data-id="${a.production_id}" ${move ? 'draggable="true"' : ""}>
+      <a class="kname" href="#app-${a.production_id}">${esc(a.production_name)}</a>
+      <div class="sub">${esc([a.production_type, a.production_sub_type].filter(Boolean).join(" · ")) || "&nbsp;"}</div>
+      <div class="kmeta">
+        ${isReviewerish() && a.status !== "draft" ? (rev ? `<span class="avatar" title="Reviewer: ${esc(rev)}">${esc(initials(rev))}</span>` : `<span class="tag ktag-warn">Unassigned</span>`) : ""}
+        ${s?.wrap?.answered ? `<span class="mono" title="Self-assessed PEACH score at wrap">${Math.round(s.wrap.pct ?? 0)}%</span>` : s?.prep?.answered ? `<span class="mono muted" title="Self-assessed PEACH score at prep">Prep ${Math.round(s.prep.pct ?? 0)}%</span>` : ""}
+        ${perDay != null ? `<span class="mono" title="Tonnes CO₂ per shoot day">${t1(perDay)} t/day</span>` : ""}
+      </div>
+      <div class="kfoot">
+        <span class="${waiting != null && waiting > 7 ? "kstale" : "muted"}">${waiting != null ? `Waiting ${waiting} day${waiting === 1 ? "" : "s"}` : `Updated ${ago(daysSince(a.updated_at))}`}</span>
+        ${move ? `<label class="kmove"><span class="sr">Move ${esc(a.production_name)} to</span><select data-move="${a.production_id}">${cols.map((c) => `<option value="${c}" ${a.status === c ? "selected" : ""}>${STATUS[c]}</option>`).join("")}</select></label>` : ""}
+      </div>
+    </article>`;
+  };
+  el.innerHTML = `<div class="board-scroll"><div class="board" style="--cols:${cols.length}">${cols.map((c) => {
+    const list = apps.filter((a) => a.status === c);
+    return `<section class="kcol" data-col="${c}" aria-label="${STATUS[c]}">
+      <header class="khead c-top-${c}"><span>${STATUS[c]}</span><b class="mono">${list.length}</b></header>
+      <div class="kbody" data-drop="${c}">${list.map(card).join("") || `<p class="kempty">${move ? "Drag applications here" : "Nothing here"}</p>`}</div>
+    </section>`;
+  }).join("")}</div></div>
+  ${move ? `<p class="muted board-hint">Drag a card to change its stage, or use the menu on the card. Approving or rejecting emails the submitter.</p>` : ""}`;
+
+  el.querySelectorAll(".kcard").forEach((c) => c.addEventListener("click", (e) => { if (!e.target.closest("a,select,label")) location.hash = "app-" + c.dataset.id; }));
+  el.querySelectorAll("[data-move]").forEach((sel) => sel.addEventListener("change", () => requestMove(+sel.dataset.move, sel.value)));
+  if (!move) return;
+  let dragId = null;
+  el.querySelectorAll(".kcard").forEach((c) => {
+    c.addEventListener("dragstart", (e) => { dragId = +c.dataset.id; c.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", c.dataset.id); });
+    c.addEventListener("dragend", () => { c.classList.remove("dragging"); el.querySelectorAll(".kcol").forEach((k) => k.classList.remove("over")); });
+  });
+  el.querySelectorAll(".kcol").forEach((col) => {
+    col.addEventListener("dragover", (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; col.classList.add("over"); });
+    col.addEventListener("dragleave", (e) => { if (!col.contains(e.relatedTarget)) col.classList.remove("over"); });
+    col.addEventListener("drop", (e) => { e.preventDefault(); col.classList.remove("over"); const id = dragId ?? +e.dataTransfer.getData("text/plain"); dragId = null; if (id) requestMove(id, col.dataset.col); });
+  });
+}
+
+function requestMove(id, to) {
+  const a = S.apps.find((x) => x.production_id === id);
+  if (!a || a.status === to) return;
+  if (to === "approved" || to === "rejected") {
+    const verb = to === "approved" ? "Approve" : "Reject";
+    $actions.innerHTML = `<div class="actions"><div class="wrap"><div class="confirm">
+      <span>${verb} <b>${esc(a.production_name)}</b>? The submitter will be emailed the decision.</span>
+      <button class="primary" id="mvYes">${verb}</button><button id="mvNo">Cancel</button></div></div></div>`;
+    document.getElementById("mvYes").addEventListener("click", () => { $actions.innerHTML = ""; applyMove(a, to); });
+    document.getElementById("mvNo").addEventListener("click", () => { $actions.innerHTML = ""; drawBoard(); });
+    return;
+  }
+  applyMove(a, to);
+}
+
+async function applyMove(a, to) {
+  const before = { status: a.status, assigned_reviewer: a.assigned_reviewer, updated_at: a.updated_at, submission_date: a.submission_date };
+  const patch = { status: to };
+  const claim = to === "in_review" && !a.assigned_reviewer;   // taking it into review assigns it to you
+  if (claim) patch.assigned_reviewer = S.me.id;
+  Object.assign(a, patch, { updated_at: new Date().toISOString() });
+  if (to === "submitted" && !a.submission_date) a.submission_date = new Date().toISOString().slice(0, 10);
+  drawBoard();
+  const { error } = await sb.from("productions").update(patch).eq("production_id", a.production_id);
+  if (error) { Object.assign(a, before); drawBoard(); return fail(error); }
+  toast(`${a.production_name} moved to ${STATUS[to]}${claim ? " and assigned to you" : ""}`);
+  if (to !== "submitted" || before.status === "draft") sb.functions.invoke("notify", { body: { production_id: a.production_id } }).catch((e) => console.warn("Notification not sent", e));
+}
+
+// ── Application detail ─────────────────────────────────────────────────────
+async function openApp(id) {
+  renderBar();
+  let app, resp = [];
+  if (id == null) {
+    app = { production_id: null, status: "draft", submitted_by: S.me.id };
+  } else {
+    $app.innerHTML = `<p class="loading">Loading application…</p>`;
+    const [a, r] = await Promise.all([
+      sb.from("productions").select("*").eq("production_id", id).maybeSingle(),
+      sb.from("responses").select("*").eq("production_id", id),
+    ]);
+    if (a.error || r.error) { const e = a.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load this application", friendly(e)); return; }
+    if (!a.data) { $app.innerHTML = notice("Application not found", "It may have been removed, or you don't have access to it.", `<a class="btn" href="#applications">Back to applications</a>`); return; }
+    app = a.data; resp = r.data;
+  }
+  S.current = { app, resp: Object.fromEntries(resp.map((x) => [x.question_id, x])), confirm: false };
+  if (S.openFor !== id) { S.openFor = id; S.openDepts = new Set(S.depts.slice(0, 1).map((d) => d.department_id)); }
+  drawApp();
+}
+
+function perms(app) {
+  const own = app.submitted_by === S.me.id, staff = isStaff(), draft = app.status === "draft";
+  return {
+    own, draft,
+    details: staff || (own && draft),
+    answers: staff || (own && draft),
+    score: staff || (role() === "reviewer" && !draft),
+    submit: own && draft,
+  };
+}
+
+function drawApp() {
+  const { app, resp } = S.current; const P = perms(app); const isNew = app.production_id == null;
+  const dis = (on) => (on ? "" : "disabled");
+  const showEarned = !P.score && Object.values(resp).some((r) => r.prep_points != null || r.wrap_points != null);
+
+  const details = DETAILS.map(([k, label, req, list]) => `
+    <label class="field"><span>${esc(label)}${req ? " *" : ""}</span>
+      <input name="${k}" id="d-${k}" value="${esc(app[k])}" ${list ? `list="${list}"` : ""} ${req ? "required" : ""} ${dis(P.details)}></label>`).join("");
+
+  const depts = S.depts.map((d) => {
+    const qs = S.qs.filter((q) => q.department_id === d.department_id);
+    if (!qs.length) return "";
+    return `<details class="dept" data-dept="${d.department_id}" ${S.openDepts.has(d.department_id) ? "open" : ""}>
+      <summary class="dept-head"><h3>${esc(d.name)}</h3><span class="dept-sum mono" id="dsum-${d.department_id}"></span></summary>
+      ${qs.map((q) => question(q, resp[q.question_id] || {}, P, showEarned)).join("")}
+    </details>`;
+  }).join("");
+
+  const reviewers = S.people.filter((p) => p.role === "reviewer" || p.role === "staff");
+  $app.innerHTML = `
+    <a class="back" href="#applications">← All applications</a>
+    <div class="page-head">
+      <div><p class="eyebrow">${isNew ? "New application" : "Application #" + app.production_id}</p>
+        <h1>${esc(app.production_name || "Untitled production")}</h1>
+        ${isNew ? "" : `<div class="meta">${pill(app.status)}${app.submission_date ? `<span>Submitted ${esc(date(app.submission_date))}</span>` : ""}${app.source_file ? `<span class="mono">${esc(app.source_file)}</span>` : ""}${isReviewerish() && app.submitted_by ? `<span>By ${esc(personName(app.submitted_by) || "unknown")}</span>` : ""}</div>`}
+      </div>
+    </div>
+    <div class="panel tally" id="tally"></div>
+    <form id="appForm" novalidate>
+      <section class="panel block"><div class="block-head"><h2>Production details</h2>${P.details ? "" : '<span class="muted">Locked after submission</span>'}</div>
+        <div class="block-body grid">${details}</div></section>
+      <section class="panel block"><div class="block-head"><h2>Production footprint</h2>${app.footprint_is_sample ? '<span class="tag">Sample figures</span>' : '<span class="muted">Totals for the whole shoot, at wrap</span>'}</div>
+        <div class="block-body grid">${FOOTPRINT.map(([k, label, unit]) => `
+          <label class="field"><span>${esc(label)}${unit ? ` <span class="muted">(${esc(unit)})</span>` : ""}</span>
+            <input type="number" min="${k === "shoot_days" ? 1 : 0}" step="${k === "shoot_days" ? 1 : "any"}" inputmode="decimal" name="${k}" id="d-${k}" value="${app[k] ?? ""}" ${dis(P.details)}></label>`).join("")}
+          <div class="field co2-out"><span>Per shoot day</span><output id="co2-out"></output></div>
+        </div></section>
+      <section class="panel block"><div class="block-head"><div><h2>PEACH checklist</h2><p class="muted" style="font-size:.88rem;margin-top:4px">${S.qs.length} actions across ${S.depts.length} departments. Answer at prep, then again at wrap. N/A takes a question out of the points available.</p></div>
+        <div class="dept-tools"><button type="button" class="link" id="openAll">Expand all</button><button type="button" class="link" id="closeAll">Collapse all</button></div></div>${depts}</section>
+      ${P.score && !isNew ? `<section class="panel block"><div class="block-head"><h2>Review</h2><button type="button" class="link" id="autofill">Fill points from answers</button></div>
+        <div class="block-body grid">
+          <label class="field"><span>Status</span><select id="rv-status">${Object.entries(STATUS).filter(([k]) => isStaff() || k !== "draft").map(([k, l]) => `<option value="${k}" ${app.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+          <label class="field"><span>Assigned reviewer</span><select id="rv-assign"><option value="">Unassigned</option>${reviewers.map((p) => `<option value="${esc(p.id)}" ${app.assigned_reviewer === p.id ? "selected" : ""}>${esc(p.full_name || p.email)}</option>`).join("")}</select></label>
+        </div></section>` : ""}
+    </form>
+    <datalist id="types"><option value="Film"><option value="Television"><option value="Commercial"><option value="Music video"></datalist>
+    <datalist id="subtypes"><option value="Feature"><option value="MOW"><option value="Half Hour"><option value="Hour"><option value="Limited series"></datalist>`;
+
+  drawActions();
+  const form = document.getElementById("appForm");
+  form.addEventListener("input", updateTally);
+  const co2 = () => {
+    const vals = Object.fromEntries(FOOTPRINT.map(([k]) => [k, num(document.getElementById("d-" + k).value)]));
+    const t = tonnesCO2(vals), shown = METRICS.filter((m) => m.key !== "landfill").map((m) => [m, m.get(vals)]).filter(([, v]) => v != null);
+    document.getElementById("co2-out").innerHTML = (t == null && !shown.length) ? '<span class="muted">Enter shoot days plus fuel, electricity, travel, water or waste</span>'
+      : `${t != null ? `<span><b>${t1(t)}</b> t CO₂ total</span>` : ""}${shown.map(([m, v]) => `<span><b>${mfmt(m, v)}</b> ${m.unit === "%" ? "of waste diverted" : esc(m.noun)}</span>`).join("")}`;
+  };
+  form.addEventListener("input", co2); co2();
+  form.addEventListener("submit", (e) => e.preventDefault());
+  document.getElementById("autofill")?.addEventListener("click", autofill);
+  form.querySelectorAll("[data-up]").forEach((inp) => inp.addEventListener("change", () => uploadEvidence(+inp.dataset.up, inp)));
+  form.querySelectorAll("details.dept").forEach((d) => d.addEventListener("toggle", () => { const id = +d.dataset.dept; d.open ? S.openDepts.add(id) : S.openDepts.delete(id); }));
+  document.getElementById("openAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = true)));
+  document.getElementById("closeAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = false)));
+  updateTally();
+  if (!isNew) loadEvidence();
+}
+
+// ── Evidence files ─────────────────────────────────────────────────────────
+const BUCKET = "evidence";
+const evName = (n) => n.replace(/^\d{10,}-/, "");
+async function loadEvidence(onlyQid) {
+  const { app } = S.current; const pid = app.production_id; const P = perms(app);
+  let qids = onlyQid ? [onlyQid] : null;
+  if (!qids) {
+    // One listing of the application's folder tells us which questions have files.
+    document.querySelectorAll("ul.files").forEach((ul) => (ul.innerHTML = `<li class="muted">${P.answers ? "No files yet" : "None attached"}</li>`));
+    const { data, error } = await sb.storage.from(BUCKET).list(`${pid}`, { limit: 1000 });
+    if (error) return;
+    qids = (data || []).filter((f) => !f.id && /^\d+$/.test(f.name)).map((f) => +f.name);
+  }
+  await Promise.all(qids.map(async (qid) => {
+    const ul = document.getElementById("files-" + qid); if (!ul) return;
+    const { data, error } = await sb.storage.from(BUCKET).list(`${pid}/${qid}`, { limit: 100, sortBy: { column: "created_at", order: "asc" } });
+    if (error) { ul.innerHTML = `<li class="muted">Couldn't load files</li>`; return; }
+    const files = (data || []).filter((f) => f.id && !f.name.startsWith("."));
+    ul.innerHTML = files.length
+      ? files.map((f) => `<li><button type="button" class="link" data-view="${esc(`${pid}/${qid}/${f.name}`)}">${esc(evName(f.name))}</button>
+          <span class="muted mono">${f.metadata?.size ? Math.max(1, Math.round(f.metadata.size / 1024)) + " KB" : ""}</span>
+          ${P.answers ? `<button type="button" class="link danger" data-del="${esc(`${pid}/${qid}/${f.name}`)}" aria-label="Remove ${esc(evName(f.name))}">Remove</button>` : ""}</li>`).join("")
+      : `<li class="muted">${P.answers ? "No files yet" : "None attached"}</li>`;
+    ul.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => viewEvidence(b.dataset.view)));
+    ul.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", async () => {
+      const { error } = await sb.storage.from(BUCKET).remove([b.dataset.del]);
+      if (error) return fail(error); toast("File removed"); loadEvidence(qid);
+    }));
+  }));
+}
+
+async function uploadEvidence(qid, input) {
+  const pid = S.current.app.production_id; const files = [...input.files]; input.value = "";
+  if (!files.length) return;
+  const tooBig = files.find((f) => f.size > 10 * 1024 * 1024);
+  if (tooBig) return toast(`${tooBig.name} is over the 10 MB limit.`, "bad");
+  const ul = document.getElementById("files-" + qid); ul.insertAdjacentHTML("beforeend", `<li class="muted">Uploading ${files.length} file${files.length > 1 ? "s" : ""}…</li>`);
+  let ok = 0;
+  for (const f of files) {
+    const safe = f.name.normalize("NFKD").replace(/[^\w.\- ]+/g, "").replace(/\s+/g, "_").slice(-80) || "file";
+    const { error } = await sb.storage.from(BUCKET).upload(`${pid}/${qid}/${Date.now()}-${safe}`, f, { contentType: f.type || undefined, upsert: false });
+    if (error) { fail(/mime|type/i.test(error.message) ? new Error(`${f.name}: use a photo, PDF, Word, Excel or CSV file.`) : error); break; }
+    ok++;
+  }
+  if (ok) toast(ok === 1 ? "File attached" : `${ok} files attached`);
+  loadEvidence(qid);
+}
+async function viewEvidence(path) {
+  const w = window.open("", "_blank");
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(path, 300);
+  if (error) { w?.close(); return fail(error); }
+  if (w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+
+function question(q, r, P, showEarned) {
+  const id = q.question_id, pts = +q.points_possible || 0, dis = P.answers ? "" : "disabled";
+  const raw = q.question_text.replace(/^\[Innovation\]\s*/i, "");
+  const m = raw.match(/^([^:]{2,70}):\s*([\s\S]*)$/);
+  const title = m ? m[1] : null, body = m ? m[2] : raw;
+  const same = (a, b) => a != null && b != null && String(a).toLowerCase() === String(b).toLowerCase();
+  const ctl = (stage, val) => {
+    const name = `${stage.toLowerCase()}-${id}`;
+    if (isYesNo(q)) return `<fieldset class="yn"><legend class="label">${stage}</legend><div class="opts">${optsOf(q).map((o) =>
+      `<label class="${o.na ? "na" : ""}"><input type="radio" name="${name}" value="${esc(o.label)}" ${same(val, o.label) ? "checked" : ""} ${dis}>${esc(o.label)}</label>`).join("")}</div></fieldset>`;
+    return `<label class="tier"><span class="label">${stage}</span><select name="${name}" id="${name}" ${dis}><option value="">Choose one</option>${optsOf(q).map((o) =>
+      `<option value="${esc(o.label)}" ${same(val, o.label) ? "selected" : ""}>${esc(o.label)}${o.na ? "" : ` (${fmt(o.points)} pt${+o.points === 1 ? "" : "s"})`}</option>`).join("")}</select></label>`;
+  };
+  const tags = [q.code, q.is_innovation ? `+${fmt(pts)} bonus` : `${fmt(pts)} pts`, q.category].filter(Boolean);
+  return `<div class="q ${isYesNo(q) ? "" : "q-tier"}" data-q="${id}">
+    <div class="q-text">
+      ${q.parent_label ? `<span class="eyebrow">${esc(q.parent_label)}</span>` : ""}
+      <p>${title ? `<b>${esc(title)}.</b> ` : ""}${esc(body)}</p>
+      <div class="tags">${q.is_innovation ? '<span class="tag tag-innov">Innovation</span>' : ""}${tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+      ${q.documentation ? `<p class="doc"><span class="label">Evidence</span> ${esc(q.documentation)}</p>` : ""}
+    </div>
+    <div class="q-ans">${ctl("Prep", r.prep_answer)}${ctl("Wrap", r.wrap_answer)}</div>
+    <div class="q-wide">
+      <label class="field"><span>Evidence or explanation</span><textarea name="expl-${id}" id="expl-${id}" rows="2" placeholder="${P.answers ? "What was done, by whom, and any supporting detail" : ""}" ${dis}>${esc(r.explanation)}</textarea></label>
+      <div class="evidence" data-ev="${id}">
+        <span class="label">Files</span>
+        <ul class="files" id="files-${id}"><li class="muted">${S.current.app.production_id == null ? "" : "Loading…"}</li></ul>
+        ${P.answers ? (S.current.app.production_id == null
+          ? `<span class="muted ev-hint">Save the draft to attach photos or documents.</span>`
+          : `<label class="btn ev-add">Attach files<input type="file" class="sr" id="up-${id}" data-up="${id}" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"></label>`) : ""}
+      </div>
+      ${P.score ? `<div class="q-score">
+          <label class="field"><span>Verified prep pts</span><input type="number" name="pp-${id}" id="pp-${id}" min="0" max="${pts}" step="0.5" inputmode="decimal" value="${r.prep_points ?? ""}"></label>
+          <label class="field"><span>Verified wrap pts</span><input type="number" name="wp-${id}" id="wp-${id}" min="0" max="${pts}" step="0.5" inputmode="decimal" value="${r.wrap_points ?? ""}"></label>
+          <label class="field note"><span>Reviewer note</span><input name="note-${id}" id="note-${id}" value="${esc(r.reviewer_notes)}"></label>
+        </div>` : showEarned ? `<div class="earned"><span>Verified prep <b>${fmt(r.prep_points)}</b> / ${fmt(pts)}</span><span>Verified wrap <b>${fmt(r.wrap_points)}</b> / ${fmt(pts)}</span>${r.reviewer_notes ? `<span>Reviewer note: ${esc(r.reviewer_notes)}</span>` : ""}</div>` : ""}
+    </div>
+  </div>`;
+}
+
+function readForm() {
+  const fd = new FormData(document.getElementById("appForm"));
+  // Disabled inputs aren't in FormData, so read answers straight from the controls.
+  const checked = (name) => {
+    const el = document.querySelector(`[name="${name}"]`);
+    if (!el) return null;
+    if (el.tagName === "SELECT") return el.value || null;
+    return document.querySelector(`input[name="${name}"]:checked`)?.value || null;
+  };
+  return { fd, checked };
+}
+
+function updateTally() {
+  const { resp, app } = S.current; const P = perms(app); const { fd, checked } = readForm();
+  const prep = {}, wrap = {}; let verified = 0, vAny = false;
+  for (const q of S.qs) {
+    const id = q.question_id, a = checked("prep-" + id), b = checked("wrap-" + id);
+    if (a) prep[id] = a; if (b) wrap[id] = b;
+    const wp = P.score ? num(fd.get("wp-" + id)) : num(resp[id]?.wrap_points);
+    if (wp != null && !q.is_innovation) { verified += wp; vAny = true; }
+  }
+  const Pp = peachScore(prep), W = peachScore(wrap), n = S.qs.length;
+  const cell = (label, sc) => `<div><span class="label">${label}</span>
+    <strong>${sc.answered ? Math.round(sc.pct ?? 0) + "%" : "–"}</strong>
+    <small class="tsub">${fmt(sc.earned)} of ${fmt(sc.available)} pts · ${sc.answered}/${n} answered${sc.na ? ` · ${sc.na} N/A` : ""}</small></div>`;
+  document.getElementById("tally").innerHTML = `
+    ${cell("Prep score", Pp)}${cell("Wrap score", W)}
+    <div><span class="label">Innovation bonus</span><strong>${fmt(W.answered ? W.bonus : Pp.bonus)}<small> / ${fmt(bonusPossible())}</small></strong><small class="tsub">${W.answered ? "at wrap" : "at prep"}</small></div>
+    <div><span class="label">Reviewer verified</span><strong>${vAny ? fmt(verified) : "–"}<small> / ${fmt(W.available || possible())}</small></strong><small class="tsub">wrap points</small></div>`;
+  for (const d of S.depts) {
+    const el = document.getElementById("dsum-" + d.department_id); if (!el) continue;
+    const qs = S.qs.filter((q) => q.department_id === d.department_id);
+    const dp = peachScore(prep, qs), dw = peachScore(wrap, qs), stage = dw.answered ? dw : dp;
+    el.textContent = `${dp.answered}/${qs.length} prep · ${dw.answered}/${qs.length} wrap · ${fmt(stage.earned)}/${fmt(stage.available)} pts`;
+    el.classList.toggle("done", dw.answered === qs.length);
+  }
+  return { prepAns: Pp.answered, wrapAns: W.answered, n };
+}
+
+function autofill() {
+  const { checked } = readForm();
+  for (const q of S.qs) {
+    const id = q.question_id;
+    for (const [stage, field] of [["prep", "pp"], ["wrap", "wp"]]) {
+      const a = checked(`${stage}-${id}`), el = document.getElementById(`${field}-${id}`);
+      if (el && a) el.value = ansState(q, a) === "na" ? "" : ansPts(q, a) ?? "";
+    }
+  }
+  updateTally(); toast("Points filled from the PEACH answers. Adjust any you can't verify, then save.");
+}
+
+function drawActions() {
+  const { app, confirm } = S.current; const P = perms(app);
+  if (!P.details && !P.answers && !P.score) { $actions.innerHTML = ""; return; }
+  let hint = "";
+  if (P.submit && !confirm) hint = "Drafts are only visible to you and staff.";
+  else if (!P.answers && P.score) hint = "Answers are locked. You're scoring.";
+  let body;
+  if (confirm) {
+    const { prepAns, wrapAns, n } = updateTally();
+    const gaps = [n - prepAns ? `${n - prepAns} prep` : "", n - wrapAns ? `${n - wrapAns} wrap` : ""].filter(Boolean).join(" and ");
+    body = `<div class="confirm"><span>${gaps ? `${esc(gaps)} answers are still blank. ` : ""}After you submit, you can't edit this application.</span>
+      <button class="primary" id="doSubmit">Submit application</button><button id="cancelSubmit">Keep editing</button></div>`;
+  } else {
+    body = `${hint ? `<span class="hint">${esc(hint)}</span>` : ""}
+      <button id="save" class="${P.submit ? "" : "primary"}">${P.score && !P.answers ? "Save review" : app.production_id == null ? "Save draft" : "Save"}</button>
+      ${P.submit ? `<button class="primary" id="askSubmit">Submit…</button>` : ""}`;
+  }
+  $actions.innerHTML = `<div class="actions"><div class="wrap">${body}</div></div>`;
+  document.getElementById("save")?.addEventListener("click", () => saveApp());
+  document.getElementById("askSubmit")?.addEventListener("click", () => { S.current.confirm = true; drawActions(); });
+  document.getElementById("cancelSubmit")?.addEventListener("click", () => { S.current.confirm = false; drawActions(); });
+  document.getElementById("doSubmit")?.addEventListener("click", () => saveApp({ submit: true }));
+}
+
+async function saveApp({ submit = false } = {}) {
+  let { app } = S.current; const P = perms(app); const { fd, checked } = readForm();
+  let id = app.production_id;
+  setBusy(true);
+  try {
+    if (P.details) {
+      const det = {};
+      for (const [k] of DETAILS) det[k] = String(fd.get(k) || "").trim() || null;
+      for (const [k, label] of FOOTPRINT) {
+        const v = num(fd.get(k));
+        if (v != null && (isNaN(v) || v < 0 || (k === "shoot_days" && (v < 1 || !Number.isInteger(v))))) throw new Error(`${label} must be ${k === "shoot_days" ? "a whole number of days" : "zero or more"}.`);
+        det[k] = v;
+      }
+      if (FOOTPRINT.some(([k]) => (app[k] ?? null) !== det[k])) det.footprint_is_sample = false;
+      if (!det.production_name) { document.getElementById("d-production_name").focus(); throw new Error("Add the production name before saving."); }
+      if (id == null) {
+        const { data, error } = await sb.from("productions").insert({ ...det, submitted_by: S.me.id, status: "draft" }).select().single();
+        if (error) throw error; id = data.production_id;
+      } else {
+        const { error } = await sb.from("productions").update(det).eq("production_id", id);
+        if (error) throw error;
+      }
+    }
+    const rows = [];
+    for (const q of S.qs) {
+      const qid = q.question_id, prev = S.current.resp[qid];
+      const row = { production_id: id, question_id: qid }; let any = !!prev;
+      if (P.answers) {
+        row.prep_answer = checked("prep-" + qid); row.wrap_answer = checked("wrap-" + qid);
+        row.explanation = String(fd.get("expl-" + qid) || "").trim() || null;
+        any ||= !!(row.prep_answer || row.wrap_answer || row.explanation);
+      }
+      if (P.score) {
+        row.prep_points = num(fd.get("pp-" + qid)); row.wrap_points = num(fd.get("wp-" + qid));
+        row.reviewer_notes = String(fd.get("note-" + qid) || "").trim() || null;
+        for (const v of [row.prep_points, row.wrap_points]) {
+          if (v != null && (isNaN(v) || v < 0 || v > (+q.points_possible || 0))) throw new Error(`Points for "${q.question_text}" must be between 0 and ${fmt(q.points_possible)}.`);
+        }
+        any ||= row.prep_points != null || row.wrap_points != null || !!row.reviewer_notes;
+      }
+      if (any) rows.push(row);
+    }
+    if (rows.length) {
+      const { error } = await sb.from("responses").upsert(rows, { onConflict: "production_id,question_id" });
+      if (error) throw error;
+    }
+    const st = document.getElementById("rv-status"), as = document.getElementById("rv-assign");
+    if (P.score && st) {
+      const { error } = await sb.from("productions").update({ status: st.value, assigned_reviewer: as.value || null }).eq("production_id", id);
+      if (error) throw error;
+    }
+    if (submit) {
+      const { error } = await sb.from("productions").update({ status: "submitted" }).eq("production_id", id);
+      if (error) throw error;
+    }
+    // Email whoever needs to know about a status change. Never blocks saving.
+    const newStatus = submit ? "submitted" : st?.value;
+    if (newStatus && newStatus !== app.status && !(newStatus === "submitted" && app.status !== "draft")) {
+      sb.functions.invoke("notify", { body: { production_id: id } }).catch((e) => console.warn("Notification not sent", e));
+    }
+    toast(submit ? "Application submitted" : "Saved");
+    if (location.hash !== "#app-" + id) location.hash = "app-" + id; else openApp(id);
+  } catch (e) { fail(e); } finally { setBusy(false); }
+}
+
+// ── Dashboard (reviewers & staff) ──────────────────────────────────────────
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
+async function renderDashboard() {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading dashboard…</p>`;
+  const [p, r] = await Promise.all([
+    sb.from("productions").select("*").order("submission_date", { ascending: false, nullsFirst: false }),
+    fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer,prep_points,wrap_points,explanation,reviewer_notes").order("response_id")),
+  ]);
+  if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load the dashboard", friendly(e)); return; }
+  const apps = p.data, by = answersByApp(r.data);
+  S.dash = { apps, resp: r.data, by };
+  const count = (st) => apps.filter((a) => a.status === st).length;
+  const live = apps.filter((a) => a.status !== "draft");
+  const decided = apps.filter((a) => a.status === "approved" || a.status === "rejected");
+  const score = (a, stage, qs) => peachScore(by[a.production_id]?.[stage] || {}, qs);
+  const avgPct = (list, stage) => { const v = list.map((a) => score(a, stage)).filter((x) => x.answered).map((x) => x.pct); return v.length ? Math.round(v.reduce((t, x) => t + x, 0) / v.length) : null; };
+  // Pooled share of available points across productions (each N/A shrinks the denominator).
+  const pooled = (list, stage, qs) => { let e = 0, av = 0; for (const a of list) { const sc = score(a, stage, qs); if (sc.answered) { e += sc.earned; av += sc.available; } } return av ? Math.round((e / av) * 100) : null; };
+  const waiting = count("submitted") + count("in_review");
+  const unassigned = apps.filter((a) => a.status === "submitted" && !a.assigned_reviewer).length;
+  const avgWrap = avgPct(live, "wrap"), avgApproved = avgPct(apps.filter((a) => a.status === "approved"), "wrap");
+  const cats = [...new Set(S.qs.filter((q) => !q.is_innovation).map((q) => q.category))];
+  const catRows = cats.map((c) => { const qs = S.qs.filter((q) => q.category === c && !q.is_innovation); return { name: c, n: qs.length, prep: pooled(live, "prep", qs), wrap: pooled(live, "wrap", qs) }; });
+  const deptRows = S.depts.filter((d) => d.name !== "Innovation").map((d) => { const qs = S.qs.filter((q) => q.department_id === d.department_id); return { name: d.name, n: qs.length, prep: pooled(live, "prep", qs), wrap: pooled(live, "wrap", qs) }; })
+    .filter((d) => d.prep != null || d.wrap != null);
+  const practices = S.qs.filter((q) => !q.is_innovation).map((q) => {
+    const states = live.map((a) => ansState(q, by[a.production_id]?.wrap[q.question_id])).filter((x) => x === "yes" || x === "no");
+    return { q, n: states.length, v: states.length ? Math.round((states.filter((x) => x === "yes").length / states.length) * 100) : null };
+  }).filter((x) => x.v != null && x.n >= 2).sort((a, b) => b.v - a.v);
+  const types = [...new Set(live.map((a) => a.production_type || "Other"))].map((t) => {
+    const list = live.filter((a) => (a.production_type || "Other") === t);
+    return { t, n: list.length, approved: list.filter((a) => a.status === "approved").length, wrap: avgPct(list, "wrap") };
+  }).sort((a, b) => b.n - a.n);
+
+  const order = ["draft", "submitted", "in_review", "approved", "rejected"];
+  const total = apps.length || 1;
+  const bar = (label, v, cls) => `<div class="bar-line"><span>${label}</span><div class="track"><i class="${cls}" style="width:${v ?? 0}%"></i></div><span class="mono">${v == null ? "–" : v + "%"}</span></div>`;
+  const bars = (rows) => rows.length ? `<div class="bars">${rows.map((d) => `<div class="bar-row"><b>${esc(d.name)} <span class="muted">${d.n}</span></b><div class="bar-pair">${bar("Prep", d.prep, "prep")}${bar("Wrap", d.wrap, "wrap")}</div></div>`).join("")}</div>
+    <div class="scale" aria-hidden="true"><span></span><div><span>0%</span><span>50%</span><span>100%</span></div></div>` : `<p class="muted">Appears once applications are submitted.</p>`;
+  const plist = (list) => list.map((x) => `<div class="practice"><a href="#compare-${x.q.question_id}" title="Compare productions that did and didn't">${esc(qTitle(x.q))}</a><span class="mono">${x.v}%</span><div class="track"><i class="wrap" style="width:${x.v}%"></i></div></div>`).join("");
+
+  $app.innerHTML = `
+    <div class="page-head">
+      <div><p class="eyebrow">PEACH v2.0 · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p><h1>Program dashboard</h1></div>
+      <div class="export"><button id="expApps">Export applications</button><button id="expAns">Export answers</button></div>
+    </div>
+    <div class="panel kpis">
+      <div class="kpi"><span class="label">Applications</span><strong>${live.length}</strong><small>${count("draft")} more in draft</small></div>
+      <div class="kpi"><span class="label">Awaiting review</span><strong>${waiting}</strong><small>${unassigned ? `${unassigned} not yet assigned` : "All assigned"}</small></div>
+      <div class="kpi"><span class="label">Approval rate</span><strong>${pct(count("approved"), decided.length) ?? "–"}${decided.length ? "%" : ""}</strong><small>${count("approved")} approved of ${decided.length} decided</small></div>
+      <div class="kpi"><span class="label">Avg. PEACH score</span><strong>${avgWrap ?? "–"}${avgWrap != null ? "%" : ""}</strong><small>${avgApproved != null ? `At wrap · approved productions average ${avgApproved}%` : "At wrap, self-assessed"}</small></div>
+    </div>
+    <section class="panel block">
+      <div class="block-head"><h2>Pipeline</h2><span class="muted">${apps.length} applications</span></div>
+      <div class="block-body">
+        <div class="pipe" role="img" aria-label="${order.map((s) => `${STATUS[s]} ${count(s)}`).join(", ")}">${order.map((s) => count(s) ? `<span class="c-${s}" style="width:${(count(s) / total) * 100}%" title="${STATUS[s]}: ${count(s)}"></span>` : "").join("")}</div>
+        <div class="legend">${order.map((s) => `<span><i class="c-${s}"></i>${STATUS[s]} <b class="mono">${count(s)}</b></span>`).join("")}</div>
+      </div>
+    </section>
+    <section class="panel block">
+      <div class="block-head"><h2>Impact categories</h2><span class="muted">Share of available points earned, all submitted applications</span></div>
+      <div class="block-body">${bars(catRows)}</div>
+    </section>
+    <div class="dash-grid">
+      <section class="panel block">
+        <div class="block-head"><h2>By department</h2><span class="muted">Share of available points earned</span></div>
+        <div class="block-body">${bars(deptRows)}</div>
+      </section>
+      <section class="panel block">
+        <div class="block-head"><h2>Practices at wrap</h2><span class="muted">Share of productions doing each</span></div>
+        <div class="block-body">${practices.length ? `<p class="label plabel">Most adopted</p>${plist(practices.slice(0, 6))}<p class="label plabel">Least adopted</p>${plist(practices.slice(-6).reverse())}` : `<p class="muted">No wrap answers yet.</p>`}</div>
+      </section>
+    </div>
+    <section class="panel block" style="margin-top:22px">
+      <div class="block-head"><h2>By production type</h2><span class="muted">Submitted applications</span></div>
+      <div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Applications</th><th class="num">Approved</th><th class="num">Avg. PEACH score at wrap</th></tr></thead>
+      <tbody>${types.map((t) => `<tr><td>${esc(t.t)}</td><td class="num">${t.n}</td><td class="num">${t.approved}</td><td class="num">${t.wrap == null ? '<span class="muted">–</span>' : t.wrap + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submitted applications yet.</td></tr>`}</tbody></table></div>
+    </section>`;
+  document.getElementById("expApps").addEventListener("click", exportApps);
+  document.getElementById("expAns").addEventListener("click", exportAnswers);
+}
+
+// ── Compare: compliant vs. non-compliant productions ───────────────────────
+// "Practice score" = share of available points on Yes answers, computed from
+// answers so it works for unscored applications too. Comparing on a single
+// practice leaves that practice's own points out so it isn't circular.
+// Emissions are compared per shoot day, so a 4-day commercial and a 70-day
+// series can sit in the same group. Filters narrow which productions are
+// compared; the department filter narrows which practices count.
+S.cmp = { mode: "compliance", threshold: 75, stage: "wrap", q: null, metric: "co2" };
+const emptyCmpFilters = () => ({ sel: { type: [], sub: [], studio: [], loc: [], status: [], rev: [] }, from: "", to: "", dmin: "", dmax: "", depts: [], footprintOnly: false });
+S.cmpF = emptyCmpFilters();
+S.cmpFiltersOpen = true;
+const regionOf = (loc) => { const parts = (loc || "").split(",").map((x) => x.trim()).filter(Boolean); return parts.length > 1 ? parts[parts.length - 1] : parts[0] || "Not set"; };
+const CMP_FACETS = [
+  { key: "type", label: "Production type", get: (a) => a.production_type || "Not set" },
+  { key: "sub", label: "Format", get: (a) => a.production_sub_type || "Not set" },
+  { key: "studio", label: "Studio", get: (a) => a.studio_affiliation || "Not set" },
+  { key: "loc", label: "State / province", get: (a) => regionOf(a.production_location) },
+  { key: "status", label: "Status", get: (a) => a.status, fmt: (v) => STATUS[v] || v, order: (v) => Object.keys(STATUS).indexOf(v) },
+  { key: "rev", label: "Reviewer", get: (a) => a.assigned_reviewer || "", fmt: (v) => (v ? personName(v) || "Unknown" : "Unassigned") },
+];
+
+async function renderCompare(qid) {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading productions…</p>`;
+  const [p, r] = await Promise.all([
+    sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,production_location,submission_date,assigned_reviewer,status,footprint_is_sample," + FOOTPRINT_COLS).neq("status", "draft"),
+    fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer").order("response_id")),
+  ]);
+  if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load productions", friendly(e)); return; }
+  const ans = {};
+  const active = new Set(S.qs.map((q) => q.question_id));
+  for (const x of r.data) if (active.has(x.question_id)) (ans[x.production_id] ||= {})[x.question_id] = { prep: x.prep_answer || null, wrap: x.wrap_answer || null };
+  S.cmpData = { apps: p.data, ans };
+  if (qid && S.qs.some((q) => q.question_id === qid)) { S.cmp.q = qid; S.cmp.mode = "practice"; }
+  if (!S.cmp.q) S.cmp.q = S.qs[0]?.question_id;
+  drawCompare();
+}
+
+const activeQs = () => (S.cmpF.depts.length ? S.qs.filter((q) => S.cmpF.depts.includes(q.department_id)) : S.qs);
+function practiceScore(appId, stage, excludeQ, qs = activeQs()) {
+  const a = S.cmpData.ans[appId] || {}, answers = {};
+  for (const [qid, v] of Object.entries(a)) if (v[stage]) answers[qid] = v[stage];
+  const sc = peachScore(answers, qs.filter((q) => q.question_id !== excludeQ));
+  return sc.answered ? sc.pct : null;
+}
+
+const avg = (xs) => (xs.length ? xs.reduce((t, v) => t + v, 0) / xs.length : null);
+function groupStats(list, stage, q) {
+  const dec = list.filter((a) => a.status === "approved" || a.status === "rejected");
+  const s = avg(list.map((a) => practiceScore(a.production_id, stage, q)).filter((v) => v != null));
+  const metrics = {};
+  for (const m of METRICS) { const vals = list.map(m.get).filter((v) => v != null); metrics[m.key] = { v: avg(vals), n: vals.length }; }
+  return {
+    n: list.length, score: s == null ? null : Math.round(s),
+    approved: dec.filter((a) => a.status === "approved").length, decided: dec.length,
+    metrics, total: avg(list.map(tonnesCO2).filter((v) => v != null)),
+  };
+}
+
+const pctDiff = (a, b) => (a != null && b ? Math.round(((a - b) / b) * 100) : null);
+
+// A production passes when it matches every active filter (optionally ignoring one facet, for chip counts).
+function passesFilters(a, exceptKey) {
+  const F = S.cmpF;
+  for (const f of CMP_FACETS) {
+    if (f.key === exceptKey) continue;
+    const sel = F.sel[f.key];
+    if (sel.length && !sel.includes(f.get(a))) return false;
+  }
+  if (F.from && (!a.submission_date || a.submission_date < F.from)) return false;
+  if (F.to && (!a.submission_date || a.submission_date > F.to)) return false;
+  if (F.dmin !== "" && !(a.shoot_days >= +F.dmin)) return false;
+  if (F.dmax !== "" && !(a.shoot_days <= +F.dmax)) return false;
+  if (F.footprintOnly && metricOf(S.cmp.metric).get(a) == null) return false;
+  return true;
+}
+function activeFilterLabels() {
+  const F = S.cmpF, out = [];
+  for (const f of CMP_FACETS) if (F.sel[f.key].length) out.push(`${f.label}: ${F.sel[f.key].map((v) => (f.fmt ? f.fmt(v) : v)).join(", ")}`);
+  if (F.from || F.to) out.push(`Submitted ${F.from ? "from " + date(F.from) : ""}${F.from && F.to ? " " : ""}${F.to ? "to " + date(F.to) : ""}`);
+  if (F.dmin !== "" || F.dmax !== "") out.push(`Shoot days ${F.dmin !== "" ? F.dmin : "any"}–${F.dmax !== "" ? F.dmax : "any"}`);
+  if (F.depts.length) out.push(`Practices from ${F.depts.map((id) => S.depts.find((d) => d.department_id === id)?.name || id).join(", ")}`);
+  if (F.footprintOnly) out.push(`Reported ${metricOf(S.cmp.metric).short} only`);
+  return out;
+}
+
+function filterPanel(all, shown) {
+  const F = S.cmpF;
+  const facet = (f) => {
+    const values = [...new Set(all.map(f.get))];
+    if (values.length < 2 && !F.sel[f.key].length) return "";
+    values.sort((x, y) => (f.order ? f.order(x) - f.order(y) : String(f.fmt ? f.fmt(x) : x).localeCompare(String(f.fmt ? f.fmt(y) : y))));
+    return `<fieldset class="facet"><legend class="label">${f.label}</legend><div class="chips">${values.map((v) => {
+      const n = all.filter((a) => passesFilters(a, f.key) && f.get(a) === v).length;
+      const on = F.sel[f.key].includes(v);
+      return `<button class="chip fchip" data-facet="${f.key}" data-val="${esc(v)}" aria-pressed="${on}" ${!n && !on ? "disabled" : ""}>${esc(f.fmt ? f.fmt(v) : v)} <span class="cnt">${n}</span></button>`;
+    }).join("")}</div></fieldset>`;
+  };
+  const labels = activeFilterLabels();
+  return `<section class="panel cmp-filters">
+    <div class="fhead">
+      <button class="link ftoggle" id="fToggle" aria-expanded="${S.cmpFiltersOpen}">${S.cmpFiltersOpen ? "Hide filters" : "Show filters"}${labels.length ? ` <span class="pill role">${labels.length} active</span>` : ""}</button>
+      <span class="muted">Showing <b>${shown}</b> of ${all.length} submitted productions</span>
+      ${labels.length ? `<button class="link" id="fClear">Clear all</button>` : ""}
+    </div>
+    ${S.cmpFiltersOpen ? `<div class="fgrid">
+      ${CMP_FACETS.map(facet).join("")}
+      <fieldset class="facet"><legend class="label">Submitted</legend>
+        <div class="frange"><input type="date" id="f-from" value="${esc(F.from)}" aria-label="Submitted on or after"><span class="muted">to</span><input type="date" id="f-to" value="${esc(F.to)}" aria-label="Submitted on or before"></div></fieldset>
+      <fieldset class="facet"><legend class="label">Shoot days</legend>
+        <div class="frange"><input type="number" min="1" id="f-dmin" value="${esc(F.dmin)}" placeholder="Min" aria-label="Minimum shoot days"><span class="muted">to</span><input type="number" min="1" id="f-dmax" value="${esc(F.dmax)}" placeholder="Max" aria-label="Maximum shoot days"></div></fieldset>
+      <fieldset class="facet"><legend class="label">Departments that count toward the score</legend><div class="chips">${S.depts.filter((d) => S.qs.some((q) => q.department_id === d.department_id)).map((d) =>
+        `<button class="chip" data-dept="${d.department_id}" aria-pressed="${F.depts.includes(d.department_id)}">${esc(d.name)}</button>`).join("")}</div>
+        <small class="muted">None selected means all departments.</small></fieldset>
+      <fieldset class="facet"><legend class="label">Footprint</legend>
+        <label class="check"><input type="checkbox" id="f-fp" ${F.footprintOnly ? "checked" : ""}>Only productions that reported ${esc(metricOf(S.cmp.metric).short)}</label></fieldset>
+    </div>` : ""}
+    ${labels.length && !S.cmpFiltersOpen ? `<p class="fsummary muted">${labels.map(esc).join(" · ")}</p>` : ""}
+  </section>`;
+}
+
+function drawCompare() {
+  const { mode, threshold, stage, q } = S.cmp;
+  const byPractice = mode === "practice";
+  const all = S.cmpData.apps;
+  const apps = all.filter((a) => passesFilters(a));
+  const qs = activeQs();
+  const ansOf = (a, qid) => S.cmpData.ans[a.production_id]?.[qid]?.[stage] || null;
+  const question = S.qs.find((x) => x.question_id === q);
+  const dept = Object.fromEntries(S.depts.map((d) => [d.department_id, d.name]));
+  const stageWord = stage === "wrap" ? "at wrap" : "at prep";
+  const types = new Set(apps.map((a) => a.production_type || "Not set"));
+
+  let yes, no;
+  if (byPractice) { yes = apps.filter((a) => ansState(question, ansOf(a, q)) === "yes"); no = apps.filter((a) => ansState(question, ansOf(a, q)) === "no"); }
+  else {
+    yes = apps.filter((a) => (practiceScore(a.production_id, stage) ?? -1) >= threshold);
+    no = apps.filter((a) => (practiceScore(a.production_id, stage) ?? -1) < threshold);
+  }
+  const blank = byPractice ? apps.filter((a) => !ansOf(a, q)).length : apps.length - yes.length - no.length;
+  const naCount = byPractice ? apps.filter((a) => ansState(question, ansOf(a, q)) === "na").length : 0;
+  const exclude = byPractice ? q : null;
+  const Y = groupStats(yes, stage, exclude), N = groupStats(no, stage, exclude);
+  const yesLabel = byPractice ? "Implemented" : "Compliant", noLabel = byPractice ? "Did not implement" : "Non-compliant";
+  const sample = apps.some((a) => a.footprint_is_sample);
+  const M = metricOf(S.cmp.metric);
+  const noFootprint = apps.filter((a) => M.get(a) == null).length;
+
+  // Which practices go with a better result on the chosen metric.
+  const impact = qs.map((x) => {
+    const y = apps.filter((a) => ansState(x, ansOf(a, x.question_id)) === "yes"), n = apps.filter((a) => ansState(x, ansOf(a, x.question_id)) === "no");
+    const ys = groupStats(y, stage, x.question_id), ns = groupStats(n, stage, x.question_id);
+    return { x, ys: ys.metrics[M.key].v, ns: ns.metrics[M.key].v, yn: ys.n, nn: ns.n, diff: mdiff(M, ys.metrics[M.key].v, ns.metrics[M.key].v) };
+  }).sort((a, b) => M.higher ? (b.diff ?? -999) - (a.diff ?? -999) : (a.diff ?? 999) - (b.diff ?? 999));
+  const maxDay = Math.max(1, ...impact.flatMap((i) => [i.ys || 0, i.ns || 0]));
+  const withData = impact.filter((i) => i.diff != null);
+  const impactShown = S.cmpShowAll ? impact : withData.slice(0, 12);
+
+  const cols = [...apps].sort((a, b) => (practiceScore(b.production_id, stage) ?? -1) - (practiceScore(a.production_id, stage) ?? -1));
+  const small = (g) => g.n > 0 && g.n < 3 ? `<span class="tag">Small group</span>` : "";
+  const groupCard = (label, cls, g, list) => `
+    <section class="panel cmp-card ${cls}">
+      <div class="cmp-head"><span class="label">${label} · ${g.n} production${g.n === 1 ? "" : "s"}</span>${small(g)}</div>
+      <div class="cmp-stats">
+        <div class="lead"><strong>${mfmt(M, g.metrics[M.key].v).replace(/ \S+$/, "") }</strong><small>${M.unit === "%" ? "of waste diverted from landfill" : `${esc(M.unit)} ${esc(M.noun)} per shoot day`}${g.metrics[M.key].n < g.n ? ` (${g.metrics[M.key].n} of ${g.n} reported)` : ""}</small></div>
+        ${M.key === "co2" ? `<div><strong>${t1(g.total)}</strong><small>t CO₂ per production</small></div>` : `<div><strong>${t1(g.metrics.co2.v)}</strong><small>t CO₂ per shoot day</small></div>`}
+        <div><strong>${g.score ?? "–"}${g.score != null ? "%" : ""}</strong><small>${byPractice ? "score on other practices" : "practice score"}</small></div>
+        <div><strong>${g.decided ? Math.round((g.approved / g.decided) * 100) + "%" : "–"}</strong><small>${g.decided ? `approved (${g.approved} of ${g.decided} decided)` : "none decided yet"}</small></div>
+      </div>
+      <ul class="cmp-list">${list.map((a) => `<li><a href="#app-${a.production_id}">${esc(a.production_name)}</a><span class="muted">${esc(a.production_type || "")}</span><span class="mono co2-chip">${M.get(a) == null ? "not reported" : mfmt(M, M.get(a)) + (M.unit === "%" ? " diverted" : "/day")}</span>${pill(a.status)}</li>`).join("") || `<li class="muted">None</li>`}</ul>
+    </section>`;
+
+  const ym = Y.metrics[M.key].v, nm = N.metrics[M.key].v, dd = mdiff(M, ym, nm);
+  let verdict = "";
+  if (Y.n && N.n) {
+    const parts = [];
+    if (dd != null) parts.push(M.unit === "%"
+      ? `diverted <b>${Math.round(ym)}%</b> of their waste from landfill, versus ${Math.round(nm)}%`
+      : `${M.verb} <b>${dd === 0 ? `the same ${esc(M.noun)}` : `${Math.abs(dd)}% ${dd < 0 ? "less" : "more"} ${esc(M.noun)}`}</b> per shoot day (${mfmt(M, ym)} vs. ${mfmt(M, nm)})`);
+    if (Y.decided && N.decided) parts.push(`were approved ${Math.round(Y.approved / Y.decided * 100)}% of the time versus ${Math.round(N.approved / N.decided * 100)}%`);
+    verdict = parts.length ? `${byPractice ? "Productions that did this" : "Compliant productions"} ${parts.join(", and ")}.` : "";
+  }
+
+  $app.innerHTML = `
+    <div class="page-head">
+      <div><p class="eyebrow">Best practices & footprint</p><h1>Compare productions</h1>
+        <p class="muted" style="max-width:66ch">Split submitted productions into those that follow best practices and those that don't, then compare their carbon, electricity, fuel, water and waste. Amounts are per shoot day so productions of different lengths compare fairly.</p></div>
+    </div>
+    <div class="panel cmp-controls">
+      <label class="field"><span>Compare by</span><select id="cmp-mode">
+        <option value="compliance" ${!byPractice ? "selected" : ""}>Overall compliance</option>
+        <option value="practice" ${byPractice ? "selected" : ""}>A single practice</option></select></label>
+      ${byPractice ? `<label class="field cmp-wide"><span>Practice</span><select id="cmp-q">${S.depts.map((d) => {
+        const dq = S.qs.filter((x) => x.department_id === d.department_id);
+        return dq.length ? `<optgroup label="${esc(d.name)}">${dq.map((x) => `<option value="${x.question_id}" ${x.question_id === q ? "selected" : ""}>${esc(qTitle(x))}</option>`).join("")}</optgroup>` : "";
+      }).join("")}</select></label>`
+      : `<label class="field cmp-wide"><span>Compliant at a practice score of at least</span><div class="thresh"><input type="range" id="cmp-th" min="10" max="100" step="5" value="${threshold}"><output class="mono" id="cmp-th-out">${threshold}%</output></div></label>`}
+      <div class="field"><span>Stage</span><div class="chips">${[["wrap", "Wrap"], ["prep", "Prep"]].map(([k, l]) => `<button class="chip" data-stage="${k}" aria-pressed="${stage === k}">${l}</button>`).join("")}</div></div>
+      <label class="field"><span>Compare on</span><select id="cmp-metric">${METRICS.map((m) => `<option value="${m.key}" ${m.key === M.key ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select></label>
+    </div>
+    ${filterPanel(all, apps.length)}
+
+    <h2 class="cmp-title">${byPractice ? esc(question?.question_text || "") : "Compliant vs. non-compliant productions"}
+      <span class="muted">${byPractice ? `${esc(dept[question?.department_id] || "")} · ${stageWord}` : `Practice score of ${threshold}% or more ${stageWord}${S.cmpF.depts.length ? ", selected departments" : ""}`}</span></h2>
+    ${sample ? `<p class="sample-note"><span class="tag">Sample figures</span> Some footprint numbers here are invented demo data, not real production results.</p>` : ""}
+    <p class="cmp-verdict ${verdict ? "" : "muted"}">${verdict || (apps.length ? "Both groups need at least one production to compare. Try a different threshold or loosen the filters." : "No productions match these filters.")}</p>
+    <div class="cmp-grid">
+      ${groupCard(yesLabel, "yes", Y, yes)}
+      ${groupCard(noLabel, "no", N, no)}
+    </div>
+    <section class="panel block">
+      <div class="block-head"><h2>Footprint side by side</h2><span class="muted">Group averages · click a row to compare on it</span></div>
+      <div class="table-scroll"><table class="mtable">
+        <thead><tr><th>Metric</th><th class="num">${yesLabel}</th><th class="num">${noLabel}</th><th class="num">Difference</th><th class="num">Reported</th></tr></thead>
+        <tbody>${METRICS.map((m) => { const a = Y.metrics[m.key], b = N.metrics[m.key], d = mdiff(m, a.v, b.v), good = mgood(m, d);
+          return `<tr class="row ${m.key === M.key ? "sel" : ""}" data-metric="${m.key}"><td>${esc(m.label)}${m.higher ? ' <span class="muted">(higher is better)</span>' : ""}</td>
+            <td class="num">${mfmt(m, a.v)}</td><td class="num">${mfmt(m, b.v)}</td>
+            <td class="num"><b class="${good == null ? "" : good ? "good" : "worse"}">${mdiffText(m, d)}</b></td>
+            <td class="num muted">${a.n + b.n} of ${Y.n + N.n}</td></tr>`; }).join("")}</tbody>
+      </table></div>
+    </section>
+    <p class="muted cmp-foot">${[
+      blank ? `${blank} production${blank > 1 ? "s" : ""} left this blank ${stageWord} and ${blank > 1 ? "aren't" : "isn't"} in either group.` : "",
+      naCount ? `${naCount} answered N/A and ${naCount > 1 ? "aren't" : "isn't"} in either group.` : "",
+      byPractice && question && !isYesNo(question) ? "For tiered questions, any answer that earns points counts as implemented." : "",
+      noFootprint ? `${noFootprint} production${noFootprint > 1 ? "s haven't" : " hasn't"} reported ${esc(M.short)} yet.` : "",
+      types.size > 1 ? "Footprints differ a lot by production type; filter by type for a like-for-like comparison." : "",
+    ].filter(Boolean).join(" ")}</p>
+
+    <section class="panel block">
+      <div class="block-head"><h2>Which practices go with ${M.higher ? "higher waste diversion" : `less ${esc(M.noun)}`}</h2><span class="muted">${esc(M.label)}, did vs. didn't</span></div>
+      <div class="table-scroll"><table class="impact">
+        <thead><tr><th>Practice</th><th class="num">Did</th><th class="num">Didn't</th><th>${esc(M.label)}</th><th class="num">Difference</th></tr></thead>
+        <tbody>${impactShown.map(({ x, ys, ns, yn, nn, diff }) => `<tr class="row ${byPractice && x.question_id === q ? "sel" : ""}" data-q="${x.question_id}">
+          <td><span class="sub">${esc(dept[x.department_id] || "")}</span><div>${esc(qTitle(x))}</div></td>
+          <td class="num">${yn}</td><td class="num">${nn}</td>
+          <td class="duo">${diff == null ? `<span class="muted">Not enough data</span>` : `
+            <div class="duo-line"><span class="k">Did</span><div class="track"><i class="wrap" style="width:${(ys / maxDay) * 100}%"></i></div><span class="mono">${mfmt(M, ys)}</span></div>
+            <div class="duo-line"><span class="k">Didn't</span><div class="track"><i class="no" style="width:${(ns / maxDay) * 100}%"></i></div><span class="mono">${mfmt(M, ns)}</span></div>`}</td>
+          <td class="num"><b class="${mgood(M, diff) == null ? "" : mgood(M, diff) ? "good" : "worse"}">${mdiffText(M, diff)}</b></td></tr>`).join("") || `<tr><td colspan="5" class="muted">Not enough data. Each practice needs productions that did it and productions that didn't.</td></tr>`}</tbody>
+      </table></div>
+      <div class="block-body impact-more"><span class="muted">${S.cmpShowAll ? `All ${impact.length} practices` : `The ${impactShown.length} practices with the best ${esc(M.short)} result, of ${withData.length} with enough data`}</span>
+        <button type="button" class="link" id="impactAll">${S.cmpShowAll ? "Show top 12" : `Show all ${impact.length}`}</button></div>
+    </section>
+
+    <section class="panel block">
+      <div class="block-head"><h2>Department scores</h2><span class="muted">Share of available points earned ${stageWord}, highest overall first</span></div>
+      ${apps.length ? `<div class="table-scroll"><table class="matrix heat">
+        <thead><tr><th>Department</th>${cols.map((a) => `<th><a href="#app-${a.production_id}">${esc(a.production_name)}</a></th>`).join("")}</tr></thead>
+        <tbody>${S.depts.filter((d) => qs.some((x) => x.department_id === d.department_id && !x.is_innovation)).map((d) => {
+          const dqs = qs.filter((x) => x.department_id === d.department_id);
+          return `<tr class="${byPractice && question?.department_id === d.department_id ? "sel" : ""}"><td>${esc(d.name)} <span class="muted">${dqs.length}</span></td>${cols.map((a) => {
+            const v = practiceScore(a.production_id, stage, null, dqs);
+            const band = v == null ? "" : v >= 75 ? "h4" : v >= 50 ? "h3" : v >= 25 ? "h2" : "h1";
+            return `<td class="cell ${band}" title="${esc(a.production_name)}, ${esc(d.name)}: ${v == null ? "no answers" : Math.round(v) + "%"}">${v == null ? "–" : Math.round(v) + "%"}</td>`;
+          }).join("")}</tr>`;
+        }).join("")}
+        <tr class="total"><td>PEACH score</td>${cols.map((a) => { const s = practiceScore(a.production_id, stage) ?? 0;
+          return `<td class="num ${!byPractice ? (s >= threshold ? "ok-txt" : "warn-txt") : ""}">${Math.round(s)}%</td>`; }).join("")}</tr>
+        <tr class="total"><td>${esc(M.label)}</td>${cols.map((a) => `<td class="num">${mfmt(M, M.get(a))}</td>`).join("")}</tr>
+        ${M.key !== "co2" ? `<tr class="total"><td>CO₂ per shoot day</td>${cols.map((a) => `<td class="num">${mfmt(METRICS[0], tonnesPerDay(a))}</td>`).join("")}</tr>` : ""}</tbody>
+      </table></div>` : `<div class="block-body"><p class="muted">No productions match these filters.</p></div>`}
+    </section>`;
+
+  // Controls
+  document.getElementById("cmp-mode").addEventListener("change", (e) => { S.cmp.mode = e.target.value; history.replaceState(null, "", S.cmp.mode === "practice" ? "#compare-" + S.cmp.q : "#compare"); drawCompare(); });
+  document.getElementById("cmp-q")?.addEventListener("change", (e) => { S.cmp.q = +e.target.value; history.replaceState(null, "", "#compare-" + S.cmp.q); drawCompare(); });
+  const th = document.getElementById("cmp-th");
+  th?.addEventListener("input", () => { document.getElementById("cmp-th-out").textContent = th.value + "%"; });
+  th?.addEventListener("change", () => { S.cmp.threshold = +th.value; drawCompare(); document.getElementById("cmp-th")?.focus(); });
+  $app.querySelectorAll("[data-stage]").forEach((b) => b.addEventListener("click", () => { S.cmp.stage = b.dataset.stage; drawCompare(); }));
+  document.getElementById("cmp-metric").addEventListener("change", (e) => { S.cmp.metric = e.target.value; drawCompare(); document.getElementById("cmp-metric")?.focus(); });
+  $app.querySelectorAll("tr[data-metric]").forEach((tr) => tr.addEventListener("click", () => { S.cmp.metric = tr.dataset.metric; drawCompare(); }));
+  document.getElementById("impactAll")?.addEventListener("click", () => { S.cmpShowAll = !S.cmpShowAll; drawCompare(); document.getElementById("impactAll")?.focus(); });
+  $app.querySelectorAll(".impact tr[data-q]").forEach((tr) => tr.addEventListener("click", () => {
+    S.cmp.q = +tr.dataset.q; S.cmp.mode = "practice"; history.replaceState(null, "", "#compare-" + S.cmp.q); drawCompare(); window.scrollTo({ top: 0, behavior: "smooth" });
+  }));
+
+  // Filters (redraw, then put focus back on the control the viewer used)
+  const redraw = (focusSel) => { drawCompare(); if (focusSel) document.querySelector(focusSel)?.focus(); };
+  document.getElementById("fToggle").addEventListener("click", () => { S.cmpFiltersOpen = !S.cmpFiltersOpen; redraw("#fToggle"); });
+  document.getElementById("fClear")?.addEventListener("click", () => { S.cmpF = emptyCmpFilters(); redraw("#fToggle"); });
+  $app.querySelectorAll("[data-facet]").forEach((b) => b.addEventListener("click", () => {
+    const list = S.cmpF.sel[b.dataset.facet], v = b.dataset.val, i = list.indexOf(v);
+    i >= 0 ? list.splice(i, 1) : list.push(v);
+    redraw(`[data-facet="${b.dataset.facet}"][data-val="${CSS.escape(v)}"]`);
+  }));
+  $app.querySelectorAll("[data-dept]").forEach((b) => b.addEventListener("click", () => {
+    const id = +b.dataset.dept, list = S.cmpF.depts, i = list.indexOf(id);
+    i >= 0 ? list.splice(i, 1) : list.push(id);
+    redraw(`[data-dept="${id}"]`);
+  }));
+  for (const [id, key] of [["f-from", "from"], ["f-to", "to"], ["f-dmin", "dmin"], ["f-dmax", "dmax"]]) {
+    document.getElementById(id)?.addEventListener("change", (e) => { S.cmpF[key] = e.target.value.trim(); redraw("#" + id); });
+  }
+  document.getElementById("f-fp")?.addEventListener("change", (e) => { S.cmpF.footprintOnly = e.target.checked; redraw("#f-fp"); });
+}
+
+function downloadCsv(name, rows) {
+  const cell = (v) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const csv = "﻿" + rows.map((r) => r.map(cell).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+const stamp = () => new Date().toISOString().slice(0, 10);
+function exportApps() {
+  const { apps, resp, by } = S.dash;
+  const qids = new Set(S.qs.filter((q) => !q.is_innovation).map((q) => q.question_id));
+  const sum = (id, k) => resp.filter((x) => x.production_id === id && qids.has(x.question_id)).reduce((t, x) => t + (+x[k] || 0), 0);
+  const sc = (a, st) => peachScore(by[a.production_id]?.[st] || {});
+  downloadCsv(`ema-applications-${stamp()}.csv`, [
+    ["ID", "Production", "Type", "Format", "Location", "Studio", "UPM", "Point of contact", "SPR", "Status", "Submitted", "Reviewer",
+     "Prep points (self)", "Prep available", "Prep %", "Wrap points (self)", "Wrap available", "Wrap %", "N/A answers (wrap)", "Innovation bonus (wrap)",
+     "Verified wrap points", "Shoot days", "Diesel (gal)", "Gasoline (gal)", "Electricity (kWh)", "Air (passenger-miles)", "Water (gal)", "Landfill (lbs)", "Recycled (lbs)", "Composted (lbs)",
+     "t CO2", "t CO2 per shoot day", "kWh per shoot day", "Water gal per shoot day", "Waste lbs per shoot day", "Waste diversion %", "Sample footprint"],
+    ...apps.map((a) => { const p = sc(a, "prep"), w = sc(a, "wrap");
+      return [a.production_id, a.production_name, a.production_type, a.production_sub_type, a.production_location, a.studio_affiliation, a.upm, a.poc, a.spr,
+        STATUS[a.status], a.submission_date, personName(a.assigned_reviewer),
+        p.earned, p.available, p.pct?.toFixed(1), w.earned, w.available, w.pct?.toFixed(1), w.na, w.bonus,
+        sum(a.production_id, "wrap_points"), a.shoot_days, a.diesel_gal, a.gasoline_gal, a.electricity_kwh, a.air_miles, a.water_gal, a.waste_landfill_lbs, a.waste_recycled_lbs, a.waste_composted_lbs,
+        tonnesCO2(a)?.toFixed(1), tonnesPerDay(a)?.toFixed(2), metricOf("kwh").get(a)?.toFixed(0), metricOf("water").get(a)?.toFixed(0), metricOf("waste").get(a)?.toFixed(0), diversionOf(a)?.toFixed(1), a.footprint_is_sample ? "yes" : ""]; }),
+  ]);
+}
+
+function exportAnswers() {
+  const { apps, resp } = S.dash;
+  const app = Object.fromEntries(apps.map((a) => [a.production_id, a]));
+  const q = Object.fromEntries(S.qs.map((x) => [x.question_id, x]));
+  const dept = Object.fromEntries(S.depts.map((d) => [d.department_id, d.name]));
+  downloadCsv(`ema-answers-${stamp()}.csv`, [
+    ["Production", "Status", "Department", "Code", "Action", "Impact category", "Innovation", "Points possible", "Prep answer", "Prep points (self)", "Wrap answer", "Wrap points (self)",
+     "Verified prep points", "Verified wrap points", "Evidence or explanation", "Reviewer note"],
+    ...resp.filter((x) => app[x.production_id] && q[x.question_id]).map((x) => { const qq = q[x.question_id];
+      return [app[x.production_id].production_name, STATUS[app[x.production_id].status], dept[qq.department_id], qq.code, qq.question_text, qq.category, qq.is_innovation ? "yes" : "",
+        qq.points_possible, x.prep_answer, ansPts(qq, x.prep_answer), x.wrap_answer, ansPts(qq, x.wrap_answer), x.prep_points, x.wrap_points, x.explanation, x.reviewer_notes]; }),
+  ]);
+}
+
+// ── Staff: people ──────────────────────────────────────────────────────────
+async function renderPeople() {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading people…</p>`;
+  const { data, error } = await sb.from("profiles").select("id,full_name,email,role,created_at").order("created_at");
+  if (error) { fail(error); return; }
+  S.people = data;
+  $app.innerHTML = `
+    <div class="page-head"><div><p class="eyebrow">Staff</p><h1>People</h1><p class="muted">Everyone who signs up starts as a submitter. Change a role here and it applies on their next page load.</p></div></div>
+    <div class="panel"><div class="table-scroll"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Role</th></tr></thead>
+      <tbody>${data.map((p) => `<tr>
+        <td>${esc(p.full_name) || '<span class="muted">No name</span>'}${p.id === S.me.id ? ' <span class="muted">(you)</span>' : ""}</td>
+        <td>${esc(p.email)}</td><td class="mono">${esc(date(p.created_at.slice(0, 10)))}</td>
+        <td><select data-role="${esc(p.id)}" aria-label="Role for ${esc(p.full_name || p.email)}" ${p.id === S.me.id ? "disabled" : ""}>
+          ${["submitter", "reviewer", "staff"].map((r) => `<option ${p.role === r ? "selected" : ""}>${r}</option>`).join("")}</select></td>
+      </tr>`).join("")}</tbody></table></div></div>`;
+  $app.querySelectorAll("[data-role]").forEach((sel) => sel.addEventListener("change", async () => {
+    const { error } = await sb.from("profiles").update({ role: sel.value }).eq("id", sel.dataset.role);
+    if (error) return fail(error);
+    const p = S.people.find((x) => x.id === sel.dataset.role); if (p) p.role = sel.value;
+    toast(`${p?.full_name || p?.email || "User"} is now a ${sel.value}`);
+  }));
+}
+
+// ── Staff: questions ───────────────────────────────────────────────────────
+async function renderQuestions() {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading questions…</p>`;
+  const [d, q] = await Promise.all([
+    sb.from("departments").select("*").order("sort_order").order("department_id"),
+    sb.from("questions").select("*").order("sort_order").order("question_id"),
+  ]);
+  if (d.error || q.error) return fail(d.error || q.error);
+  const depts = d.data, all = q.data, active = all.filter((x) => x.active), retired = all.filter((x) => !x.active);
+  const optText = (x) => optsOf(x).map((o) => `${o.label}${o.na ? "" : " · " + fmt(o.points)}`).join("  |  ");
+  const row = (x) => `<div class="qrow" data-qid="${x.question_id}">
+      <div class="qrow-head"><span class="tag">${esc(x.code || "pilot")}</span>${x.is_innovation ? '<span class="tag tag-innov">Innovation</span>' : ""}<span class="tag">${esc(x.category || "–")}</span>
+        <span class="muted">${isYesNo(x) ? "Yes / No / N/A" : "Tiered answer"} · ${fmt(x.points_possible)} pts${x.form_version ? " · " + esc(x.form_version) : ""}</span></div>
+      <label class="field"><span>Action</span><textarea data-k="question_text" rows="2">${esc(x.question_text)}</textarea></label>
+      <div class="qrow-grid">
+        <label class="field"><span>Evidence required</span><input data-k="documentation" value="${esc(x.documentation)}"></label>
+        ${isYesNo(x) ? `<label class="field"><span>Points for Yes</span><input data-k="points_possible" type="number" min="0" step="0.5" value="${x.points_possible ?? ""}"></label>`
+          : `<div class="field"><span>Answer choices and points</span><p class="optline">${esc(optText(x))}</p></div>`}
+        <label class="check"><input type="checkbox" data-k="active" ${x.active ? "checked" : ""}>In use</label>
+        <button data-save>Save</button>
+      </div></div>`;
+  const deptBlock = (dep) => { const list = active.filter((x) => x.department_id === dep.department_id);
+    return `<details class="panel block qdept"><summary class="block-head"><h3>${esc(dep.name)}</h3><span class="mono muted">${list.length} actions · ${fmt(list.filter((x) => !x.is_innovation).reduce((t, x) => t + (+x.points_possible || 0), 0))} pts</span></summary>
+      ${list.map(row).join("")}
+      <div class="qrow qnew" data-new="${dep.department_id}">
+        <label class="field"><span>Add a Yes / No / N/A action to ${esc(dep.name)}</span><textarea data-k="question_text" rows="2" placeholder="Title: what the production should do"></textarea></label>
+        <div class="qrow-grid">
+          <label class="field"><span>Evidence required</span><input data-k="documentation" placeholder="e.g. If yes, provide the vendor name."></label>
+          <label class="field"><span>Points for Yes</span><input data-k="points_possible" type="number" min="0" step="0.5" placeholder="Pts"></label>
+          <label class="field"><span>Impact category</span><select data-k="category">${["Energy", "Materials & Circularity", "Communication & Leadership"].map((c) => `<option>${c}</option>`).join("")}</select></label>
+          <button class="primary" data-add>Add action</button>
+        </div></div>
+    </details>`; };
+  $app.innerHTML = `
+    <div class="page-head"><div><p class="eyebrow">Staff · PEACH v2.0</p><h1>Questions</h1>
+      <p class="muted" style="max-width:66ch">${active.length} actions in use, worth ${fmt(possible())} base points plus ${fmt(bonusPossible())} Innovation bonus points. Changes apply to every application, including ones already scored. Tiered answer choices come from the PEACH workbook and aren't edited here.</p></div></div>
+    ${depts.filter((dep) => active.some((x) => x.department_id === dep.department_id)).map(deptBlock).join("")}
+    ${retired.length ? `<details class="panel block qdept"><summary class="block-head"><h3>Retired pilot questions</h3><span class="mono muted">${retired.length} · kept so old answers aren't lost</span></summary>${retired.map(row).join("")}</details>` : ""}
+    <section class="panel block"><div class="block-head"><h3>Emission factors</h3><span class="muted">kg CO₂ per unit · used for every footprint</span></div>
+      ${(S.factors || []).map((f) => `<div class="admin-row factor-row" data-fkey="${esc(f.key)}">
+        <div><b>${esc(f.label)}</b> <span class="muted">per ${esc(f.unit)}</span><div class="muted" style="font-size:.8rem">${esc(f.source || "")}</div></div>
+        <input aria-label="kg CO2 per ${esc(f.unit)}" type="number" min="0" step="any" value="${f.kg_co2_per_unit}" data-fval>
+        <input aria-label="Source" value="${esc(f.source || "")}" placeholder="Source" data-fsrc>
+        <button data-fsave>Save</button></div>`).join("")}
+    </section>
+    <section class="panel block"><div class="block-head"><h3>Add a department</h3></div>
+      <div class="admin-row" style="grid-template-columns:minmax(0,1fr) auto"><input id="newDept" placeholder="e.g. Visual Effects" aria-label="Department name"><button class="primary" id="addDept">Add department</button></div></section>`;
+  const vals = (el) => { const o = {}; el.querySelectorAll("[data-k]").forEach((i) => (o[i.dataset.k] = i.type === "checkbox" ? i.checked : i.type === "number" ? num(i.value) : i.value.trim() || null)); return o; };
+  const refresh = async () => { try { await reloadQuestions(); } catch (e) { fail(e); } };
+  $app.querySelectorAll("[data-save]").forEach((b) => b.addEventListener("click", async () => {
+    const r = b.closest("[data-qid]"), x = all.find((y) => y.question_id === +r.dataset.qid), v = vals(r);
+    if (!v.question_text) return toast("An action needs text.", "bad");
+    if ("points_possible" in v) {
+      if (v.points_possible == null || v.points_possible < 0) return toast("Enter points of zero or more.", "bad");
+      if (x.answer_options) v.answer_options = x.answer_options.map((o) => (o.label === "Yes" ? { ...o, points: v.points_possible } : o));
+    }
+    const { error } = await sb.from("questions").update(v).eq("question_id", x.question_id);
+    if (error) return fail(error);
+    Object.assign(x, v); toast("Saved"); refresh();
+  }));
+  $app.querySelectorAll("[data-add]").forEach((b) => b.addEventListener("click", async () => {
+    const r = b.closest("[data-new]"), v = vals(r);
+    if (!v.question_text) return toast("Type the action first.", "bad");
+    if (v.points_possible == null || v.points_possible < 0) return toast("Enter the points for Yes.", "bad");
+    const { error } = await sb.from("questions").insert({ ...v, department_id: +r.dataset.new, active: true, form_version: "Custom", is_ema_relevant: true,
+      sort_order: Math.max(0, ...all.map((y) => y.sort_order || 0)) + 1,
+      answer_options: [{ label: "Yes", points: v.points_possible, na: false }, { label: "No", points: 0, na: false }, { label: "N/A", points: 0, na: true }] });
+    if (error) return fail(error); toast("Action added"); await refresh(); renderQuestions();
+  }));
+  $app.querySelectorAll("[data-fsave]").forEach((b) => b.addEventListener("click", async () => {
+    const r = b.closest("[data-fkey]"); const v = num(r.querySelector("[data-fval]").value);
+    if (v == null || isNaN(v) || v < 0) return toast("Enter a factor of zero or more.", "bad");
+    const { error } = await sb.from("emission_factors").update({ kg_co2_per_unit: v, source: r.querySelector("[data-fsrc]").value.trim() || null, updated_at: new Date().toISOString() }).eq("key", r.dataset.fkey);
+    if (error) return fail(error);
+    const f = S.factors.find((x) => x.key === r.dataset.fkey); if (f) f.kg_co2_per_unit = v;
+    toast("Emission factor saved");
+  }));
+  document.getElementById("addDept").addEventListener("click", async () => {
+    const name = document.getElementById("newDept").value.trim();
+    if (!name) return toast("Type a department name.", "bad");
+    const { error } = await sb.from("departments").insert({ name, sort_order: Math.max(0, ...depts.map((x) => x.sort_order || 0)) + 1 });
+    if (error) return fail(error); toast("Department added. Add an action to it so it shows on the form."); renderQuestions();
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
