@@ -477,6 +477,12 @@ input.inline:focus, select.inline:focus { border-color: var(--accent); backgroun
 input.inline.sub { font-size: .8rem; color: var(--muted); }
 .small { font-size: .82rem; }
 .actions-cell { white-space: nowrap; }
+.ptable tr.delrow td { background: var(--bad-soft); border-top: 0; }
+.delbox { display: grid; gap: 10px; max-width: 70ch; white-space: normal; text-align: left; }
+.delbox p { margin: 0; }
+.delbox .field { max-width: 30rem; }
+.delbox .row-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+button.danger-fill { background: var(--bad); border-color: var(--bad); color: #fff; }
 .actions-cell .link { margin-left: 12px; }
 .credbox { padding: 14px 18px; margin-bottom: 16px; border-left: 4px solid var(--accent); display: grid; gap: 6px; }
 .cred { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -1982,13 +1988,20 @@ async function renderPeople(tab = "users") {
   S.peopleSearch ??= ""; S.peopleFilter ??= "all"; S.contactDept ??= ""; S.showArchived ??= false;
   $app.innerHTML = `
     <div class="page-head"><div><p class="eyebrow">Staff</p><h1>People</h1></div>
+      <div class="head-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="primary" id="addPersonBtn">${tab === "contacts" ? "Add a contact" : "Add a person"}</button>
       <div class="seg" role="tablist" aria-label="People">
         <button role="tab" aria-pressed="${tab === "users"}" data-ptab="people">Portal users <span class="cnt mono">${S.people.length}</span></button>
         <button role="tab" aria-pressed="${tab === "contacts"}" data-ptab="contacts">Crew contacts <span class="cnt mono">${S.contacts.filter((c) => !c.archived).length}</span></button>
-      </div></div>
+      </div></div></div>
     <div id="peopleBody"></div>`;
   $app.querySelectorAll("[data-ptab]").forEach((b) => b.addEventListener("click", () => { location.hash = b.dataset.ptab; }));
   tab === "contacts" ? drawContacts() : drawUsers();
+  document.getElementById("addPersonBtn").addEventListener("click", () => {
+    const box = document.querySelector("#peopleBody .addbox"); if (!box) return;
+    box.open = true; box.scrollIntoView({ behavior: "smooth", block: "start" });
+    box.querySelector("input")?.focus({ preventScroll: true });
+  });
 }
 
 async function adminCall(body) {
@@ -2046,9 +2059,10 @@ function drawUsers(flash = "") {
           <td class="num actions-cell">
             <button class="link" data-reset>Reset password</button>
             ${me ? "" : off ? `<button class="link" data-activate>Reactivate</button>` : `<button class="link danger" data-deactivate>Deactivate</button>`}
-          </td></tr>`; }).join("") || `<tr><td colspan="6" class="muted">No one matches.</td></tr>`}</tbody>
+            ${me ? "" : `<button class="link danger" data-delete>Delete</button>`}
+          </td></tr>${S.delUser === x.id ? deleteRow(x) : ""}`; }).join("") || `<tr><td colspan="6" class="muted">No one matches.</td></tr>`}</tbody>
     </table></div>
-    <p class="muted small" style="margin-top:10px">Edit a name or title, then click away to save. Deactivated people can't sign in and lose reviewer or staff access straight away; their applications and answers are kept.</p>`;
+    <p class="muted small" style="margin-top:10px">Edit a name or title, then click away to save. Deactivated people can't sign in and lose reviewer or staff access straight away; their applications and answers are kept. Deleting removes the account for good; use Deactivate if they might come back.</p>`;
 
   const userBox = el.querySelector(".addbox");
   userBox.addEventListener("toggle", () => (S.addUserOpen = userBox.open));
@@ -2101,6 +2115,30 @@ function drawUsers(flash = "") {
     try { const res = await adminCall({ action: "reset_password", user_id: id }); showPw(x.full_name || x.email, res.password); }
     catch (err) { fail(err); } finally { setBusy(false); }
   }));
+  el.querySelectorAll("[data-delete]").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.closest("tr").dataset.uid;
+    if (S.delUser === id) { S.delUser = null; return drawUsers(); }
+    S.delUser = id; S.delInfo = null; drawUsers();
+    const { data, error } = await sb.from("productions").select("production_id,production_name,submitted_by,assigned_reviewer").or(`submitted_by.eq.${id},assigned_reviewer.eq.${id}`);
+    if (S.delUser !== id) return;
+    S.delInfo = error ? { error: true } : { owned: (data || []).filter((p) => p.submitted_by === id), reviewing: (data || []).filter((p) => p.assigned_reviewer === id) };
+    drawUsers();
+  }));
+  el.querySelector("#delCancel")?.addEventListener("click", () => { S.delUser = null; drawUsers(); });
+  el.querySelector("#delConfirm")?.addEventListener("click", async () => {
+    const id = S.delUser, x = S.people.find((y) => y.id === id), name = x.full_name || x.email;
+    const typed = document.getElementById("delType").value.trim().toLowerCase();
+    if (typed !== "delete") { document.getElementById("delType").setAttribute("aria-invalid", "true"); return toast('Type "delete" to confirm.', "bad"); }
+    const to = document.getElementById("delTo")?.value || null;
+    setBusy(true);
+    try {
+      const res = await adminCall({ action: "delete", user_id: id, transfer_to: to });
+      S.people = S.people.filter((y) => y.id !== id); S.delUser = null; S.delInfo = null;
+      const dest = to && S.people.find((y) => y.id === to);
+      toast(`${name} deleted${res.moved ? ` · ${res.moved} application${res.moved === 1 ? "" : "s"} moved to ${dest?.full_name || dest?.email}` : ""}`);
+      drawUsers();
+    } catch (err) { fail(err); } finally { setBusy(false); }
+  });
   el.querySelectorAll("[data-deactivate],[data-activate]").forEach((b) => b.addEventListener("click", async () => {
     const id = b.closest("tr").dataset.uid, x = S.people.find((y) => y.id === id), active = b.hasAttribute("data-activate");
     if (!active && b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm deactivate?"; return; }
@@ -2109,6 +2147,29 @@ function drawUsers(flash = "") {
       toast(`${x.full_name || x.email} ${active ? "reactivated" : "deactivated"}`); drawUsers(); }
     catch (err) { fail(err); } finally { setBusy(false); }
   }));
+}
+
+function deleteRow(x) {
+  const name = esc(x.full_name || x.email), info = S.delInfo;
+  const others = S.people.filter((y) => y.id !== x.id && !y.deactivated_at);
+  let body;
+  if (!info) body = `<p class="muted">Checking their applications…</p>`;
+  else if (info.error) body = `<p>Couldn't check their applications. Their applications will be kept without an owner.</p>`;
+  else {
+    const n = info.owned.length, r = info.reviewing.length;
+    body = `${n ? `<p><b>${name}</b> owns ${n} application${n === 1 ? "" : "s"}: ${info.owned.slice(0, 4).map((p) => esc(p.production_name)).join(", ")}${n > 4 ? ` and ${n - 4} more` : ""}.</p>
+      <label class="field"><span>Move their applications to</span><select id="delTo">
+        <option value="">Nobody: keep them without an owner (staff can still see them)</option>
+        ${others.map((y) => `<option value="${esc(y.id)}">${esc(y.full_name || y.email)} · ${esc(y.role)}</option>`).join("")}</select></label>`
+      : `<p><b>${name}</b> doesn't own any applications.</p>`}
+      ${r ? `<p>${r} application${r === 1 ? " is" : "s are"} assigned to them for review and will become unassigned.</p>` : ""}`;
+  }
+  return `<tr class="delrow"><td colspan="6"><div class="delbox" role="group" aria-label="Delete ${name}">
+    <p><b>Delete ${name} permanently?</b> They can't sign in again and this can't be undone. Answers, reviews and crew contacts they entered stay in the portal.</p>
+    ${body}
+    <label class="field"><span>Type <b>delete</b> to confirm</span><input id="delType" autocomplete="off" spellcheck="false"></label>
+    <div class="row-actions"><button class="danger-fill" id="delConfirm" ${info ? "" : "disabled"}>Delete permanently</button><button id="delCancel">Cancel</button></div>
+  </div></td></tr>`;
 }
 
 function drawContacts() {
