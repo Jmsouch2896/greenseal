@@ -29,6 +29,7 @@
   --warn: #996605; --warn-soft: #F7E5BD;
   --bad: #B33F2E; --bad-soft: #F5DCD4;
   --info: #345F7E; --info-soft: #DCE5EC;
+  --s1: #2F8A4A; --s2: #3A6FC0; --s3: #D9573F; --s4: #8A55C0; --s5: #E0A11B; --s6: #16A39E; --s-other: #9A968C;
   --display: "Gloock", Georgia, "Times New Roman", serif;
   --body: "Jost", "Futura", "Century Gothic", "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -43,6 +44,7 @@
     --hl: #F2B53A; --hl-soft: #3A2E12; --coral: #F0846F;
     --ok: #7CC48F; --ok-soft: #1B3121; --warn: #E8B45C; --warn-soft: #3A2C12;
     --bad: #F08A78; --bad-soft: #3D1E18; --info: #93B7D6; --info-soft: #1B2A36;
+    --s1: #34914F; --s2: #4F84D6; --s3: #D8604A; --s4: #9672D2; --s5: #C08A14; --s6: #1A9B96; --s-other: #6E7468;
     color-scheme: dark;
   }
 }
@@ -52,6 +54,7 @@
   --hl: #F2B53A; --hl-soft: #3A2E12; --coral: #F0846F;
   --ok: #7CC48F; --ok-soft: #1B3121; --warn: #E8B45C; --warn-soft: #3A2C12;
   --bad: #F08A78; --bad-soft: #3D1E18; --info: #93B7D6; --info-soft: #1B2A36;
+  --s1: #34914F; --s2: #4F84D6; --s3: #D8604A; --s4: #9672D2; --s5: #C08A14; --s6: #1A9B96; --s-other: #6E7468;
   color-scheme: dark;
 }
 
@@ -269,6 +272,105 @@ body:has(.actions) main { padding-bottom: 140px; }
 .practice .track { grid-column: 1 / -1; height: 6px; }
 .practice .mono { text-align: right; }
 .export { display: flex; gap: 10px; flex-wrap: wrap; }
+.page-head > .export { flex: 1 1 auto; justify-content: flex-end; }
+.chart-block [data-astable] { white-space: nowrap; }
+/* Dashboard layout (rearrangeable) */
+.dboard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.dw { min-width: 0; position: relative; }
+.dw.w-full { grid-column: 1 / -1; }
+.dw > section.block, .dw > .kpis { margin: 0; }
+.dboard.editing .dw { outline: 2px dashed var(--line); outline-offset: 6px; border-radius: var(--r); }
+.dboard.editing .dw:hover { outline-color: var(--muted); }
+.dw.dragging { opacity: .45; }
+.dw.drop-before { box-shadow: -6px 0 0 -2px var(--accent); }
+.dw.w-full.drop-before { box-shadow: 0 -8px 0 -4px var(--accent); }
+.dw.drop-after { box-shadow: 6px 0 0 -2px var(--accent); }
+.dw.w-full.drop-after { box-shadow: 0 8px 0 -4px var(--accent); }
+.dw-tools { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; padding: 8px 12px; margin-bottom: 8px; background: var(--accent-soft); border-radius: var(--r); font-size: .86rem; cursor: grab; }
+.dw-tools b { flex: 1 1 auto; min-width: 0; }
+.dw-tools .link { font-size: .84rem; }
+.dw-grip { font-size: 1.1rem; color: var(--muted); line-height: 1; }
+.dash-editbar { padding: 12px 16px; margin-bottom: 22px; display: grid; gap: 8px; border-left: 4px solid var(--hl); }
+.dash-editbar p { margin: 0; }
+.dash-editbar-actions { display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: center; }
+/* Custom charts — categorical slots validated (CVD ≥ 14 adjacent, both themes); marigold and teal sit under 3:1, so every chart has tooltips and a table view */
+.chart-block .block-head { align-items: flex-start; }
+.chart-sub { margin: 4px 0 0; }
+.chart { min-height: 60px; position: relative; }
+.chart-svg { display: block; max-width: 100%; overflow: visible; }
+.chart-svg .grid { stroke: var(--line); stroke-width: 1; }
+.chart-svg .axis { stroke: var(--muted); stroke-width: 1; }
+.chart-svg .tick, .donut .tick { fill: var(--muted); font: 11px var(--mono); }
+.chart-svg .xlabel { fill: var(--muted); font: 12px var(--body); }
+.chart-svg .vlabel { fill: var(--ink); font: 600 12px var(--mono); }
+.chart-svg .mark, .donut .mark { stroke: var(--surface); stroke-width: 1; }
+.chart-svg .mark:hover, .donut .mark:hover, .hbar .mark:hover { filter: brightness(1.1) saturate(1.1); }
+.chart-svg .line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart-svg .dot { stroke: var(--surface); stroke-width: 2; }
+.chart-svg .hit { fill: transparent; }
+.chart-svg .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart-legend { margin: 0 0 10px; }
+.chart-note { margin: 8px 0 0; }
+.chart-empty { margin: 8px 0; }
+.hbars { display: grid; gap: 8px; }
+.hbar { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: .86rem; }
+.hlabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.htrack { display: flex; height: 16px; gap: 2px; }
+.htrack.grouped { flex-direction: column; height: auto; gap: 2px; }
+.htrack .mark { display: block; height: 16px; width: var(--w); min-width: 2px; border-radius: 0 4px 4px 0; flex: none; }
+.htrack.grouped .mark { height: 9px; }
+.htrack.stack .mark { border-radius: 0; }
+.htrack.stack .mark:last-child { border-radius: 0 4px 4px 0; }
+.htrack .empty { display: block; height: 9px; }
+.hval { text-align: right; white-space: nowrap; min-width: 3.5rem; }
+.donut { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.donut svg { flex: none; }
+.dtotal { fill: var(--ink); font: 600 20px var(--mono); }
+.dlegend { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; flex: 1 1 12rem; min-width: 0; font-size: .88rem; }
+.dlegend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 3rem; gap: 8px; align-items: center; }
+.dlegend i { width: 10px; height: 10px; border-radius: 2px; }
+.dlegend .muted { text-align: right; }
+.bignum { display: grid; gap: 4px; padding: 6px 0; }
+.bignum strong { font-size: clamp(2.2rem, 6vw, 3rem); line-height: 1; letter-spacing: -.02em; }
+.ctable td, .ctable th { white-space: nowrap; }
+#ctip { position: fixed; z-index: 60; display: none; pointer-events: none; max-width: 280px; padding: 8px 10px; border-radius: var(--r); background: var(--ink); color: var(--bg); font-size: .82rem; line-height: 1.4; box-shadow: 0 4px 14px rgb(0 0 0 / .18); }
+#ctip .muted { color: inherit; opacity: .75; }
+#ctip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+/* Chart builder */
+#chartDlg { width: min(1040px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
+#chartDlg::backdrop { background: rgb(20 24 18 / .45); }
+.builder { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; max-height: calc(100dvh - 26px); }
+.builder-head, .builder-foot { display: flex; align-items: center; gap: 10px; padding: 14px 18px; }
+.builder-head { justify-content: space-between; border-bottom: 1px solid var(--line); }
+.builder-foot { justify-content: flex-end; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.builder-foot .muted { margin-right: auto; }
+.builder-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); overflow: auto; }
+.builder-form { display: grid; gap: 14px; padding: 18px; align-content: start; border-right: 1px solid var(--line); }
+.builder-preview { padding: 18px; display: grid; gap: 6px; align-content: start; background: var(--bg); position: sticky; top: 0; }
+.builder-preview .pv-title { font-family: var(--display); font-weight: var(--hw); font-size: 1.25rem; text-transform: none; letter-spacing: 0; }
+.builder-preview .chart { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; margin-top: 6px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tcard { position: relative; }
+.tcard input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.tcard span { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: var(--r); font-size: .88rem; font-weight: 500; }
+.tcard input:checked + span { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.tcard input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bfilters { border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; display: grid; gap: 12px; }
+.bfilters summary { cursor: pointer; font-weight: 600; font-size: .9rem; }
+.bfilters[open] summary { margin-bottom: 10px; }
+.bfilters .field + .field { margin-top: 10px; }
+.check-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.check-chip:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.check-chip input { margin: 0; accent-color: var(--accent); }
+.b-hint:empty { display: none; }
+@media (max-width: 860px) {
+  .dboard { grid-template-columns: minmax(0, 1fr); }
+  .builder-body { grid-template-columns: minmax(0, 1fr); }
+  .builder-form { border-right: 0; border-bottom: 1px solid var(--line); }
+  .builder-preview { position: static; }
+  .hbar { grid-template-columns: minmax(0, 6.5rem) minmax(0, 1fr) auto; }
+}
 @media (max-width: 860px) {
   .dash-grid { grid-template-columns: minmax(0, 1fr); }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -868,6 +970,7 @@ async function start() {
 function route() {
   if (!S.me) return;
   if (location.hash.slice(1) !== "design" && S.theme) applyTheme(S.theme); // drop any unsaved preview
+  S.dashRO?.disconnect(); S.dashRO = null; document.getElementById("chartDlg")?.close?.();
   $actions.innerHTML = "";
   const h = location.hash.slice(1);
   const m = h.match(/^app-(\d+)$/);
@@ -1574,9 +1677,12 @@ const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
 async function renderDashboard() {
   renderBar();
   $app.innerHTML = `<p class="loading">Loading dashboard…</p>`;
-  const [p, r] = await Promise.all([
+  const [p, r, prefs, shared, def] = await Promise.all([
     sb.from("productions").select("*").order("submission_date", { ascending: false, nullsFirst: false }),
     fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer,prep_points,wrap_points,explanation,reviewer_notes").order("response_id")),
+    sb.from("dashboard_prefs").select("layout,charts").eq("user_id", S.me.id).maybeSingle(),
+    sb.from("shared_charts").select("*").order("created_at"),
+    sb.from("app_settings").select("value").eq("key", "dashboard_default").maybeSingle(),
   ]);
   if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load the dashboard", friendly(e)); return; }
   const apps = p.data, by = answersByApp(r.data);
@@ -1611,46 +1717,529 @@ async function renderDashboard() {
     <div class="scale" aria-hidden="true"><span></span><div><span>0%</span><span>50%</span><span>100%</span></div></div>` : `<p class="muted">Appears once applications are submitted.</p>`;
   const plist = (list) => list.map((x) => `<div class="practice"><a href="#analysis-${x.q.question_id}" title="Compare productions that did and didn't">${esc(qTitle(x.q))}</a><span class="mono">${x.v}%</span><div class="track"><i class="wrap" style="width:${x.v}%"></i></div></div>`).join("");
 
-  $app.innerHTML = `
-    <div class="page-head">
-      <div><p class="eyebrow">PEACH v2.0 · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p><h1>Program dashboard</h1></div>
-      <div class="export"><button id="expApps">Export applications</button><button id="expAns">Export answers</button></div>
-    </div>
-    <div class="panel kpis">
+  const sec = (title, sub, body, extra = "") => `<section class="panel block"${extra}><div class="block-head"><h2>${title}</h2><span class="muted">${sub}</span></div>${body}</section>`;
+  S.dash.html = {
+    kpis: `<div class="panel kpis">
       <div class="kpi"><span class="label">Applications</span><strong>${live.length}</strong><small>${count("draft")} more in draft</small></div>
       <div class="kpi"><span class="label">Awaiting review</span><strong>${waiting}</strong><small>${unassigned ? `${unassigned} not yet assigned` : "All assigned"}</small></div>
       <div class="kpi"><span class="label">Approval rate</span><strong>${pct(count("approved"), decided.length) ?? "–"}${decided.length ? "%" : ""}</strong><small>${count("approved")} approved of ${decided.length} decided</small></div>
       <div class="kpi"><span class="label">Avg. PEACH score</span><strong>${avgWrap ?? "–"}${avgWrap != null ? "%" : ""}</strong><small>${avgApproved != null ? `At wrap · approved productions average ${avgApproved}%` : "At wrap, self-assessed"}</small></div>
-    </div>
-    <section class="panel block">
-      <div class="block-head"><h2>Pipeline</h2><span class="muted">${apps.length} applications</span></div>
-      <div class="block-body">
+    </div>`,
+    pipeline: sec("Pipeline", `${apps.length} applications`, `<div class="block-body">
         <div class="pipe" role="img" aria-label="${order.map((s) => `${STATUS[s]} ${count(s)}`).join(", ")}">${order.map((s) => count(s) ? `<span class="c-${s}" style="width:${(count(s) / total) * 100}%" title="${STATUS[s]}: ${count(s)}"></span>` : "").join("")}</div>
-        <div class="legend">${order.map((s) => `<span><i class="c-${s}"></i>${STATUS[s]} <b class="mono">${count(s)}</b></span>`).join("")}</div>
-      </div>
-    </section>
-    <section class="panel block">
-      <div class="block-head"><h2>Impact categories</h2><span class="muted">Share of available points earned, all submitted applications</span></div>
-      <div class="block-body">${bars(catRows)}</div>
-    </section>
-    <div class="dash-grid">
-      <section class="panel block">
-        <div class="block-head"><h2>By department</h2><span class="muted">Share of available points earned</span></div>
-        <div class="block-body">${bars(deptRows)}</div>
-      </section>
-      <section class="panel block">
-        <div class="block-head"><h2>Practices at wrap</h2><span class="muted">Share of productions doing each</span></div>
-        <div class="block-body">${practices.length ? `<p class="label plabel">Most adopted</p>${plist(practices.slice(0, 6))}<p class="label plabel">Least adopted</p>${plist(practices.slice(-6).reverse())}` : `<p class="muted">No wrap answers yet.</p>`}</div>
-      </section>
-    </div>
-    <section class="panel block" style="margin-top:22px">
-      <div class="block-head"><h2>By production type</h2><span class="muted">Submitted applications</span></div>
-      <div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Applications</th><th class="num">Approved</th><th class="num">Avg. PEACH score at wrap</th></tr></thead>
-      <tbody>${types.map((t) => `<tr><td>${esc(t.t)}</td><td class="num">${t.n}</td><td class="num">${t.approved}</td><td class="num">${t.wrap == null ? '<span class="muted">–</span>' : t.wrap + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submitted applications yet.</td></tr>`}</tbody></table></div>
-    </section>`;
-  document.getElementById("expApps").addEventListener("click", exportApps);
-  document.getElementById("expAns").addEventListener("click", exportAnswers);
+        <div class="legend">${order.map((s) => `<span><i class="c-${s}"></i>${STATUS[s]} <b class="mono">${count(s)}</b></span>`).join("")}</div></div>`),
+    categories: sec("Impact categories", "Share of available points earned, all submitted applications", `<div class="block-body">${bars(catRows)}</div>`),
+    departments: sec("By department", "Share of available points earned", `<div class="block-body">${bars(deptRows)}</div>`),
+    practices: sec("Practices at wrap", "Share of productions doing each", `<div class="block-body">${practices.length ? `<p class="label plabel">Most adopted</p>${plist(practices.slice(0, 6))}<p class="label plabel">Least adopted</p>${plist(practices.slice(-6).reverse())}` : `<p class="muted">No wrap answers yet.</p>`}</div>`),
+    types: sec("By production type", "Submitted applications", `<div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Applications</th><th class="num">Approved</th><th class="num">Avg. PEACH score at wrap</th></tr></thead>
+      <tbody>${types.map((t) => `<tr><td>${esc(t.t)}</td><td class="num">${t.n}</td><td class="num">${t.approved}</td><td class="num">${t.wrap == null ? '<span class="muted">–</span>' : t.wrap + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submitted applications yet.</td></tr>`}</tbody></table></div>`),
+  };
+  S.dashPrefs = { layout: prefs.data?.layout || [], charts: prefs.data?.charts || [] };
+  S.sharedCharts = shared.error ? [] : shared.data || [];
+  S.dashDefault = def.data?.value?.layout || null;
+  drawDashboard();
 }
+// ── Dashboard: rearrangeable widgets and a chart builder ───────────────────
+// Each person's layout (order, width, hidden) and their own charts live in
+// dashboard_prefs; staff can share charts with everyone (shared_charts) and set
+// the default layout (app_settings key "dashboard_default").
+const DASH_BUILTIN = {
+  kpis: { title: "Key numbers", size: "full" },
+  pipeline: { title: "Pipeline", size: "full" },
+  categories: { title: "Impact categories", size: "full" },
+  departments: { title: "By department", size: "half" },
+  practices: { title: "Practices at wrap", size: "half" },
+  types: { title: "By production type", size: "full" },
+};
+const DASH_DEFAULT = Object.entries(DASH_BUILTIN).map(([id, w]) => ({ id, size: w.size }));
+const SERIES_MAX = 6; // validated categorical slots --s1..--s6; more series fold into "Other"
+const GROUP_MAX = 12; // categories beyond this fold into "Other" (except time)
+
+const scoreBand = (p) => (p == null ? "Not scored" : p >= 75 ? "75–100%" : p >= 50 ? "50–74%" : p >= 25 ? "25–49%" : "0–24%");
+const BANDS = ["0–24%", "25–49%", "50–74%", "75–100%", "Not scored"];
+const appScore = (a, stage, qs) => { const sc = peachScore(S.dash.by[a.production_id]?.[stage] || {}, qs); return sc.answered ? sc : null; };
+const DIMS = {
+  none: { label: "Nothing (one total)", get: () => "All" , fmt: () => "All productions" },
+  type: { label: "Production type", get: (a) => a.production_type || "Not set" },
+  sub: { label: "Format", get: (a) => a.production_sub_type || "Not set" },
+  studio: { label: "Studio", get: (a) => a.studio_affiliation || "Not set" },
+  region: { label: "State / province", get: (a) => regionOf(a.production_location) },
+  status: { label: "Status", get: (a) => a.status, fmt: (v) => STATUS[v] || v, order: (v) => Object.keys(STATUS).indexOf(v) },
+  reviewer: { label: "Reviewer", get: (a) => a.assigned_reviewer || "", fmt: (v) => (v ? personName(v) || "Unknown" : "Unassigned") },
+  month: { label: "Submission month", time: true, get: (a) => (a.submission_date || "").slice(0, 7),
+    fmt: (v) => (v ? new Date(v + "-01T12:00:00").toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "Not submitted") },
+  quarter: { label: "Submission quarter", time: true, get: (a) => (a.submission_date ? `${a.submission_date.slice(0, 4)} Q${Math.ceil(+a.submission_date.slice(5, 7) / 3)}` : ""),
+    fmt: (v) => v || "Not submitted" },
+  compliance: { label: "Compliance (75% PEACH at wrap)", get: (a) => { const s = appScore(a, "wrap"); return !s ? "Not scored" : s.pct >= 75 ? "Compliant" : "Below 75%"; },
+    order: (v) => ["Compliant", "Below 75%", "Not scored"].indexOf(v) },
+  band: { label: "PEACH score band (wrap)", get: (a) => scoreBand(appScore(a, "wrap")?.pct), order: (v) => BANDS.indexOf(v) },
+};
+function measures() {
+  const cats = [...new Set(S.qs.filter((q) => !q.is_innovation).map((q) => q.category))];
+  return [
+    { key: "count", group: "Applications", label: "Number of applications", unit: "", noAgg: true, additive: true },
+    { key: "approval", group: "Applications", label: "Approval rate", unit: "%", noAgg: true,
+      groupFn: (list) => { const d = list.filter((a) => a.status === "approved" || a.status === "rejected"); return d.length ? (list.filter((a) => a.status === "approved").length / d.length) * 100 : null; } },
+    { key: "days", group: "Applications", label: "Shoot days", unit: "days", get: (a) => num(a.shoot_days) },
+    { key: "score", group: "PEACH score", label: "PEACH score", unit: "%", stage: true, get: (a, st) => appScore(a, st)?.pct ?? null },
+    ...cats.map((c) => ({ key: "cat:" + c, group: "PEACH score", label: `PEACH score: ${c}`, unit: "%", stage: true,
+      get: (a, st) => appScore(a, st, S.qs.filter((q) => q.category === c && !q.is_innovation))?.pct ?? null })),
+    { key: "bonus", group: "PEACH score", label: "Innovation bonus points", unit: "pts", stage: true, get: (a, st) => appScore(a, st)?.bonus ?? null },
+    { key: "co2t", group: "Footprint", label: "CO₂ for the whole shoot", unit: "t", get: tonnesCO2 },
+    ...METRICS.map((m) => ({ key: "m:" + m.key, group: "Footprint", label: m.label, unit: m.unit, get: m.get })),
+  ];
+}
+const measureOf = (k) => measures().find((m) => m.key === k) || measures()[0];
+const AGGS = [["avg", "Average"], ["median", "Median"], ["sum", "Total"], ["min", "Lowest"], ["max", "Highest"]];
+function aggregate(vals, agg) {
+  if (!vals.length) return null;
+  if (agg === "sum") return vals.reduce((t, x) => t + x, 0);
+  if (agg === "min") return Math.min(...vals);
+  if (agg === "max") return Math.max(...vals);
+  if (agg === "median") { const s = [...vals].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+  return vals.reduce((t, x) => t + x, 0) / vals.length;
+}
+const isAdditive = (spec) => { const M = measureOf(spec.measure); return M.additive || (!M.noAgg && spec.agg === "sum" && M.unit !== "%"); };
+function fmtVal(v, M) {
+  if (v == null || !isFinite(v)) return "–";
+  if (M.unit === "%") return Math.round(v) + "%";
+  const a = Math.abs(v), s = a >= 100 ? Math.round(v).toLocaleString() : a >= 10 ? v.toFixed(1).replace(/\.0$/, "") : v.toFixed(2).replace(/\.?0+$/, "");
+  return M.unit ? `${s} ${M.unit}` : s;
+}
+const FILTER_DIMS = ["status", "type", "sub", "studio", "reviewer"];
+const newSpec = () => ({ id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title: "", type: "bar", measure: "count", agg: "avg",
+  stage: "wrap", dim: "type", split: "none", size: "half", filters: { status: ["submitted", "in_review", "approved", "rejected"] } });
+const lc = (t) => t.replace(/\b([A-Z])([a-z])/g, (m, a, b) => a.toLowerCase() + b);
+const aggLabel = (spec) => { const M = measureOf(spec.measure); return M.noAgg ? "" : (AGGS.find(([k]) => k === spec.agg)?.[1] || "Average"); };
+function autoTitle(spec) {
+  const M = measureOf(spec.measure), agg = aggLabel(spec);
+  const base = (agg && agg !== "Average" ? `${agg} ${lc(M.label)}` : M.label) + (M.stage ? ` at ${spec.stage}` : "");
+  return spec.type === "number" || spec.dim === "none" ? base : `${base} by ${lc(DIMS[spec.dim].label).replace(/ \(.*\)$/, "")}`;
+}
+function specSubtitle(spec) {
+  const f = spec.filters || {}, parts = [];
+  const M = measureOf(spec.measure);
+  if (!M.noAgg && spec.agg === "avg") parts.push("Average per production");
+  for (const k of FILTER_DIMS) if (f[k]?.length) {
+    const D = DIMS[k], names = f[k].map((v) => (D.fmt ? D.fmt(v) : v || "Not set"));
+    if (k === "status" && f[k].length === 4 && !f[k].includes("draft")) { parts.push("Submitted applications"); continue; }
+    parts.push(names.length > 3 ? `${D.label}: ${names.length} selected` : names.join(", "));
+  }
+  if (spec.split && spec.split !== "none") parts.push(`split by ${lc(DIMS[spec.split].label)}`);
+  return parts.join(" · ");
+}
+function passesSpec(a, f = {}) {
+  return FILTER_DIMS.every((k) => !f[k]?.length || f[k].includes(DIMS[k].get(a)));
+}
+function chartData(spec) {
+  const M = measureOf(spec.measure);
+  const apps = S.dash.apps.filter((a) => passesSpec(a, spec.filters));
+  const valueOf = (list) => (M.key === "count" ? list.length : M.groupFn ? M.groupFn(list)
+    : aggregate(list.map((a) => M.get(a, spec.stage)).filter((v) => v != null && isFinite(v)), spec.agg));
+  const reporting = (list) => (M.key === "count" || M.groupFn ? list.length : list.filter((a) => { const v = M.get(a, spec.stage); return v != null && isFinite(v); }).length);
+  const D = spec.type === "number" ? DIMS.none : DIMS[spec.dim] || DIMS.none;
+  const Sp = ["bar", "hbar", "line", "table"].includes(spec.type) && spec.split && spec.split !== "none" && spec.split !== spec.dim ? DIMS[spec.split] : null;
+  const label = (Dm, k) => (Dm.fmt ? Dm.fmt(k) : k || "Not set");
+  // Groups
+  const gmap = new Map();
+  for (const a of apps) { const k = D.get(a); if (!gmap.has(k)) gmap.set(k, []); gmap.get(k).push(a); }
+  let groups = [...gmap].map(([key, list]) => ({ key, label: label(D, key), list }));
+  if (D.time) groups.sort((x, y) => (x.key || "9999").localeCompare(y.key || "9999"));
+  else if (D.order) groups.sort((x, y) => D.order(x.key) - D.order(y.key));
+  else groups.sort((x, y) => (valueOf(y.list) ?? -Infinity) - (valueOf(x.list) ?? -Infinity) || x.label.localeCompare(y.label));
+  if (!D.time && groups.length > GROUP_MAX) {
+    const keep = groups.slice(0, GROUP_MAX - 1), rest = groups.slice(GROUP_MAX - 1);
+    groups = [...keep, { key: "__other", label: `Other (${rest.length})`, list: rest.flatMap((g) => g.list) }];
+  }
+  // Series (fixed slot order by size, so a series keeps its color while filters change its value)
+  let series = [{ key: "__all", label: M.label, slot: 1 }];
+  if (Sp) {
+    const counts = new Map();
+    for (const a of apps) { const k = Sp.get(a); counts.set(k, (counts.get(k) || 0) + 1); }
+    let keys = [...counts].sort((x, y) => (Sp.order ? Sp.order(x[0]) - Sp.order(y[0]) : Sp.time ? String(x[0]).localeCompare(String(y[0])) : y[1] - x[1])).map(([k]) => k);
+    const other = keys.length > SERIES_MAX ? keys.slice(SERIES_MAX - 1) : [];
+    if (other.length) keys = keys.slice(0, SERIES_MAX - 1);
+    series = keys.map((k, i) => ({ key: k, label: label(Sp, k), slot: i + 1 }));
+    if (other.length) series.push({ key: "__other", label: `Other (${other.length})`, slot: "o", members: new Set(other) });
+  }
+  const inSeries = (a, s) => s.key === "__all" || (s.members ? s.members.has(Sp.get(a)) : Sp.get(a) === s.key);
+  for (const g of groups) {
+    g.values = {}; g.n = {};
+    for (const s of series) { const l = g.list.filter((a) => inSeries(a, s)); g.values[s.key] = l.length ? valueOf(l) : null; g.n[s.key] = reporting(l); }
+    g.total = valueOf(g.list); g.nTotal = reporting(g.list);
+  }
+  return { M, D, Sp, groups, series, n: apps.length, total: valueOf(apps), nTotal: reporting(apps), stacked: !!Sp && isAdditive(spec) };
+}
+
+// ── Chart rendering (SVG/HTML, colors from validated --s1..--s6 tokens) ──
+const sColor = (slot) => (slot === "o" ? "var(--s-other)" : `var(--s${slot})`);
+function niceMax(v, whole = false) {
+  if (!(v > 0)) return whole ? 4 : 1;
+  if (whole && v <= 8) return Math.ceil(v / 4) * 4;
+  const p = 10 ** Math.floor(Math.log10(v)), n = v / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+}
+const trunc = (s, n) => (s.length > n ? s.slice(0, Math.max(1, n - 1)) + "…" : s);
+const tipOf = (g, s, d) => `${esc(g.label)}${d.Sp ? ` · ${esc(s.label)}` : ""}: <b>${esc(fmtVal(g.values[s.key], d.M))}</b>${d.M.key !== "count" ? ` <span class="muted">(${g.n[s.key]} production${g.n[s.key] === 1 ? "" : "s"})</span>` : ""}`;
+const legendHTML = (d) => (d.series.length > 1 ? `<div class="legend chart-legend">${d.series.map((s) => `<span><i style="background:${sColor(s.slot)}"></i>${esc(s.label)}</span>`).join("")}</div>` : "");
+const emptyChart = (msg = "No productions match these filters yet.") => `<p class="muted chart-empty">${msg}</p>`;
+function roundTop(x, y, w, h, r) {
+  if (h <= 0) return "";
+  r = Math.min(r, w / 2, h);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+function svgBar(d, W) {
+  const H = 260, ml = 48, mr = 8, mt = 14, mb = 44, pw = Math.max(80, W - ml - mr), ph = H - mt - mb;
+  const G = d.groups, band = pw / Math.max(1, G.length);
+  const max = niceMax(Math.max(0, ...G.map((g) => (d.stacked ? d.series.reduce((t, s) => t + (g.values[s.key] || 0), 0) : Math.max(0, ...d.series.map((s) => g.values[s.key] || 0))))), d.M.key === "count");
+  const y = (v) => mt + ph - (v / max) * ph;
+  const ticks = [0, .25, .5, .75, 1].map((f) => f * max);
+  let out = `<svg class="chart-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(G.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">`;
+  out += ticks.map((t) => `<line class="grid" x1="${ml}" x2="${ml + pw}" y1="${y(t)}" y2="${y(t)}"/><text class="tick" x="${ml - 6}" y="${y(t) + 4}" text-anchor="end">${esc(fmtVal(t, { ...d.M, unit: d.M.unit === "%" ? "%" : "" }))}</text>`).join("");
+  const bw = Math.min(56, band * 0.66), labelChars = Math.max(3, Math.floor(band / 7.2));
+  G.forEach((g, i) => {
+    const cx = ml + band * i + band / 2;
+    if (d.stacked) {
+      let acc = 0; const last = [...d.series].reverse().find((s) => g.values[s.key] > 0);
+      for (const s of d.series) {
+        const v = g.values[s.key] || 0; if (!v) continue;
+        const y0 = y(acc + v), h = y(acc) - y0 - (acc ? 2 : 0); acc += v;
+        out += `<path class="mark" d="${s === last ? roundTop(cx - bw / 2, y0, bw, h, 4) : `M${cx - bw / 2},${y0}h${bw}v${h}h${-bw}Z`}" fill="${sColor(s.slot)}" data-tip="${esc(tipOf(g, s, d))}"/>`;
+      }
+    } else {
+      const k = d.series.length, sw = Math.max(3, (bw - (k - 1) * 2) / k);
+      d.series.forEach((s, j) => {
+        const v = g.values[s.key]; if (v == null) return;
+        const x = cx - bw / 2 + j * (sw + 2), y0 = y(Math.max(0, v));
+        out += `<path class="mark" d="${roundTop(x, y0, sw, mt + ph - y0, 4)}" fill="${sColor(s.slot)}" data-tip="${esc(tipOf(g, s, d))}"/>`;
+      });
+      if (k === 1 && G.length <= 8 && g.values.__all != null) out += `<text class="vlabel" x="${cx}" y="${y(Math.max(0, g.values.__all)) - 6}" text-anchor="middle">${esc(fmtVal(g.values.__all, d.M))}</text>`;
+    }
+    out += `<text class="xlabel" x="${cx}" y="${H - mb + 18}" text-anchor="middle"><title>${esc(g.label)}</title>${esc(trunc(g.label, labelChars))}</text>`;
+  });
+  out += `<line class="axis" x1="${ml}" x2="${ml + pw}" y1="${mt + ph}" y2="${mt + ph}"/></svg>`;
+  return out;
+}
+function htmlHbar(d) {
+  const tot = (g) => (d.stacked ? d.series.reduce((t, s) => t + (g.values[s.key] || 0), 0) : Math.max(0, ...d.series.map((s) => g.values[s.key] || 0)));
+  const max = niceMax(Math.max(0, ...d.groups.map(tot)));
+  return `<div class="hbars" role="img" aria-label="${esc(d.groups.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">${d.groups.map((g) => `
+    <div class="hbar"><span class="hlabel" title="${esc(g.label)}">${esc(g.label)}</span>
+      <div class="htrack ${d.stacked ? "stack" : d.series.length > 1 ? "grouped" : ""}">${d.series.map((s) => {
+        const v = g.values[s.key]; if (v == null || (d.stacked && !v)) return d.stacked ? "" : `<i class="empty"></i>`;
+        return `<i class="mark" style="--w:${(Math.max(0, v) / max) * 100}%;background:${sColor(s.slot)}" data-tip="${esc(tipOf(g, s, d))}"></i>`; }).join("")}</div>
+      <span class="hval mono">${esc(fmtVal(d.stacked || d.series.length === 1 ? (d.stacked ? tot(g) : g.values[d.series[0].key]) : g.total, d.M))}</span></div>`).join("")}</div>`;
+}
+function svgLine(d, W) {
+  const H = 260, ml = 48, mr = 16, mt = 14, mb = 44, pw = Math.max(80, W - ml - mr), ph = H - mt - mb, G = d.groups;
+  const max = niceMax(Math.max(0, ...G.flatMap((g) => d.series.map((s) => g.values[s.key] || 0))), d.M.key === "count");
+  const x = (i) => ml + (G.length === 1 ? pw / 2 : (pw * i) / (G.length - 1)), y = (v) => mt + ph - (v / max) * ph;
+  const ticks = [0, .25, .5, .75, 1].map((f) => f * max), every = Math.ceil(G.length / Math.max(1, Math.floor(pw / 70)));
+  let out = `<svg class="chart-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(G.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">`;
+  out += ticks.map((t) => `<line class="grid" x1="${ml}" x2="${ml + pw}" y1="${y(t)}" y2="${y(t)}"/><text class="tick" x="${ml - 6}" y="${y(t) + 4}" text-anchor="end">${esc(fmtVal(t, { ...d.M, unit: d.M.unit === "%" ? "%" : "" }))}</text>`).join("");
+  out += `<line class="axis" x1="${ml}" x2="${ml + pw}" y1="${mt + ph}" y2="${mt + ph}"/><line class="guide" x1="0" x2="0" y1="${mt}" y2="${mt + ph}" style="display:none"/>`;
+  for (const s of d.series) {
+    const pts = G.map((g, i) => (g.values[s.key] == null ? null : [x(i), y(g.values[s.key])]));
+    let path = "", pen = false;
+    for (const p of pts) { if (!p) { pen = false; continue; } path += `${pen ? "L" : "M"}${p[0]},${p[1]}`; pen = true; }
+    out += `<path class="line" d="${path}" stroke="${sColor(s.slot)}"/>` + pts.map((p) => (p ? `<circle class="dot" cx="${p[0]}" cy="${p[1]}" r="4" fill="${sColor(s.slot)}"/>` : "")).join("");
+  }
+  G.forEach((g, i) => {
+    if (i % every === 0 || i === G.length - 1) out += `<text class="xlabel" x="${x(i)}" y="${H - mb + 18}" text-anchor="middle">${esc(trunc(g.label, 12))}</text>`;
+    const half = G.length === 1 ? pw / 2 : pw / (G.length - 1) / 2;
+    out += `<rect class="hit" x="${x(i) - half}" y="${mt}" width="${half * 2}" height="${ph}" data-x="${x(i)}" data-tip="${esc(`<b>${esc(g.label)}</b><br>` + d.series.map((s) => `<span class="sw" style="background:${sColor(s.slot)}"></span>${d.Sp ? esc(s.label) + ": " : ""}${esc(fmtVal(g.values[s.key], d.M))}`).join("<br>"))}"/>`;
+  });
+  return out + `</svg>`;
+}
+function svgDonut(d) {
+  // One ring, slices capped at SERIES_MAX (rest → Other), each with a legend row.
+  let G = d.groups.filter((g) => g.total > 0);
+  if (G.length > SERIES_MAX) { const rest = G.slice(SERIES_MAX - 1); G = [...G.slice(0, SERIES_MAX - 1), { label: `Other (${rest.length})`, total: rest.reduce((t, g) => t + g.total, 0), other: true }]; }
+  const sum = G.reduce((t, g) => t + g.total, 0); if (!sum) return emptyChart();
+  const R = 84, r = 54, C = 96; let a0 = -Math.PI / 2, out = "";
+  G.forEach((g, i) => {
+    const frac = g.total / sum, a1 = a0 + frac * Math.PI * 2, big = a1 - a0 > Math.PI ? 1 : 0, col = g.other ? sColor("o") : sColor(i + 1);
+    const p = (ang, rad) => `${C + rad * Math.cos(ang)},${C + rad * Math.sin(ang)}`;
+    const tip = `${esc(g.label)}: <b>${esc(fmtVal(g.total, d.M))}</b> (${Math.round(frac * 100)}%)`;
+    out += frac >= 0.9999 ? `<circle cx="${C}" cy="${C}" r="${(R + r) / 2}" fill="none" stroke="${col}" stroke-width="${R - r}" class="mark" data-tip="${esc(tip)}"/>`
+      : `<path class="mark slice" d="M${p(a0, R)}A${R},${R} 0 ${big} 1 ${p(a1, R)}L${p(a1, r)}A${r},${r} 0 ${big} 0 ${p(a0, r)}Z" fill="${col}" data-tip="${esc(tip)}"/>`;
+    G[i].col = col; G[i].frac = frac; a0 = a1;
+  });
+  return `<div class="donut"><svg width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="${esc(G.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">${out}
+    <text class="dtotal" x="${C}" y="${C + 4}" text-anchor="middle">${esc(fmtVal(sum, d.M))}</text><text class="tick" x="${C}" y="${C + 22}" text-anchor="middle">total</text></svg>
+    <ul class="dlegend">${G.map((g) => `<li><i style="background:${g.col}"></i><span>${esc(g.label)}</span><b class="mono">${esc(fmtVal(g.total, d.M))}</b><span class="muted mono">${Math.round(g.frac * 100)}%</span></li>`).join("")}</ul></div>`;
+}
+function tableView(d) {
+  const multi = d.series.length > 1;
+  return `<div class="table-scroll"><table class="ctable"><thead><tr><th>${esc(d.D.label === DIMS.none.label ? "" : d.D.label)}</th>${multi ? d.series.map((s) => `<th class="num">${esc(s.label)}</th>`).join("") : ""}<th class="num">${multi ? "All" : esc(d.M.label)}</th><th class="num">Productions</th></tr></thead>
+    <tbody>${d.groups.map((g) => `<tr><td>${esc(g.label)}</td>${multi ? d.series.map((s) => `<td class="num mono">${esc(fmtVal(g.values[s.key], d.M))}</td>`).join("") : ""}<td class="num mono">${esc(fmtVal(g.total, d.M))}</td><td class="num mono">${g.nTotal}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function renderChart(el, spec, forceTable = false) {
+  const d = chartData(spec), W = Math.max(240, Math.floor(el.clientWidth || 600));
+  if (!d.n) { el.innerHTML = emptyChart(); return; }
+  if (d.M.key !== "count" && !d.nTotal) { el.innerHTML = emptyChart("None of these productions have reported this yet."); return; }
+  if (spec.type === "number") {
+    el.innerHTML = `<div class="bignum"><strong class="mono">${esc(fmtVal(d.total, d.M))}</strong><span class="muted">${d.M.key === "count" ? "productions" : `across ${d.nTotal} production${d.nTotal === 1 ? "" : "s"}`}</span></div>`;
+    return;
+  }
+  if (forceTable || spec.type === "table") { el.innerHTML = tableView(d); return; }
+  const body = spec.type === "hbar" ? htmlHbar(d) : spec.type === "line" ? svgLine(d, W) : spec.type === "donut" ? svgDonut(d) : svgBar(d, W);
+  const note = d.M.key !== "count" && d.nTotal < d.n ? `<p class="muted small chart-note">${d.nTotal} of ${d.n} productions have reported this.</p>` : "";
+  el.innerHTML = (spec.type === "donut" ? "" : legendHTML(d)) + body + note;
+}
+// One floating tooltip for every chart.
+function chartTip() {
+  let tip = document.getElementById("ctip");
+  if (!tip) { tip = document.createElement("div"); tip.id = "ctip"; tip.setAttribute("role", "tooltip"); document.body.appendChild(tip); }
+  return tip;
+}
+document.addEventListener("pointermove", (e) => {
+  const t = e.target.closest?.("[data-tip]"), tip = chartTip();
+  document.querySelectorAll(".chart-svg .guide").forEach((gl) => { if (!t || !gl.closest("svg").contains(t)) gl.style.display = "none"; });
+  if (!t || !t.closest(".chart")) { tip.style.display = "none"; return; }
+  tip.innerHTML = t.dataset.tip; tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, e.clientX + 14)) + "px";
+  tip.style.top = Math.max(8, e.clientY - h - 12) + "px";
+  if (t.dataset.x) { const gl = t.closest("svg").querySelector(".guide"); gl.setAttribute("x1", t.dataset.x); gl.setAttribute("x2", t.dataset.x); gl.style.display = ""; }
+});
+document.addEventListener("scroll", () => { const t = document.getElementById("ctip"); if (t) t.style.display = "none"; }, { passive: true });
+
+// ── Layout ──
+function dashWidgets() {
+  const mine = (S.dashPrefs.charts || []).map((c) => ({ id: "c:" + c.id, spec: c, own: true }));
+  const shared = (S.sharedCharts || []).map((r) => ({ id: "s:" + r.chart_id, spec: { ...r.spec, id: r.chart_id }, shared: true, row: r }));
+  const map = new Map([...Object.keys(DASH_BUILTIN).map((id) => [id, { id, builtin: true }]), ...mine.map((w) => [w.id, w]), ...shared.map((w) => [w.id, w])]);
+  return map;
+}
+function resolveLayout() {
+  const map = dashWidgets(), seen = new Set();
+  const base = S.dashPrefs.layout?.length ? S.dashPrefs.layout : S.dashDefault?.length ? S.dashDefault : DASH_DEFAULT;
+  const out = [];
+  for (const e of base) if (map.has(e.id) && !seen.has(e.id)) { seen.add(e.id); out.push({ id: e.id, size: e.size === "full" ? "full" : "half", hidden: !!e.hidden }); }
+  for (const [id, w] of map) if (!seen.has(id)) out.push({ id, size: w.builtin ? DASH_BUILTIN[id].size : w.spec.size === "full" ? "full" : "half", hidden: false });
+  return out;
+}
+let dashSaveT;
+function saveDashPrefs(now = false) {
+  clearTimeout(dashSaveT);
+  const go = async () => {
+    const { error } = await sb.from("dashboard_prefs").upsert({ user_id: S.me.id, layout: S.dashPrefs.layout, charts: S.dashPrefs.charts }, { onConflict: "user_id" });
+    if (error) fail(error);
+  };
+  if (now) return go();
+  dashSaveT = setTimeout(go, 400);
+}
+function widgetTitle(w) { return w.builtin ? DASH_BUILTIN[w.id].title : w.spec.title || autoTitle(w.spec); }
+
+function drawDashboard() {
+  const map = dashWidgets(), layout = resolveLayout(), edit = !!S.dashEdit;
+  const visible = layout.filter((e) => !e.hidden), hidden = layout.filter((e) => e.hidden);
+  const tools = (e, w, i) => !edit ? "" : `<div class="dw-tools" role="group" aria-label="Arrange ${esc(widgetTitle(w))}">
+      <span class="dw-grip" aria-hidden="true" title="Drag to move">⠿</span><b>${esc(widgetTitle(w))}</b>
+      <button class="link" data-move="-1" ${i === 0 ? "disabled" : ""} aria-label="Move earlier">↑</button>
+      <button class="link" data-move="1" ${i === visible.length - 1 ? "disabled" : ""} aria-label="Move later">↓</button>
+      <button class="link" data-size>${e.size === "full" ? "Make narrow" : "Make wide"}</button>
+      ${!w.builtin && (w.own || isStaff()) ? `<button class="link" data-edit>Edit</button>` : ""}
+      <button class="link" data-hide>Hide</button>
+      ${w.own ? `<button class="link danger" data-del>Delete</button>` : w.shared && isStaff() ? `<button class="link danger" data-del>Delete for everyone</button>` : ""}
+    </div>`;
+  const chartBlock = (w) => `<section class="panel block chart-block">
+      <div class="block-head"><div><h2>${esc(widgetTitle(w))}</h2><p class="muted small chart-sub">${esc(specSubtitle(w.spec))}${w.shared ? `${specSubtitle(w.spec) ? " · " : ""}Shared by staff` : ""}</p></div>
+        ${["number", "table"].includes(w.spec.type) ? "" : `<button class="link small" data-astable aria-pressed="${!!S.dashTables?.[w.id]}">${S.dashTables?.[w.id] ? "Show chart" : "Show table"}</button>`}</div>
+      <div class="block-body"><div class="chart" data-wid="${esc(w.id)}"></div></div></section>`;
+  $app.innerHTML = `
+    <div class="page-head">
+      <div><p class="eyebrow">PEACH v2.0 · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p><h1>Program dashboard</h1></div>
+      <div class="export">
+        ${edit ? `<button id="dashAdd">Add chart</button><button class="primary" id="dashDone">Done</button>`
+          : `<button id="dashAdd">Add chart</button><button id="dashEdit">Customize</button><button id="expApps">Export applications</button><button id="expAns">Export answers</button>`}
+      </div>
+    </div>
+    ${edit ? `<div class="panel dash-editbar" role="status">
+        <p><b>Arranging your dashboard.</b> Drag a chart by its bar to move it, or use the arrows. Changes save as you go and only you see them.</p>
+        <div class="dash-editbar-actions">${hidden.length ? `<span class="muted small">Hidden:</span>${hidden.map((e) => `<button class="chip" data-show="${esc(e.id)}">+ ${esc(widgetTitle(map.get(e.id)))}</button>`).join("")}` : ""}
+          <button class="link" id="dashReset">Reset to default</button>${isStaff() ? `<button class="link" id="dashMakeDefault">Make this everyone's default</button>` : ""}</div>
+      </div>` : ""}
+    <div class="dboard ${edit ? "editing" : ""}">${visible.map((e, i) => { const w = map.get(e.id);
+      return `<div class="dw w-${e.size}" data-wid="${esc(e.id)}" ${edit ? 'draggable="true"' : ""}>${tools(e, w, i)}${w.builtin ? S.dash.html[e.id] : chartBlock(w)}</div>`; }).join("")
+      || `<div class="panel block w-full"><div class="block-body"><p class="muted">Everything is hidden. Click Customize to show charts again.</p></div></div>`}</div>`;
+  // Charts need their width, so render after they're in the page.
+  const draw = () => $app.querySelectorAll(".chart[data-wid]").forEach((el) => { const w = map.get(el.dataset.wid); if (w) renderChart(el, w.spec, !!S.dashTables?.[w.id]); });
+  draw();
+  S.dashRO?.disconnect();
+  let lastW = $app.clientWidth, t;
+  S.dashRO = new ResizeObserver(() => { if (Math.abs($app.clientWidth - lastW) < 8) return; lastW = $app.clientWidth; clearTimeout(t); t = setTimeout(draw, 120); });
+  S.dashRO.observe($app);
+
+  document.getElementById("expApps")?.addEventListener("click", exportApps);
+  document.getElementById("expAns")?.addEventListener("click", exportAnswers);
+  document.getElementById("dashEdit")?.addEventListener("click", () => { S.dashEdit = true; drawDashboard(); });
+  document.getElementById("dashDone")?.addEventListener("click", () => { S.dashEdit = false; saveDashPrefs(true); drawDashboard(); });
+  document.getElementById("dashAdd").addEventListener("click", () => openChartBuilder());
+  $app.querySelectorAll("[data-astable]").forEach((b) => b.addEventListener("click", () => {
+    const id = b.closest(".dw").dataset.wid; (S.dashTables ||= {})[id] = !S.dashTables[id]; drawDashboard();
+  }));
+  const commit = (lay) => { S.dashPrefs.layout = lay; saveDashPrefs(); drawDashboard(); };
+  $app.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => commit(layout.map((e) => (e.id === b.dataset.show ? { ...e, hidden: false } : e)))));
+  document.getElementById("dashReset")?.addEventListener("click", () => { S.dashPrefs.layout = []; saveDashPrefs(); drawDashboard(); toast("Back to the default layout"); });
+  document.getElementById("dashMakeDefault")?.addEventListener("click", async (ev) => {
+    const b = ev.currentTarget;
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm: set for everyone?"; return; }
+    const value = { layout: layout.filter((e) => !e.id.startsWith("c:")) };
+    const { error } = await sb.from("app_settings").upsert({ key: "dashboard_default", value, updated_by: S.me.id }, { onConflict: "key" });
+    if (error) return fail(error);
+    S.dashDefault = value.layout; b.textContent = "Make this everyone's default"; b.dataset.armed = "";
+    toast("Default layout saved. People who haven't arranged their own dashboard now see this.");
+  });
+  $app.querySelectorAll(".dw-tools").forEach((tb) => {
+    const id = tb.closest(".dw").dataset.wid, idx = layout.findIndex((e) => e.id === id), w = map.get(id);
+    tb.querySelectorAll("[data-move]").forEach((b) => b.addEventListener("click", () => {
+      const vis = layout.filter((e) => !e.hidden), vi = vis.findIndex((e) => e.id === id), other = vis[vi + +b.dataset.move];
+      if (!other) return;
+      const lay = [...layout], a = lay.findIndex((e) => e.id === id), c = lay.findIndex((e) => e.id === other.id);
+      [lay[a], lay[c]] = [lay[c], lay[a]]; commit(lay);
+      requestAnimationFrame(() => $app.querySelector(`.dw[data-wid="${CSS.escape(id)}"] [data-move="${b.dataset.move}"]`)?.focus());
+    }));
+    tb.querySelector("[data-size]").addEventListener("click", () => commit(layout.map((e, i) => (i === idx ? { ...e, size: e.size === "full" ? "half" : "full" } : e))));
+    tb.querySelector("[data-hide]").addEventListener("click", () => commit(layout.map((e, i) => (i === idx ? { ...e, hidden: true } : e))));
+    tb.querySelector("[data-edit]")?.addEventListener("click", () => openChartBuilder(w));
+    tb.querySelector("[data-del]")?.addEventListener("click", async (ev) => {
+      const b = ev.currentTarget;
+      if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = w.shared ? "Confirm: delete for everyone?" : "Confirm delete?"; return; }
+      if (w.shared) {
+        const { error } = await sb.from("shared_charts").delete().eq("chart_id", w.row.chart_id);
+        if (error) return fail(error);
+        S.sharedCharts = S.sharedCharts.filter((r) => r.chart_id !== w.row.chart_id);
+      } else S.dashPrefs.charts = S.dashPrefs.charts.filter((c) => "c:" + c.id !== id);
+      S.dashPrefs.layout = resolveLayout().filter((e) => e.id !== id);
+      saveDashPrefs(); drawDashboard(); toast(`${widgetTitle(w)} deleted`);
+    });
+  });
+  // Drag and drop (mouse); the arrow buttons cover keyboard and touch.
+  if (edit) {
+    const board = $app.querySelector(".dboard");
+    board.addEventListener("dragstart", (e) => { const dw = e.target.closest?.(".dw"); if (!dw) return; S.dragId = dw.dataset.wid; dw.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", S.dragId); } catch {} });
+    board.addEventListener("dragend", () => { board.querySelectorAll(".dragging,.drop-before,.drop-after").forEach((x) => x.classList.remove("dragging", "drop-before", "drop-after")); });
+    const where = (dw, e) => { const r = dw.getBoundingClientRect(), half = dw.classList.contains("w-half"); return (half ? e.clientX < r.left + r.width / 2 : e.clientY < r.top + r.height / 2) ? "before" : "after"; };
+    board.addEventListener("dragover", (e) => {
+      const dw = e.target.closest?.(".dw"); if (!dw || !S.dragId || dw.dataset.wid === S.dragId) return;
+      e.preventDefault(); e.dataTransfer.dropEffect = "move";
+      board.querySelectorAll(".drop-before,.drop-after").forEach((x) => x.classList.remove("drop-before", "drop-after"));
+      dw.classList.add("drop-" + where(dw, e));
+    });
+    board.addEventListener("drop", (e) => {
+      const dw = e.target.closest?.(".dw"); if (!dw || !S.dragId) return; e.preventDefault();
+      const pos = where(dw, e), lay = layout.filter((x) => x.id !== S.dragId), moving = layout.find((x) => x.id === S.dragId);
+      let at = lay.findIndex((x) => x.id === dw.dataset.wid); if (pos === "after") at++;
+      lay.splice(at, 0, moving); S.dragId = null; commit(lay);
+    });
+  }
+}
+
+// ── Chart builder ──
+function openChartBuilder(w = null) {
+  const editing = !!w, spec = w ? structuredClone({ ...w.spec, filters: w.spec.filters || {} }) : newSpec();
+  const ms = measures(), groups = [...new Set(ms.map((m) => m.group))];
+  const values = (k) => { const D = DIMS[k], seen = new Map(); for (const a of S.dash.apps) { const v = D.get(a); if (!seen.has(v)) seen.set(v, D.fmt ? D.fmt(v) : v || "Not set"); }
+    let arr = [...seen]; arr.sort((x, y) => (D.order ? D.order(x[0]) - D.order(y[0]) : x[1].localeCompare(y[1]))); return arr; };
+  const TYPES = [["bar", "Columns"], ["hbar", "Bars"], ["line", "Line"], ["donut", "Donut"], ["number", "Number"], ["table", "Table"]];
+  let dlg = document.getElementById("chartDlg");
+  if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "chartDlg"; document.body.appendChild(dlg); }
+  const dimOpts = (sel, withNone, exclude) => Object.entries(DIMS).filter(([k]) => (withNone || k !== "none") && k !== exclude).map(([k, D]) => `<option value="${k}" ${sel === k ? "selected" : ""}>${esc(k === "none" && !withNone ? D.label : k === "none" ? "Nothing" : D.label)}</option>`).join("");
+  dlg.innerHTML = `<form method="dialog" class="builder" novalidate>
+    <div class="builder-head"><h2>${editing ? "Edit chart" : "New chart"}</h2><button type="button" class="link" data-close aria-label="Close">Close</button></div>
+    <div class="builder-body">
+      <div class="builder-form">
+        <fieldset class="field"><legend class="label">Chart type</legend><div class="types">${TYPES.map(([k, l]) => `<label class="tcard"><input type="radio" name="b-type" value="${k}" ${spec.type === k ? "checked" : ""}><span>${typeIcon(k)}${l}</span></label>`).join("")}</div></fieldset>
+        <label class="field"><span>Show</span><select id="b-measure">${groups.map((g) => `<optgroup label="${esc(g)}">${ms.filter((m) => m.group === g).map((m) => `<option value="${esc(m.key)}" ${spec.measure === m.key ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</optgroup>`).join("")}</select></label>
+        <div class="grid2">
+          <label class="field" id="b-agg-f"><span>Combine productions as</span><select id="b-agg">${AGGS.map(([k, l]) => `<option value="${k}" ${spec.agg === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+          <label class="field" id="b-stage-f"><span>Stage</span><select id="b-stage"><option value="wrap" ${spec.stage === "wrap" ? "selected" : ""}>Wrap</option><option value="prep" ${spec.stage === "prep" ? "selected" : ""}>Prep</option></select></label>
+        </div>
+        <div class="grid2">
+          <label class="field" id="b-dim-f"><span>Group by</span><select id="b-dim">${dimOpts(spec.dim, true)}</select></label>
+          <label class="field" id="b-split-f"><span>Split by</span><select id="b-split">${dimOpts(spec.split || "none", true)}</select></label>
+        </div>
+        <details class="bfilters" ${Object.values(spec.filters).some((v) => v?.length) ? "open" : ""}><summary>Filters</summary>
+          ${FILTER_DIMS.map((k) => `<fieldset class="field"><legend class="label">${esc(DIMS[k].label)}</legend><div class="chips">${values(k).map(([v, l]) =>
+            `<label class="chip check-chip"><input type="checkbox" data-f="${k}" value="${esc(v)}" ${(spec.filters[k] || []).includes(v) ? "checked" : ""}>${esc(l)}</label>`).join("")}</div></fieldset>`).join("")}
+          <p class="muted small">Nothing ticked in a group means everything in that group is included.</p>
+        </details>
+        <label class="field"><span>Title</span><input id="b-title" value="${esc(spec.title)}" placeholder="${esc(autoTitle(spec))}" maxlength="90"></label>
+        <fieldset class="field"><legend class="label">Width on the dashboard</legend><div class="chips">
+          <label class="chip check-chip"><input type="radio" name="b-size" value="half" ${spec.size !== "full" ? "checked" : ""}>Half</label>
+          <label class="chip check-chip"><input type="radio" name="b-size" value="full" ${spec.size === "full" ? "checked" : ""}>Full</label></div></fieldset>
+        ${isStaff() && !editing ? `<label class="check"><input type="checkbox" id="b-share">Share with everyone (reviewers and staff see it on their dashboard)</label>` : ""}
+        <p class="b-hint muted small" id="b-hint" role="status"></p>
+      </div>
+      <div class="builder-preview"><p class="label">Preview</p><h3 class="pv-title" id="b-pvtitle"></h3><p class="muted small" id="b-pvsub"></p><div class="chart" id="b-chart"></div></div>
+    </div>
+    <div class="builder-foot">${editing && w.shared ? `<span class="muted small">Changes apply to everyone's dashboard.</span>` : ""}<button type="button" data-close>Cancel</button><button type="submit" class="primary" id="b-save">${editing ? "Save chart" : "Add to dashboard"}</button></div>
+  </form>`;
+  const $ = (id) => dlg.querySelector("#" + id);
+  const read = () => {
+    spec.type = dlg.querySelector("input[name=b-type]:checked").value;
+    spec.measure = $("b-measure").value; spec.agg = $("b-agg").value; spec.stage = $("b-stage").value;
+    spec.dim = $("b-dim").value; spec.split = $("b-split").value; spec.title = $("b-title").value.trim();
+    spec.size = dlg.querySelector("input[name=b-size]:checked").value;
+    spec.filters = {}; for (const k of FILTER_DIMS) { const v = [...dlg.querySelectorAll(`input[data-f="${k}"]:checked`)].map((x) => x.value); if (v.length) spec.filters[k] = v; }
+  };
+  const sync = () => {
+    read();
+    const M = measureOf(spec.measure), noDim = spec.type === "number";
+    if (spec.type !== "number" && spec.dim === "none" && spec.type !== "table") { spec.dim = "type"; $("b-dim").value = "type"; }
+    $("b-agg-f").hidden = !!M.noAgg; $("b-stage-f").hidden = !M.stage;
+    $("b-dim-f").hidden = noDim; $("b-split-f").hidden = !["bar", "hbar", "line", "table"].includes(spec.type);
+    let hint = "";
+    if (spec.type === "donut" && !isAdditive(spec)) hint = "Donuts show parts of a whole, so they need a count or a total. Choose Number of applications, or Combine as Total.";
+    else if (spec.type === "line" && !DIMS[spec.dim].time) hint = "Line charts read best over time. Try grouping by submission month or quarter.";
+    else if (spec.split !== "none" && spec.split === spec.dim) hint = "Split by something other than the grouping to see a breakdown.";
+    else if (spec.split !== "none" && !isAdditive(spec) && ["bar", "hbar"].includes(spec.type)) hint = "Averages can't be stacked, so the split shows side by side.";
+    $("b-hint").textContent = hint;
+    $("b-save").disabled = spec.type === "donut" && !isAdditive(spec);
+    $("b-title").placeholder = autoTitle(spec);
+    $("b-pvtitle").textContent = spec.title || autoTitle(spec); $("b-pvsub").textContent = specSubtitle(spec);
+    renderChart($("b-chart"), spec);
+  };
+  dlg.querySelector("form").addEventListener("input", sync);
+  dlg.querySelector("form").addEventListener("change", sync);
+  dlg.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => dlg.close()));
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+  dlg.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault(); read();
+    if (spec.type === "donut" && !isAdditive(spec)) return;
+    const clean = { ...spec, title: spec.title || "" };
+    if (editing && w.shared) {
+      const { id, ...rest } = clean;
+      const { error } = await sb.from("shared_charts").update({ spec: rest }).eq("chart_id", w.row.chart_id);
+      if (error) return fail(error);
+      w.row.spec = rest;
+    } else if (editing) {
+      S.dashPrefs.charts = S.dashPrefs.charts.map((c) => (c.id === clean.id ? clean : c));
+    } else if (dlg.querySelector("#b-share")?.checked) {
+      const { id, ...rest } = clean;
+      const { data, error } = await sb.from("shared_charts").insert({ spec: rest, created_by: S.me.id }).select().single();
+      if (error) return fail(error);
+      S.sharedCharts.push(data);
+    } else S.dashPrefs.charts = [...(S.dashPrefs.charts || []), clean];
+    // Width chosen here applies to this person's layout entry.
+    const wid = editing ? w.id : clean.id && !dlg.querySelector("#b-share")?.checked ? "c:" + clean.id : "s:" + S.sharedCharts[S.sharedCharts.length - 1].chart_id;
+    const lay = resolveLayout().map((x) => (x.id === wid ? { ...x, size: clean.size, hidden: false } : x));
+    S.dashPrefs.layout = lay;
+    await saveDashPrefs(true);
+    dlg.close(); drawDashboard(); toast(editing ? "Chart saved" : "Chart added to your dashboard");
+    requestAnimationFrame(() => $app.querySelector(`.dw[data-wid="${CSS.escape(wid)}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  });
+  dlg.showModal();
+  sync();
+}
+function typeIcon(k) {
+  const p = { bar: '<path d="M4 20V11M10 20V5M16 20V14M22 20V8"/>', hbar: '<path d="M3 5h12M3 11h18M3 17h8"/>', line: '<path d="M3 17l6-6 4 4 8-9"/>',
+    donut: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.5"/>', number: '<path d="M7 5v14M4 9h7M15 5c3 0 4 2 4 3.5S17 12 15 14l-1 1h5"/>', table: '<path d="M3 5h18v14H3zM3 10h18M3 15h18M10 5v14"/>' }[k];
+  return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">${p}</svg>`;
+}
+
 
 // ── Compare: compliant vs. non-compliant productions ───────────────────────
 // "Practice score" = share of available points on Yes answers, computed from
