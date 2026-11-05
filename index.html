@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <style>
-/* Layout: call-sheet ledger. Department blocks with PREP / WRAP columns, one sticky action bar */
+/* Layout: call-sheet ledger. Department blocks with PREP / WRAP columns, one sticky action bar. */
 :root {
   --bg: #F2F4F1;
   --surface: #FFFFFF;
@@ -438,6 +438,47 @@ details.qdept[open] > summary h3::before { content: "▾"; }
 .qnew { background: var(--sunk); }
 @media (max-width: 760px) { .qrow-grid { grid-template-columns: minmax(0, 1fr); } }
 
+/* People + answered by */
+.me-link { color: var(--ink); text-decoration: none; font-weight: 600; }
+.me-link:hover { color: var(--accent); text-decoration: underline; }
+.seg .cnt, .chip .cnt { font-size: .72rem; opacity: .7; margin-left: 4px; }
+.addbox > summary { list-style: none; cursor: pointer; }
+.addbox > summary::-webkit-details-marker { display: none; }
+.addbox > summary h2::before { content: "+ "; color: var(--accent); }
+.addbox[open] > summary h2::before { content: "– "; }
+.addbox { margin-bottom: 16px; }
+.method { border: 0; margin: 0; padding: 0; grid-column: 1 / -1; display: grid; gap: 6px; }
+.method legend { padding: 0; margin-bottom: 4px; }
+.add-actions { display: flex; align-items: end; }
+.ptable td { vertical-align: middle; }
+.ptable select[data-role] { min-width: 124px; }
+.ptable tr.off td { background: var(--sunk); }
+.ptable tr.off .inline { color: var(--muted); }
+.namecell { display: grid; gap: 2px; min-width: 170px; }
+input.inline, select.inline { border-color: transparent; background: transparent; padding: 4px 6px; margin-left: -6px; font-size: .92rem; }
+input.inline:hover, select.inline:hover { border-color: var(--line); }
+input.inline:focus, select.inline:focus { border-color: var(--accent); background: var(--surface); }
+input.inline.sub { font-size: .8rem; color: var(--muted); }
+.small { font-size: .82rem; }
+.actions-cell { white-space: nowrap; }
+.actions-cell .link { margin-left: 12px; }
+.credbox { padding: 14px 18px; margin-bottom: 16px; border-left: 4px solid var(--accent); display: grid; gap: 6px; }
+.cred { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.cred code { font: 600 1.05rem/1.3 var(--mono); background: var(--sunk); padding: 6px 10px; border-radius: var(--r); user-select: all; }
+.answerer { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 12px 18px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface)); }
+.answerer .hint { font-size: .8rem; }
+.answerer input { padding: 7px 9px; font-size: .9rem; }
+.expl-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 240px); gap: 12px; align-items: start; }
+.ans-by input { font-size: .9rem; }
+.ans-by-val { margin: 0; padding: 9px 0; font-size: .9rem; }
+.acct { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; align-items: start; }
+.acct .block { margin: 0; }
+@media (max-width: 760px) {
+  .answerer { grid-template-columns: minmax(0, 1fr); }
+  .expl-row { grid-template-columns: minmax(0, 1fr); }
+  .actions-cell { white-space: normal; }
+}
+
 .admin-row { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto auto auto; gap: 10px; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line); }
 .check { display: inline-flex; gap: 6px; align-items: center; font-size: .86rem; white-space: nowrap; }
 .check input { width: auto; }
@@ -578,6 +619,35 @@ async function reloadQuestions() {
   S.qs = q.data; S.allDepts = d.data;
   S.depts = d.data.filter((x) => S.qs.some((y) => y.department_id === x.department_id));
 }
+// Crew contacts: people named as having answered a department or an action.
+const norm = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
+const contactById = (id) => (S.contacts || []).find((c) => c.contact_id === id) || null;
+const contactByName = (name) => (S.contacts || []).find((c) => !c.archived && norm(c.full_name) === norm(name)) || null;
+async function loadContacts() {
+  const r = await fetchAll(() => sb.from("contacts").select("*").order("full_name").order("contact_id"));
+  S.contacts = r.error ? [] : r.data;
+  return S.contacts;
+}
+// Find a contact by name, or add one. Fills in a missing title/department on contacts the user may edit.
+async function ensureContact(name, title, deptId) {
+  const clean = String(name || "").trim().replace(/\s+/g, " ");
+  if (!clean) return null;
+  let c = contactByName(clean);
+  if (c) {
+    const canEdit = isStaff() || c.created_by === S.me.id;
+    const patch = {};
+    if (title && title !== c.title && canEdit) patch.title = title;
+    if (deptId && !c.department_id && canEdit) patch.department_id = deptId;
+    if (Object.keys(patch).length) { const { error } = await sb.from("contacts").update(patch).eq("contact_id", c.contact_id); if (!error) Object.assign(c, patch); }
+    return c.contact_id;
+  }
+  const { data, error } = await sb.from("contacts").insert({ full_name: clean, title: title || null, department_id: deptId || null, created_by: S.me.id }).select().single();
+  if (error) throw error;
+  S.contacts.push(data);
+  return data.contact_id;
+}
+const contactOptions = () => (S.contacts || []).filter((c) => !c.archived)
+  .map((c) => `<option value="${esc(c.full_name)}">${esc([c.title, c.company].filter(Boolean).join(" · "))}</option>`).join("");
 // Collect each production's prep and wrap answers to active questions.
 function answersByApp(rows) {
   const ids = new Set(S.qs.map((q) => q.question_id)), out = {};
@@ -664,7 +734,9 @@ function route() {
   const m = h.match(/^app-(\d+)$/);
   if (h === "new") return openApp(null);
   if (m) return openApp(+m[1]);
-  if (h === "people" && isStaff()) return renderPeople();
+  if (h === "people" && isStaff()) return renderPeople("users");
+  if (h === "contacts" && isStaff()) return renderPeople("contacts");
+  if (h === "account") return renderAccount();
   if (h === "questions" && isStaff()) return renderQuestions();
   if (h === "dashboard" && isReviewerish()) return renderDashboard();
   const cm = h.match(/^compare(?:-(\d+))?$/);
@@ -677,12 +749,12 @@ function route() {
 
 function renderBar() {
   const h = location.hash.slice(1);
-  const cur = h === "people" ? "people" : h === "questions" ? "questions" : h.startsWith("compare") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const cur = h === "people" || h === "contacts" ? "people" : h === "questions" ? "questions" : h.startsWith("compare") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
   document.getElementById("bar").innerHTML = `
     <a class="brand" href="#"><b>EMA</b><span>Application Portal</span></a>
     ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#compare", "Compare") : ""}${link("list", "#applications", "Applications")}${isStaff() ? link("questions", "#questions", "Questions") + link("people", "#people", "People") : ""}</nav>
-    <div class="who"><div class="bell-wrap" id="bell"></div><span>${esc(S.me.full_name || S.me.email)}</span><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
+    <div class="who"><div class="bell-wrap" id="bell"></div><a class="me-link" href="#account" title="My account">${esc(S.me.full_name || S.me.email)}</a><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
   document.getElementById("signOut")?.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = ""; });
   if (S.me) drawBell();
 }
@@ -977,12 +1049,16 @@ async function openApp(id) {
   let app, resp = [];
   if (id == null) {
     app = { production_id: null, status: "draft", submitted_by: S.me.id };
+    S.deptAnswerers = {}; await loadContacts();
   } else {
     $app.innerHTML = `<p class="loading">Loading application…</p>`;
-    const [a, r] = await Promise.all([
+    const [a, r, da] = await Promise.all([
       sb.from("productions").select("*").eq("production_id", id).maybeSingle(),
       sb.from("responses").select("*").eq("production_id", id),
+      sb.from("department_answerers").select("department_id,contact_id").eq("production_id", id),
+      loadContacts(),
     ]);
+    S.deptAnswerers = Object.fromEntries((da.data || []).map((x) => [x.department_id, x.contact_id]));
     if (a.error || r.error) { const e = a.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load this application", friendly(e)); return; }
     if (!a.data) { $app.innerHTML = notice("Application not found", "It may have been removed, or you don't have access to it.", `<a class="btn" href="#applications">Back to applications</a>`); return; }
     app = a.data; resp = r.data;
@@ -1015,8 +1091,16 @@ function drawApp() {
   const depts = S.depts.map((d) => {
     const qs = S.qs.filter((q) => q.department_id === d.department_id);
     if (!qs.length) return "";
+    const ans = contactById(S.deptAnswerers[d.department_id]);
     return `<details class="dept" data-dept="${d.department_id}" ${S.openDepts.has(d.department_id) ? "open" : ""}>
       <summary class="dept-head"><h3>${esc(d.name)}</h3><span class="dept-sum mono" id="dsum-${d.department_id}"></span></summary>
+      <div class="answerer">
+        <span class="label">Answered by</span>
+        ${P.answers ? `<input name="dans-${d.department_id}" id="dans-${d.department_id}" list="contact-names" value="${esc(ans?.full_name)}" placeholder="Name" aria-label="${esc(d.name)} answered by: name" autocomplete="off">
+          <input name="dtitle-${d.department_id}" id="dtitle-${d.department_id}" value="${esc(ans?.title)}" placeholder="Title" aria-label="${esc(d.name)} answered by: title">
+          <span class="muted hint">Pick someone used before, or type a new name.</span>`
+        : `<span>${ans ? `<b>${esc(ans.full_name)}</b>${ans.title ? `, ${esc(ans.title)}` : ""}` : '<span class="muted">Not recorded</span>'}</span>`}
+      </div>
       ${qs.map((q) => question(q, resp[q.question_id] || {}, P, showEarned)).join("")}
     </details>`;
   }).join("");
@@ -1048,6 +1132,7 @@ function drawApp() {
           <label class="field"><span>Assigned reviewer</span><select id="rv-assign"><option value="">Unassigned</option>${reviewers.map((p) => `<option value="${esc(p.id)}" ${app.assigned_reviewer === p.id ? "selected" : ""}>${esc(p.full_name || p.email)}</option>`).join("")}</select></label>
         </div></section>` : ""}
     </form>
+    <datalist id="contact-names">${contactOptions()}</datalist>
     <datalist id="types"><option value="Film"><option value="Television"><option value="Commercial"><option value="Music video"></datalist>
     <datalist id="subtypes"><option value="Feature"><option value="MOW"><option value="Half Hour"><option value="Hour"><option value="Limited series"></datalist>`;
 
@@ -1064,6 +1149,12 @@ function drawApp() {
   form.addEventListener("submit", (e) => e.preventDefault());
   document.getElementById("autofill")?.addEventListener("click", autofill);
   form.querySelectorAll("[data-up]").forEach((inp) => inp.addEventListener("change", () => uploadEvidence(+inp.dataset.up, inp)));
+  // Choosing a known name fills in their title.
+  form.querySelectorAll("[id^=dans-]").forEach((inp) => inp.addEventListener("change", () => {
+    const c = contactByName(inp.value), t = document.getElementById("dtitle-" + inp.id.slice(5));
+    if (c && t && !t.value) t.value = c.title || "";
+    form.querySelectorAll(`.q[data-dept="${inp.id.slice(5)}"] [id^=aby-]`).forEach((x) => (x.placeholder = inp.value ? `Same as department (${inp.value})` : "Same as department"));
+  }));
   form.querySelectorAll("details.dept").forEach((d) => d.addEventListener("toggle", () => { const id = +d.dataset.dept; d.open ? S.openDepts.add(id) : S.openDepts.delete(id); }));
   document.getElementById("openAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = true)));
   document.getElementById("closeAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = false)));
@@ -1139,7 +1230,8 @@ function question(q, r, P, showEarned) {
       `<option value="${esc(o.label)}" ${same(val, o.label) ? "selected" : ""}>${esc(o.label)}${o.na ? "" : ` (${fmt(o.points)} pt${+o.points === 1 ? "" : "s"})`}</option>`).join("")}</select></label>`;
   };
   const tags = [q.code, q.is_innovation ? `+${fmt(pts)} bonus` : `${fmt(pts)} pts`, q.category].filter(Boolean);
-  return `<div class="q ${isYesNo(q) ? "" : "q-tier"}" data-q="${id}">
+  const deptAns = contactById(S.deptAnswerers?.[q.department_id]), own = contactById(r.answered_by);
+  return `<div class="q ${isYesNo(q) ? "" : "q-tier"}" data-q="${id}" data-dept="${q.department_id}">
     <div class="q-text">
       ${q.parent_label ? `<span class="eyebrow">${esc(q.parent_label)}</span>` : ""}
       <p>${title ? `<b>${esc(title)}.</b> ` : ""}${esc(body)}</p>
@@ -1148,7 +1240,11 @@ function question(q, r, P, showEarned) {
     </div>
     <div class="q-ans">${ctl("Prep", r.prep_answer)}${ctl("Wrap", r.wrap_answer)}</div>
     <div class="q-wide">
-      <label class="field"><span>Evidence or explanation</span><textarea name="expl-${id}" id="expl-${id}" rows="2" placeholder="${P.answers ? "What was done, by whom, and any supporting detail" : ""}" ${dis}>${esc(r.explanation)}</textarea></label>
+      <div class="expl-row">
+        <label class="field"><span>Evidence or explanation</span><textarea name="expl-${id}" id="expl-${id}" rows="2" placeholder="${P.answers ? "What was done, by whom, and any supporting detail" : ""}" ${dis}>${esc(r.explanation)}</textarea></label>
+        ${P.answers ? `<label class="field ans-by"><span>Answered by</span><input name="aby-${id}" id="aby-${id}" list="contact-names" value="${esc(own?.full_name)}" placeholder="Same as department${deptAns ? ` (${esc(deptAns.full_name)})` : ""}" autocomplete="off"></label>`
+          : `<div class="field ans-by"><span>Answered by</span><p class="ans-by-val">${own ? esc(own.full_name) : deptAns ? `${esc(deptAns.full_name)} <span class="muted">(department)</span>` : '<span class="muted">Not recorded</span>'}</p></div>`}
+      </div>
       <div class="evidence" data-ev="${id}">
         <span class="label">Files</span>
         <ul class="files" id="files-${id}"><li class="muted">${S.current.app.production_id == null ? "" : "Loading…"}</li></ul>
@@ -1263,6 +1359,28 @@ async function saveApp({ submit = false } = {}) {
         if (error) throw error;
       }
     }
+    // Who answered: department level, then per-answer overrides.
+    const byQ = {};
+    if (P.answers) {
+      for (const d of S.depts) {
+        const nameEl = document.getElementById("dans-" + d.department_id); if (!nameEl) continue;
+        const name = nameEl.value.trim(), title = (document.getElementById("dtitle-" + d.department_id)?.value || "").trim();
+        if (name) {
+          const cid = await ensureContact(name, title, d.department_id);
+          if (S.deptAnswerers[d.department_id] !== cid) {
+            const { error } = await sb.from("department_answerers").upsert({ production_id: id, department_id: d.department_id, contact_id: cid }, { onConflict: "production_id,department_id" });
+            if (error) throw error;
+          }
+        } else if (S.deptAnswerers[d.department_id]) {
+          const { error } = await sb.from("department_answerers").delete().eq("production_id", id).eq("department_id", d.department_id);
+          if (error) throw error;
+        }
+      }
+      for (const q of S.qs) {
+        const v = (document.getElementById("aby-" + q.question_id)?.value || "").trim();
+        byQ[q.question_id] = v ? await ensureContact(v, null, q.department_id) : null;
+      }
+    }
     const rows = [];
     for (const q of S.qs) {
       const qid = q.question_id, prev = S.current.resp[qid];
@@ -1270,7 +1388,8 @@ async function saveApp({ submit = false } = {}) {
       if (P.answers) {
         row.prep_answer = checked("prep-" + qid); row.wrap_answer = checked("wrap-" + qid);
         row.explanation = String(fd.get("expl-" + qid) || "").trim() || null;
-        any ||= !!(row.prep_answer || row.wrap_answer || row.explanation);
+        row.answered_by = byQ[qid] ?? null;
+        any ||= !!(row.prep_answer || row.wrap_answer || row.explanation || row.answered_by);
       }
       if (P.score) {
         row.prep_points = num(fd.get("pp-" + qid)); row.wrap_points = num(fd.get("wp-" + qid));
@@ -1714,43 +1833,281 @@ function exportApps() {
   ]);
 }
 
-function exportAnswers() {
+async function exportAnswers() {
   const { apps, resp } = S.dash;
+  const [da] = await Promise.all([fetchAll(() => sb.from("department_answerers").select("production_id,department_id,contact_id").order("production_id")), loadContacts()]);
+  const deptAns = {};
+  for (const x of da.data || []) deptAns[x.production_id + ":" + x.department_id] = x.contact_id;
+  const who = (c) => (c ? [c.full_name, c.title].filter(Boolean).join(", ") : "");
   const app = Object.fromEntries(apps.map((a) => [a.production_id, a]));
   const q = Object.fromEntries(S.qs.map((x) => [x.question_id, x]));
   const dept = Object.fromEntries(S.depts.map((d) => [d.department_id, d.name]));
   downloadCsv(`ema-answers-${stamp()}.csv`, [
     ["Production", "Status", "Department", "Code", "Action", "Impact category", "Innovation", "Points possible", "Prep answer", "Prep points (self)", "Wrap answer", "Wrap points (self)",
-     "Verified prep points", "Verified wrap points", "Evidence or explanation", "Reviewer note"],
+     "Verified prep points", "Verified wrap points", "Answered by", "Evidence or explanation", "Reviewer note"],
     ...resp.filter((x) => app[x.production_id] && q[x.question_id]).map((x) => { const qq = q[x.question_id];
+      const c = contactById(x.answered_by) || contactById(deptAns[x.production_id + ":" + qq.department_id]);
       return [app[x.production_id].production_name, STATUS[app[x.production_id].status], dept[qq.department_id], qq.code, qq.question_text, qq.category, qq.is_innovation ? "yes" : "",
-        qq.points_possible, x.prep_answer, ansPts(qq, x.prep_answer), x.wrap_answer, ansPts(qq, x.wrap_answer), x.prep_points, x.wrap_points, x.explanation, x.reviewer_notes]; }),
+        qq.points_possible, x.prep_answer, ansPts(qq, x.prep_answer), x.wrap_answer, ansPts(qq, x.wrap_answer), x.prep_points, x.wrap_points, who(c), x.explanation, x.reviewer_notes]; }),
   ]);
 }
 
 // ── Staff: people ──────────────────────────────────────────────────────────
-async function renderPeople() {
+async function renderPeople(tab = "users") {
   renderBar();
+  S.peopleTab = tab;
   $app.innerHTML = `<p class="loading">Loading people…</p>`;
-  const { data, error } = await sb.from("profiles").select("id,full_name,email,role,created_at").order("created_at");
-  if (error) { fail(error); return; }
-  S.people = data;
+  const [p, da, r] = await Promise.all([
+    sb.from("profiles").select("id,full_name,email,role,title,created_at,deactivated_at").order("created_at"),
+    fetchAll(() => sb.from("department_answerers").select("production_id,contact_id").order("production_id")),
+    fetchAll(() => sb.from("responses").select("production_id,answered_by").not("answered_by", "is", null).order("response_id")),
+    loadContacts(),
+  ]);
+  if (p.error) { fail(p.error); $app.innerHTML = notice("Couldn't load people", friendly(p.error)); return; }
+  S.people = p.data;
+  S.contactUse = {};
+  for (const x of [...(da.data || []), ...(r.data || []).map((y) => ({ production_id: y.production_id, contact_id: y.answered_by }))])
+    (S.contactUse[x.contact_id] ||= new Set()).add(x.production_id);
+  S.peopleSearch ??= ""; S.peopleFilter ??= "all"; S.contactDept ??= ""; S.showArchived ??= false;
   $app.innerHTML = `
-    <div class="page-head"><div><p class="eyebrow">Staff</p><h1>People</h1><p class="muted">Everyone who signs up starts as a submitter. Change a role here and it applies on their next page load.</p></div></div>
-    <div class="panel"><div class="table-scroll"><table>
-      <thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Role</th></tr></thead>
-      <tbody>${data.map((p) => `<tr>
-        <td>${esc(p.full_name) || '<span class="muted">No name</span>'}${p.id === S.me.id ? ' <span class="muted">(you)</span>' : ""}</td>
-        <td>${esc(p.email)}</td><td class="mono">${esc(date(p.created_at.slice(0, 10)))}</td>
-        <td><select data-role="${esc(p.id)}" aria-label="Role for ${esc(p.full_name || p.email)}" ${p.id === S.me.id ? "disabled" : ""}>
-          ${["submitter", "reviewer", "staff"].map((r) => `<option ${p.role === r ? "selected" : ""}>${r}</option>`).join("")}</select></td>
-      </tr>`).join("")}</tbody></table></div></div>`;
-  $app.querySelectorAll("[data-role]").forEach((sel) => sel.addEventListener("change", async () => {
+    <div class="page-head"><div><p class="eyebrow">Staff</p><h1>People</h1></div>
+      <div class="seg" role="tablist" aria-label="People">
+        <button role="tab" aria-pressed="${tab === "users"}" data-ptab="people">Portal users <span class="cnt mono">${S.people.length}</span></button>
+        <button role="tab" aria-pressed="${tab === "contacts"}" data-ptab="contacts">Crew contacts <span class="cnt mono">${S.contacts.filter((c) => !c.archived).length}</span></button>
+      </div></div>
+    <div id="peopleBody"></div>`;
+  $app.querySelectorAll("[data-ptab]").forEach((b) => b.addEventListener("click", () => { location.hash = b.dataset.ptab; }));
+  tab === "contacts" ? drawContacts() : drawUsers();
+}
+
+async function adminCall(body) {
+  const { data, error } = await sb.functions.invoke("admin-users", { body });
+  if (error) {
+    let msg = error.message;
+    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch {}
+    throw new Error(msg);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+function drawUsers(flash = "") {
+  const el = document.getElementById("peopleBody");
+  const q = norm(S.peopleSearch), f = S.peopleFilter;
+  const rows = S.people.filter((x) => (!q || norm(`${x.full_name} ${x.email} ${x.title}`).includes(q)) &&
+    (f === "all" || (f === "deactivated" ? x.deactivated_at : !x.deactivated_at && x.role === f)));
+  const counts = { all: S.people.length, deactivated: S.people.filter((x) => x.deactivated_at).length };
+  for (const r of ["submitter", "reviewer", "staff"]) counts[r] = S.people.filter((x) => !x.deactivated_at && x.role === r).length;
+  el.innerHTML = `
+    ${flash}
+    <details class="panel block addbox" ${S.addUserOpen ? "open" : ""}>
+      <summary class="block-head"><h2>Add a person</h2><span class="muted">Submitters, reviewers or staff</span></summary>
+      <form id="addUser" class="block-body grid" novalidate>
+        <label class="field"><span>Full name *</span><input id="nu-name" autocomplete="off" required></label>
+        <label class="field"><span>Email *</span><input id="nu-email" type="email" autocomplete="off" required></label>
+        <label class="field"><span>Title</span><input id="nu-title" placeholder="e.g. Sustainability Lead" autocomplete="off"></label>
+        <label class="field"><span>Role</span><select id="nu-role"><option value="submitter">Submitter</option><option value="reviewer">Reviewer</option><option value="staff">Staff</option></select></label>
+        <fieldset class="field method"><legend class="label">How they get access</legend>
+          <label class="check"><input type="radio" name="nu-method" value="password" checked>Create the account now with a temporary password I'll share</label>
+          <label class="check"><input type="radio" name="nu-method" value="invite">Email them an invitation link</label>
+          <small class="muted">Invitations use Supabase's built-in email, which sends only a few messages an hour until an email service is connected.</small>
+        </fieldset>
+        <div class="add-actions"><button class="primary" type="submit">Add person</button></div>
+      </form>
+    </details>
+    <div class="toolbar">
+      <div class="chips" role="group" aria-label="Filter">${[["all", "All"], ["submitter", "Submitters"], ["reviewer", "Reviewers"], ["staff", "Staff"], ["deactivated", "Deactivated"]].map(([k, l]) =>
+        `<button class="chip" data-uf="${k}" aria-pressed="${f === k}">${l} <span class="cnt mono">${counts[k]}</span></button>`).join("")}</div>
+      <input type="search" id="userSearch" placeholder="Search name, email or title" value="${esc(S.peopleSearch)}" aria-label="Search people">
+    </div>
+    <div class="panel table-scroll"><table class="ptable">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th class="num">Actions</th></tr></thead>
+      <tbody>${rows.map((x) => { const me = x.id === S.me.id, off = !!x.deactivated_at;
+        return `<tr data-uid="${esc(x.id)}" class="${off ? "off" : ""}">
+          <td><div class="namecell">
+            <input class="inline" data-k="full_name" value="${esc(x.full_name)}" aria-label="Name" placeholder="No name">
+            <input class="inline sub" data-k="title" value="${esc(x.title)}" aria-label="Title" placeholder="Add a title"></div></td>
+          <td class="mono small">${esc(x.email)}</td>
+          <td><select data-role="${esc(x.id)}" aria-label="Role for ${esc(x.full_name || x.email)}" ${me || off ? "disabled" : ""}>
+            ${["submitter", "reviewer", "staff"].map((r) => `<option ${x.role === r ? "selected" : ""}>${r}</option>`).join("")}</select></td>
+          <td>${off ? '<span class="pill s-rejected">Deactivated</span>' : '<span class="pill s-approved">Active</span>'}${me ? ' <span class="muted small">(you)</span>' : ""}</td>
+          <td class="mono small">${esc(date(x.created_at.slice(0, 10)))}</td>
+          <td class="num actions-cell">
+            <button class="link" data-reset>Reset password</button>
+            ${me ? "" : off ? `<button class="link" data-activate>Reactivate</button>` : `<button class="link danger" data-deactivate>Deactivate</button>`}
+          </td></tr>`; }).join("") || `<tr><td colspan="6" class="muted">No one matches.</td></tr>`}</tbody>
+    </table></div>
+    <p class="muted small" style="margin-top:10px">Edit a name or title, then click away to save. Deactivated people can't sign in and lose reviewer or staff access straight away; their applications and answers are kept.</p>`;
+
+  const userBox = el.querySelector(".addbox");
+  userBox.addEventListener("toggle", () => (S.addUserOpen = userBox.open));
+  el.querySelectorAll("[data-uf]").forEach((b) => b.addEventListener("click", () => { S.peopleFilter = b.dataset.uf; drawUsers(); }));
+  document.getElementById("userSearch").addEventListener("input", (e) => { S.peopleSearch = e.target.value; const pos = e.target.selectionStart; drawUsers(); const s = document.getElementById("userSearch"); s.focus(); s.setSelectionRange(pos, pos); });
+  document.getElementById("addUser").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = { action: "create", full_name: document.getElementById("nu-name").value.trim(), email: document.getElementById("nu-email").value.trim(),
+      title: document.getElementById("nu-title").value.trim(), role: document.getElementById("nu-role").value,
+      method: el.querySelector("input[name=nu-method]:checked").value, redirect_to: location.origin + location.pathname };
+    if (!body.full_name || !body.email) return toast("Enter a name and an email address.", "bad");
+    setBusy(true);
+    try {
+      const res = await adminCall(body);
+      const p2 = await sb.from("profiles").select("id,full_name,email,role,title,created_at,deactivated_at").order("created_at");
+      if (!p2.error) S.people = p2.data;
+      S.addUserOpen = false;
+      drawUsers(res.password
+        ? `<div class="panel credbox" role="status"><p><b>${esc(body.full_name)}</b> can now sign in as <span class="mono">${esc(body.email)}</span> with this temporary password:</p>
+            <p class="cred"><code id="tmpPw">${esc(res.password)}</code><button class="link" id="copyPw">Copy</button></p>
+            <p class="muted small">Share it privately. It isn't shown again. They can change it under My account after signing in.</p></div>`
+        : `<div class="panel credbox" role="status"><p>Invitation sent to <span class="mono">${esc(body.email)}</span>. They'll appear as active once they accept.</p></div>`);
+      toast(`${body.full_name} added`);
+    } catch (err) { fail(err); } finally { setBusy(false); }
+  });
+  const showPw = (name, pw) => drawUsers(`<div class="panel credbox" role="status"><p>New temporary password for <b>${esc(name)}</b>:</p>
+    <p class="cred"><code id="tmpPw">${esc(pw)}</code><button class="link" id="copyPw">Copy</button></p><p class="muted small">Share it privately. Their old password no longer works.</p></div>`);
+  el.querySelector("#copyPw")?.addEventListener("click", async () => {
+    const t = document.getElementById("tmpPw").textContent;
+    try { await navigator.clipboard.writeText(t); toast("Copied"); } catch { const r = document.createRange(); r.selectNodeContents(document.getElementById("tmpPw")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Selected. Press Ctrl+C or ⌘C to copy."); }
+  });
+  el.querySelectorAll("tr[data-uid] input.inline").forEach((inp) => inp.addEventListener("change", async () => {
+    const id = inp.closest("tr").dataset.uid, k = inp.dataset.k, v = inp.value.trim() || null;
+    const { error } = await sb.from("profiles").update({ [k]: v }).eq("id", id);
+    if (error) return fail(error);
+    const x = S.people.find((y) => y.id === id); if (x) x[k] = v;
+    if (id === S.me.id) { S.me[k] = v; renderBar(); }
+    toast("Saved");
+  }));
+  el.querySelectorAll("[data-role]").forEach((sel) => sel.addEventListener("change", async () => {
     const { error } = await sb.from("profiles").update({ role: sel.value }).eq("id", sel.dataset.role);
     if (error) return fail(error);
-    const p = S.people.find((x) => x.id === sel.dataset.role); if (p) p.role = sel.value;
-    toast(`${p?.full_name || p?.email || "User"} is now a ${sel.value}`);
+    const x = S.people.find((y) => y.id === sel.dataset.role); if (x) x.role = sel.value;
+    toast(`${x?.full_name || x?.email || "User"} is now a ${sel.value}`); drawUsers();
   }));
+  el.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.closest("tr").dataset.uid, x = S.people.find((y) => y.id === id);
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm reset?"; return; }
+    setBusy(true);
+    try { const res = await adminCall({ action: "reset_password", user_id: id }); showPw(x.full_name || x.email, res.password); }
+    catch (err) { fail(err); } finally { setBusy(false); }
+  }));
+  el.querySelectorAll("[data-deactivate],[data-activate]").forEach((b) => b.addEventListener("click", async () => {
+    const id = b.closest("tr").dataset.uid, x = S.people.find((y) => y.id === id), active = b.hasAttribute("data-activate");
+    if (!active && b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm deactivate?"; return; }
+    setBusy(true);
+    try { await adminCall({ action: "set_active", user_id: id, active }); x.deactivated_at = active ? null : new Date().toISOString();
+      toast(`${x.full_name || x.email} ${active ? "reactivated" : "deactivated"}`); drawUsers(); }
+    catch (err) { fail(err); } finally { setBusy(false); }
+  }));
+}
+
+function drawContacts() {
+  const el = document.getElementById("peopleBody");
+  const q = norm(S.peopleSearch), dep = S.contactDept;
+  const deptName = (id) => (S.allDepts || S.depts).find((d) => d.department_id === id)?.name || "";
+  const addedBy = (id) => S.people.find((p) => p.id === id)?.full_name || "";
+  const rows = S.contacts.filter((c) => (S.showArchived || !c.archived) && (!dep || String(c.department_id) === dep) &&
+    (!q || norm(`${c.full_name} ${c.title} ${c.company} ${c.email}`).includes(q)));
+  const deptOpts = (sel) => `<option value="">No department</option>${S.depts.filter((d) => d.name !== "Innovation").map((d) => `<option value="${d.department_id}" ${String(sel) === String(d.department_id) ? "selected" : ""}>${esc(d.name)}</option>`).join("")}`;
+  el.innerHTML = `
+    <details class="panel block addbox" ${S.addContactOpen ? "open" : ""}>
+      <summary class="block-head"><h2>Add a contact</h2><span class="muted">Department heads and crew who answer PEACH sections</span></summary>
+      <form id="addContact" class="block-body grid" novalidate>
+        <label class="field"><span>Full name *</span><input id="nc-name" autocomplete="off"></label>
+        <label class="field"><span>Title</span><input id="nc-title" placeholder="e.g. Gaffer" autocomplete="off"></label>
+        <label class="field"><span>Department</span><select id="nc-dept">${deptOpts("")}</select></label>
+        <label class="field"><span>Company</span><input id="nc-company" autocomplete="off"></label>
+        <label class="field"><span>Email</span><input id="nc-email" type="email" autocomplete="off"></label>
+        <label class="field"><span>Phone</span><input id="nc-phone" autocomplete="off"></label>
+        <div class="add-actions"><button class="primary" type="submit">Add contact</button></div>
+      </form>
+    </details>
+    <div class="toolbar">
+      <select id="contactDept" aria-label="Department" style="max-width:220px"><option value="">All departments</option>${S.depts.filter((d) => d.name !== "Innovation").map((d) => `<option value="${d.department_id}" ${dep === String(d.department_id) ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</select>
+      <label class="check"><input type="checkbox" id="showArchived" ${S.showArchived ? "checked" : ""}>Show archived</label>
+      <input type="search" id="contactSearch" placeholder="Search name, title, company or email" value="${esc(S.peopleSearch)}" aria-label="Search contacts">
+    </div>
+    <div class="panel table-scroll"><table class="ptable">
+      <thead><tr><th>Name</th><th>Department</th><th>Company</th><th>Contact</th><th class="num">Applications</th><th class="num">Actions</th></tr></thead>
+      <tbody>${rows.map((c) => `<tr data-cid="${c.contact_id}" class="${c.archived ? "off" : ""}">
+          <td><div class="namecell"><input class="inline" data-k="full_name" value="${esc(c.full_name)}" aria-label="Name">
+            <input class="inline sub" data-k="title" value="${esc(c.title)}" aria-label="Title" placeholder="Add a title"></div></td>
+          <td><select class="inline" data-k="department_id" aria-label="Department">${deptOpts(c.department_id ?? "")}</select></td>
+          <td><input class="inline" data-k="company" value="${esc(c.company)}" aria-label="Company" placeholder="–"></td>
+          <td><div class="namecell"><input class="inline small" data-k="email" value="${esc(c.email)}" aria-label="Email" placeholder="Email">
+            <input class="inline small sub" data-k="phone" value="${esc(c.phone)}" aria-label="Phone" placeholder="Phone"></div></td>
+          <td class="num mono">${S.contactUse[c.contact_id]?.size || 0}</td>
+          <td class="num actions-cell"><span class="muted small">${addedBy(c.created_by) ? `Added by ${esc(addedBy(c.created_by))}` : ""}</span>
+            <button class="link ${c.archived ? "" : "danger"}" data-archive>${c.archived ? "Restore" : "Archive"}</button></td>
+        </tr>`).join("") || `<tr><td colspan="6" class="muted">No contacts match.</td></tr>`}</tbody>
+    </table></div>
+    <p class="muted small" style="margin-top:10px">Contacts are added automatically when someone types a new name under "Answered by". Archived contacts stay on past applications but aren't suggested any more. Edit a field, then click away to save.</p>`;
+  const contactBox = el.querySelector(".addbox");
+  contactBox.addEventListener("toggle", () => (S.addContactOpen = contactBox.open));
+  document.getElementById("contactSearch").addEventListener("input", (e) => { S.peopleSearch = e.target.value; const pos = e.target.selectionStart; drawContacts(); const s = document.getElementById("contactSearch"); s.focus(); s.setSelectionRange(pos, pos); });
+  document.getElementById("contactDept").addEventListener("change", (e) => { S.contactDept = e.target.value; drawContacts(); });
+  document.getElementById("showArchived").addEventListener("change", (e) => { S.showArchived = e.target.checked; drawContacts(); });
+  document.getElementById("addContact").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const v = (id) => document.getElementById(id).value.trim() || null;
+    const row = { full_name: v("nc-name"), title: v("nc-title"), department_id: num(v("nc-dept")), company: v("nc-company"), email: v("nc-email"), phone: v("nc-phone"), created_by: S.me.id };
+    if (!row.full_name) return toast("Enter the contact's name.", "bad");
+    if (contactByName(row.full_name)) return toast(`${row.full_name} is already a contact.`, "bad");
+    const { data, error } = await sb.from("contacts").insert(row).select().single();
+    if (error) return fail(error);
+    S.contacts.push(data); S.contacts.sort((a, b) => a.full_name.localeCompare(b.full_name)); S.addContactOpen = true;
+    toast(`${row.full_name} added`); drawContacts(); document.getElementById("nc-name")?.focus();
+  });
+  el.querySelectorAll("tr[data-cid] .inline").forEach((inp) => inp.addEventListener("change", async () => {
+    const id = +inp.closest("tr").dataset.cid, k = inp.dataset.k;
+    let v = inp.value.trim() || null; if (k === "department_id") v = num(v);
+    if (k === "full_name" && !v) { toast("A contact needs a name.", "bad"); inp.value = contactById(id).full_name; return; }
+    const { error } = await sb.from("contacts").update({ [k]: v }).eq("contact_id", id);
+    if (error) return fail(error);
+    Object.assign(contactById(id), { [k]: v }); toast("Saved");
+  }));
+  el.querySelectorAll("[data-archive]").forEach((b) => b.addEventListener("click", async () => {
+    const id = +b.closest("tr").dataset.cid, c = contactById(id);
+    const { error } = await sb.from("contacts").update({ archived: !c.archived }).eq("contact_id", id);
+    if (error) return fail(error);
+    c.archived = !c.archived; toast(`${c.full_name} ${c.archived ? "archived" : "restored"}`); drawContacts();
+  }));
+}
+
+// ── My account: name, title, password ─────────────────────────────────────
+function renderAccount() {
+  renderBar();
+  $app.innerHTML = `
+    <div class="page-head"><div><p class="eyebrow">My account</p><h1>${esc(S.me.full_name || S.me.email)}</h1><p class="muted">${esc(S.me.email)} · ${esc(S.me.role)}</p></div></div>
+    <div class="acct">
+      <form class="panel block" id="acctProfile" novalidate><div class="block-head"><h2>Profile</h2></div>
+        <div class="block-body grid">
+          <label class="field"><span>Full name</span><input id="ac-name" value="${esc(S.me.full_name)}" autocomplete="name"></label>
+          <label class="field"><span>Title</span><input id="ac-title" value="${esc(S.me.title)}" autocomplete="organization-title"></label>
+          <div class="add-actions"><button class="primary" type="submit">Save profile</button></div>
+        </div></form>
+      <form class="panel block" id="acctPw" novalidate><div class="block-head"><h2>Change password</h2></div>
+        <div class="block-body grid">
+          <label class="field"><span>New password</span><input id="ac-pw" type="password" autocomplete="new-password" minlength="8"></label>
+          <label class="field"><span>Repeat new password</span><input id="ac-pw2" type="password" autocomplete="new-password"></label>
+          <div class="add-actions"><button class="primary" type="submit">Change password</button></div>
+        </div></form>
+    </div>`;
+  document.getElementById("acctProfile").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const full_name = document.getElementById("ac-name").value.trim() || null, title = document.getElementById("ac-title").value.trim() || null;
+    const { error } = await sb.from("profiles").update({ full_name, title }).eq("id", S.me.id);
+    if (error) return fail(error);
+    Object.assign(S.me, { full_name, title }); toast("Profile saved"); renderAccount();
+  });
+  document.getElementById("acctPw").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const a = document.getElementById("ac-pw").value, b = document.getElementById("ac-pw2").value;
+    if (a.length < 8) return toast("Use at least 8 characters.", "bad");
+    if (a !== b) return toast("The two passwords don't match.", "bad");
+    const { error } = await sb.auth.updateUser({ password: a });
+    if (error) return fail(error);
+    document.getElementById("ac-pw").value = document.getElementById("ac-pw2").value = ""; toast("Password changed");
+  });
 }
 
 // ── Staff: questions ───────────────────────────────────────────────────────
