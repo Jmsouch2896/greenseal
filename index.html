@@ -274,6 +274,37 @@ body:has(.actions) main { padding-bottom: 140px; }
 .export { display: flex; gap: 10px; flex-wrap: wrap; }
 /* Activity & comments */
 .activity { margin-top: 22px; scroll-margin-top: 16px; }
+/* Dashboard cross-filters */
+.xf-bar { display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; margin: -6px 0 18px; min-height: 38px; }
+.xf-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 4px 4px 12px; border-radius: 999px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); font-size: .86rem; }
+.xf-x { border: 0; background: none; padding: 0 8px; font-size: 1.05rem; line-height: 1; color: var(--muted); cursor: pointer; }
+.xf-x:hover { color: var(--ink); }
+.xf-count { margin-left: auto; }
+.xf-menu { left: 0; right: auto; min-width: 260px; max-width: min(360px, calc(100vw - 32px)); gap: 10px; padding: 12px; }
+.xf-vals { display: grid; gap: 6px; max-height: 260px; overflow: auto; }
+.xf-vals .check { white-space: normal; }
+.xf-pipe { display: flex; gap: 2px; }
+.xf-pipe button { border: 0; border-radius: 0; padding: 0; min-width: 6px; height: 100%; cursor: pointer; }
+.xf-pipe button:first-child { border-radius: 6px 0 0 6px; } .xf-pipe button:last-child { border-radius: 0 6px 6px 0; }
+.xf-pipe button:hover { filter: brightness(1.08); }
+.xf-pipe button:focus-visible, .legend-btn:focus-visible, tr.xf-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.legend-btn { border: 0; background: none; padding: 2px 4px; display: inline-flex; gap: 6px; align-items: center; font-size: .86rem; cursor: pointer; border-radius: 4px; }
+.legend-btn:hover { background: var(--sunk); }
+.legend-btn i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+tr.xf-row { cursor: pointer; } tr.xf-row:hover td { background: var(--sunk); }
+.xf-dim { opacity: .3; transition: opacity .15s; }
+tr.xf-dim { opacity: .45; }
+.legend-btn.xf-on, tr.xf-on td:first-child { font-weight: 700; }
+tr.xf-on td { background: var(--accent-soft); }
+.chart { touch-action: pan-y; }
+.chart .hit, .chart .hbar, .chart .slice, .chart .dlegend li, .chart .ctable tbody tr { cursor: pointer; }
+.chart-svg .grp.xf-dim .mark, .chart-svg .dot.xf-dim, .donut .mark.xf-dim { opacity: .28; }
+.chart-svg .grp.xf-dim, .donut .xf-dim { opacity: 1; }
+.chart-svg .grp.xf-dim .xlabel { opacity: .5; }
+.chart-svg .sel-band { fill: var(--accent-soft); }
+.hbar.xf-dim { opacity: .35; }
+.dlegend li.xf-dim { opacity: .45; }
+.chart .brush { position: absolute; background: color-mix(in srgb, var(--accent) 16%, transparent); border: 1px solid var(--accent); border-radius: 3px; pointer-events: none; z-index: 2; }
 .lvl-rows { display: grid; gap: 10px; margin-bottom: 8px; }
 .lvl-row { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 10rem) auto; gap: 12px; align-items: end; }
 #certSettings .block-body, .row-actions { display: grid; gap: 12px; }
@@ -2528,23 +2559,10 @@ async function saveApp({ submit = false } = {}) {
   } catch (e) { fail(e); } finally { setBusy(false); }
 }
 
-// ── Dashboard (reviewers & staff) ──────────────────────────────────────────
-const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
-async function renderDashboard() {
-  renderBar();
-  $app.innerHTML = `<p class="loading">Loading dashboard…</p>`;
-  const [p, r, prefs, shared, def] = await Promise.all([
-    sb.from("productions").select("*").order("submission_date", { ascending: false, nullsFirst: false }),
-    fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer,prep_points,wrap_points,explanation,reviewer_notes").order("response_id")),
-    sb.from("dashboard_prefs").select("layout,charts").eq("user_id", S.me.id).maybeSingle(),
-    sb.from("shared_charts").select("*").order("created_at"),
-    sb.from("app_settings").select("value").eq("key", "dashboard_default").maybeSingle(),
-  ]);
-  if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load the dashboard", friendly(e)); return; }
-  const older = p.data.filter((a) => appVersion(a) !== S.formCurrent).length;
-  const apps = p.data.filter((a) => appVersion(a) === S.formCurrent), by = answersByApp(r.data);
-  S.dash = { apps, resp: r.data, by, older };
-  const respBy = {}; for (const x of r.data) (respBy[x.production_id] ||= {})[x.question_id] = x;
+// Built-in dashboard widgets, from the applications that pass the dashboard filters.
+// The pipeline ignores the status filter so every stage stays visible (selected ones highlighted).
+function buildDashHTML(apps, appsAnyStatus) {
+  const by = S.dash.by, respBy = S.dash.respBy, sel = (dim, key) => xfSel(dim, key);
   const count = (st) => apps.filter((a) => a.status === st).length;
   const live = apps.filter((a) => a.status !== "draft");
   const decided = apps.filter((a) => a.status === "approved" || a.status === "rejected");
@@ -2563,44 +2581,44 @@ async function renderDashboard() {
     const states = live.map((a) => ansState(q, by[a.production_id]?.wrap[q.question_id])).filter((x) => x === "yes" || x === "no");
     return { q, n: states.length, v: states.length ? Math.round((states.filter((x) => x === "yes").length / states.length) * 100) : null };
   }).filter((x) => x.v != null && x.n >= 2).sort((a, b) => b.v - a.v);
-  const types = [...new Set(live.map((a) => a.production_type || "Other"))].map((t) => {
-    const list = live.filter((a) => (a.production_type || "Other") === t);
+  const types = [...new Set(live.map((a) => a.production_type || "Not set"))].map((t) => {
+    const list = live.filter((a) => (a.production_type || "Not set") === t);
     return { t, n: list.length, approved: list.filter((a) => a.status === "approved").length, wrap: avgPct(list, "wrap") };
   }).sort((a, b) => b.n - a.n);
 
   const order = ["draft", "submitted", "in_review", "approved", "rejected"];
-  const total = apps.length || 1;
+  const pcount = (st) => appsAnyStatus.filter((a) => a.status === st).length, ptotal = appsAnyStatus.length || 1;
   const bar = (label, v, cls) => `<div class="bar-line"><span>${label}</span><div class="track"><i class="${cls}" style="width:${v ?? 0}%"></i></div><span class="mono">${v == null ? "–" : v + "%"}</span></div>`;
   const bars = (rows) => rows.length ? `<div class="bars">${rows.map((d) => `<div class="bar-row"><b>${esc(d.name)} <span class="muted">${d.n}</span></b><div class="bar-pair">${bar("Prep", d.prep, "prep")}${bar("Wrap", d.wrap, "wrap")}</div></div>`).join("")}</div>
     <div class="scale" aria-hidden="true"><span></span><div><span>0%</span><span>50%</span><span>100%</span></div></div>` : `<p class="muted">Appears once applications are submitted.</p>`;
   const plist = (list) => list.map((x) => `<div class="practice"><a href="#analysis-${x.q.question_id}" title="Compare productions that did and didn't">${esc(qTitle(x.q))}</a><span class="mono">${x.v}%</span><div class="track"><i class="wrap" style="width:${x.v}%"></i></div></div>`).join("");
 
   const sec = (title, sub, body, extra = "") => `<section class="panel block"${extra}><div class="block-head"><h2>${title}</h2><span class="muted">${sub}</span></div>${body}</section>`;
-  S.dash.html = {
+  const html = {
     kpis: `<div class="panel kpis">
       <div class="kpi"><span class="label">Applications</span><strong>${live.length}</strong><small>${count("draft")} more in draft</small></div>
       <div class="kpi"><span class="label">Awaiting review</span><strong>${waiting}</strong><small>${unassigned ? `${unassigned} not yet assigned` : "All assigned"}</small></div>
       <div class="kpi"><span class="label">Approval rate</span><strong>${pct(count("approved"), decided.length) ?? "–"}${decided.length ? "%" : ""}</strong><small>${count("approved")} approved of ${decided.length} decided</small></div>
       <div class="kpi"><span class="label">Avg. PEACH score</span><strong>${avgWrap ?? "–"}${avgWrap != null ? "%" : ""}</strong><small>${avgApproved != null ? `At wrap · approved productions average ${avgApproved}%` : "At wrap, self-assessed"}</small></div>
     </div>`,
-    pipeline: sec("Pipeline", `${apps.length} applications`, `<div class="block-body">
-        <div class="pipe" role="img" aria-label="${order.map((s) => `${STATUS[s]} ${count(s)}`).join(", ")}">${order.map((s) => count(s) ? `<span class="c-${s}" style="width:${(count(s) / total) * 100}%" title="${STATUS[s]}: ${count(s)}"></span>` : "").join("")}</div>
-        <div class="legend">${order.map((s) => `<span><i class="c-${s}"></i>${STATUS[s]} <b class="mono">${count(s)}</b></span>`).join("")}</div></div>`),
+    pipeline: sec("Pipeline", `${appsAnyStatus.length} application${appsAnyStatus.length === 1 ? "" : "s"} · click a stage to filter`, `<div class="block-body">
+        <div class="pipe xf-pipe" role="group" aria-label="Filter by stage">${order.map((s) => pcount(s) ? `<button type="button" class="c-${s} ${sel("status", s)}" style="width:${(pcount(s) / ptotal) * 100}%" data-xf="status" data-key="${s}" aria-pressed="${xfHas("status", s)}" title="${STATUS[s]}: ${pcount(s)}" aria-label="${STATUS[s]}: ${pcount(s)}"></button>` : "").join("")}</div>
+        <div class="legend">${order.map((s) => `<button type="button" class="legend-btn ${sel("status", s)}" data-xf="status" data-key="${s}" aria-pressed="${xfHas("status", s)}"><i class="c-${s}"></i>${STATUS[s]} <b class="mono">${pcount(s)}</b></button>`).join("")}</div></div>`),
     categories: sec("Impact categories", "Share of available points earned, all submitted applications", `<div class="block-body">${bars(catRows)}</div>`),
     departments: sec("By department", "Share of available points earned", `<div class="block-body">${bars(deptRows)}</div>`),
     practices: sec("Practices at wrap", "Share of productions doing each", `<div class="block-body">${practices.length ? `<p class="label plabel">Most adopted</p>${plist(practices.slice(0, 6))}<p class="label plabel">Least adopted</p>${plist(practices.slice(-6).reverse())}` : `<p class="muted">No wrap answers yet.</p>`}</div>`),
     types: sec("By production type", "Submitted applications", `<div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Applications</th><th class="num">Approved</th><th class="num">Avg. PEACH score at wrap</th></tr></thead>
-      <tbody>${types.map((t) => `<tr><td>${esc(t.t)}</td><td class="num">${t.n}</td><td class="num">${t.approved}</td><td class="num">${t.wrap == null ? '<span class="muted">–</span>' : t.wrap + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submitted applications yet.</td></tr>`}</tbody></table></div>`),
+      <tbody>${types.map((t) => `<tr class="xf-row ${sel("type", t.t)}" data-xf="type" data-key="${esc(t.t)}" tabindex="0" aria-pressed="${xfHas("type", t.t)}"><td>${esc(t.t)}</td><td class="num">${t.n}</td><td class="num">${t.approved}</td><td class="num">${t.wrap == null ? '<span class="muted">–</span>' : t.wrap + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submitted applications yet.</td></tr>`}</tbody></table></div>`),
   };
   // Certification: certified (approved) by level, and where in-progress applications are heading.
   const inProg = apps.filter((a) => a.status === "submitted" || a.status === "in_review");
   const proj = inProg.map((a) => levelFor(finalScore(respBy[a.production_id] || {}).pct)?.name || null);
   const lvRows = [...S.cert.levels].reverse().map((l) => ({ l, certified: apps.filter((a) => a.status === "approved" && a.cert_level === l.name).length, track: proj.filter((x) => x === l.name).length }));
   const below = { certified: apps.filter((a) => a.status === "approved" && !a.cert_level).length, track: proj.filter((x) => !x).length };
-  S.dash.html.levels = sec("Certification", `${S.cert.placeholder ? "Placeholder cutoffs · " : ""}${S.cert.levels.map((l) => `${esc(l.name)} ${l.min}%+`).join(" · ")}`, `<div class="table-scroll"><table>
+  html.levels = sec("Certification", `${S.cert.placeholder ? "Placeholder cutoffs · " : ""}${S.cert.levels.map((l) => `${esc(l.name)} ${l.min}%+`).join(" · ")}`, `<div class="table-scroll"><table>
       <thead><tr><th>Level</th><th class="num">Certified</th><th class="num" title="Submitted or in review, based on verified points where entered, otherwise wrap answers">On track</th></tr></thead>
-      <tbody>${lvRows.map((x) => `<tr><td>${sealBadge(x.l.name)}</td><td class="num">${x.certified}</td><td class="num">${x.track}</td></tr>`).join("")}
-        <tr><td class="muted">Below ${esc(S.cert.levels[0]?.name || "cutoff")}</td><td class="num">${below.certified}</td><td class="num">${below.track}</td></tr></tbody></table></div>
+      <tbody>${lvRows.map((x) => `<tr class="xf-row ${sel("level", x.l.name)}" data-xf="level" data-key="${esc(x.l.name)}" tabindex="0" aria-pressed="${xfHas("level", x.l.name)}"><td>${sealBadge(x.l.name)}</td><td class="num">${x.certified}</td><td class="num">${x.track}</td></tr>`).join("")}
+        <tr class="xf-row ${sel("level", "Below cutoff")}" data-xf="level" data-key="Below cutoff" tabindex="0"><td class="muted">Below ${esc(S.cert.levels[0]?.name || "cutoff")}</td><td class="num">${below.certified}</td><td class="num">${below.track}</td></tr></tbody></table></div>
       <div class="block-body"><a class="link" href="#report">Open the leadership report →</a></div>`);
   // Reviewer workload: open, overdue, due within a week, decided in the last 30 days.
   const open = apps.filter((a) => a.status === "submitted" || a.status === "in_review");
@@ -2610,10 +2628,31 @@ async function renderDashboard() {
     return { id, open: mine.length, over: mine.filter((a) => dueInfo(a)?.overdue).length, week: mine.filter((a) => { const d = dueInfo(a); return d && !d.overdue && d.days <= 7; }).length,
       done: apps.filter((a) => recent(a) && (a.assigned_reviewer || null) === (id || null)).length }; })
     .sort((a, b) => (a.id ? 0 : 1) - (b.id ? 0 : 1) || b.over - a.over || b.open - a.open);
-  S.dash.html.workload = sec("Reviewer workload", `Review target: ${S.reviewDays} days`, `<div class="table-scroll"><table>
+  html.workload = sec("Reviewer workload", `Review target: ${S.reviewDays} days`, `<div class="table-scroll"><table>
       <thead><tr><th>Reviewer</th><th class="num">Open</th><th class="num">Overdue</th><th class="num">Due in 7 days</th><th class="num">Decided (30 days)</th></tr></thead>
-      <tbody>${wl.map((x) => `<tr><td>${x.id ? esc(personName(x.id) || "Former user") : '<span class="muted">Unassigned</span>'}</td><td class="num">${x.open}</td><td class="num">${x.over ? `<span class="due due-over">${x.over}</span>` : 0}</td><td class="num">${x.week}</td><td class="num">${x.done}</td></tr>`).join("")
+      <tbody>${wl.map((x) => `<tr class="xf-row ${sel("reviewer", x.id || "")}" data-xf="reviewer" data-key="${esc(x.id || "")}" tabindex="0" aria-pressed="${xfHas("reviewer", x.id || "")}"><td>${x.id ? esc(personName(x.id) || "Former user") : '<span class="muted">Unassigned</span>'}</td><td class="num">${x.open}</td><td class="num">${x.over ? `<span class="due due-over">${x.over}</span>` : 0}</td><td class="num">${x.week}</td><td class="num">${x.done}</td></tr>`).join("")
         || `<tr><td colspan="5" class="muted">Nothing waiting for review.</td></tr>`}</tbody></table></div>`);
+  return html;
+}
+
+// ── Dashboard (reviewers & staff) ──────────────────────────────────────────
+const pct = (a, b) => (b ? Math.round((a / b) * 100) : null);
+async function renderDashboard() {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading dashboard…</p>`;
+  const [p, r, prefs, shared, def] = await Promise.all([
+    sb.from("productions").select("*").order("submission_date", { ascending: false, nullsFirst: false }),
+    fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer,prep_points,wrap_points,explanation,reviewer_notes").order("response_id")),
+    sb.from("dashboard_prefs").select("layout,charts").eq("user_id", S.me.id).maybeSingle(),
+    sb.from("shared_charts").select("*").order("created_at"),
+    sb.from("app_settings").select("value").eq("key", "dashboard_default").maybeSingle(),
+  ]);
+  if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load the dashboard", friendly(e)); return; }
+  const older = p.data.filter((a) => appVersion(a) !== S.formCurrent).length;
+  const apps = p.data.filter((a) => appVersion(a) === S.formCurrent), by = answersByApp(r.data);
+  S.dash = { apps, resp: r.data, by, older };
+  const respBy = {}; for (const x of r.data) (respBy[x.production_id] ||= {})[x.question_id] = x;
+  S.dash.allApps = apps; S.dash.respBy = respBy;
   S.dashPrefs = { layout: prefs.data?.layout || [], charts: prefs.data?.charts || [] };
   S.sharedCharts = shared.error ? [] : shared.data || [];
   S.dashDefault = def.data?.value?.layout || null;
@@ -2724,9 +2763,11 @@ function specSubtitle(spec) {
 function passesSpec(a, f = {}) {
   return FILTER_DIMS.every((k) => !f[k]?.length || f[k].includes(DIMS[k].get(a)));
 }
-function chartData(spec) {
+function chartData(spec, crossFilter = false) {
   const M = measureOf(spec.measure);
-  const apps = S.dash.apps.filter((a) => passesSpec(a, spec.filters));
+  const ownDim = spec.type === "number" ? null : spec.dim;
+  const pool = crossFilter ? S.dash.allApps.filter((a) => xfPasses(a, ownDim)) : (S.dash.allApps || S.dash.apps);
+  const apps = pool.filter((a) => passesSpec(a, spec.filters));
   const valueOf = (list) => (M.key === "count" ? list.length : M.groupFn ? M.groupFn(list)
     : aggregate(list.map((a) => M.get(a, spec.stage)).filter((v) => v != null && isFinite(v)), spec.agg));
   const reporting = (list) => (M.key === "count" || M.groupFn ? list.length : list.filter((a) => { const v = M.get(a, spec.stage); return v != null && isFinite(v); }).length);
@@ -2761,7 +2802,9 @@ function chartData(spec) {
     for (const s of series) { const l = g.list.filter((a) => inSeries(a, s)); g.values[s.key] = l.length ? valueOf(l) : null; g.n[s.key] = reporting(l); }
     g.total = valueOf(g.list); g.nTotal = reporting(g.list);
   }
-  return { M, D, Sp, groups, series, n: apps.length, total: valueOf(apps), nTotal: reporting(apps), stacked: !!Sp && isAdditive(spec) };
+  const selKeys = crossFilter && ownDim && S.dashFilter?.[ownDim]?.length ? new Set(S.dashFilter[ownDim]) : null;
+  for (const g of groups) g.cls = !selKeys ? "" : selKeys.has(g.key) ? "xf-on" : "xf-dim";
+  return { M, D, Sp, groups, series, n: apps.length, total: valueOf(apps), nTotal: reporting(apps), stacked: !!Sp && isAdditive(spec), sel: selKeys };
 }
 
 // ── Chart rendering (SVG/HTML, colors from validated --s1..--s6 tokens) ──
@@ -2792,6 +2835,7 @@ function svgBar(d, W, H = 260) {
   const bw = Math.min(56, band * 0.66), labelChars = Math.max(3, Math.floor(band / 7.2));
   G.forEach((g, i) => {
     const cx = ml + band * i + band / 2;
+    out += `<g class="grp ${g.cls}" data-key="${esc(g.key)}"><rect class="hit" x="${ml + band * i}" y="${mt}" width="${band}" height="${ph}" data-key="${esc(g.key)}"/>`;
     if (d.stacked) {
       let acc = 0; const last = [...d.series].reverse().find((s) => g.values[s.key] > 0);
       for (const s of d.series) {
@@ -2808,7 +2852,7 @@ function svgBar(d, W, H = 260) {
       });
       if (k === 1 && G.length <= 8 && g.values.__all != null) out += `<text class="vlabel" x="${cx}" y="${y(Math.max(0, g.values.__all)) - 6}" text-anchor="middle">${esc(fmtVal(g.values.__all, d.M))}</text>`;
     }
-    out += `<text class="xlabel" x="${cx}" y="${H - mb + 18}" text-anchor="middle"><title>${esc(g.label)}</title>${esc(trunc(g.label, labelChars))}</text>`;
+    out += `<text class="xlabel" x="${cx}" y="${H - mb + 18}" text-anchor="middle"><title>${esc(g.label)}</title>${esc(trunc(g.label, labelChars))}</text></g>`;
   });
   out += `<line class="axis" x1="${ml}" x2="${ml + pw}" y1="${mt + ph}" y2="${mt + ph}"/></svg>`;
   return out;
@@ -2817,7 +2861,7 @@ function htmlHbar(d) {
   const tot = (g) => (d.stacked ? d.series.reduce((t, s) => t + (g.values[s.key] || 0), 0) : Math.max(0, ...d.series.map((s) => g.values[s.key] || 0)));
   const max = niceMax(Math.max(0, ...d.groups.map(tot)));
   return `<div class="hbars" role="img" aria-label="${esc(d.groups.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">${d.groups.map((g) => `
-    <div class="hbar"><span class="hlabel" title="${esc(g.label)}">${esc(g.label)}</span>
+    <div class="hbar ${g.cls}" data-key="${esc(g.key)}"><span class="hlabel" title="${esc(g.label)}">${esc(g.label)}</span>
       <div class="htrack ${d.stacked ? "stack" : d.series.length > 1 ? "grouped" : ""}">${d.series.map((s) => {
         const v = g.values[s.key]; if (v == null || (d.stacked && !v)) return d.stacked ? "" : `<i class="empty"></i>`;
         return `<i class="mark" style="--w:${(Math.max(0, v) / max) * 100}%;background:${sColor(s.slot)}" data-tip="${esc(tipOf(g, s, d))}"></i>`; }).join("")}</div>
@@ -2835,40 +2879,41 @@ function svgLine(d, W, H = 260) {
     const pts = G.map((g, i) => (g.values[s.key] == null ? null : [x(i), y(g.values[s.key])]));
     let path = "", pen = false;
     for (const p of pts) { if (!p) { pen = false; continue; } path += `${pen ? "L" : "M"}${p[0]},${p[1]}`; pen = true; }
-    out += `<path class="line" d="${path}" stroke="${sColor(s.slot)}"/>` + pts.map((p) => (p ? `<circle class="dot" cx="${p[0]}" cy="${p[1]}" r="4" fill="${sColor(s.slot)}"/>` : "")).join("");
+    out += `<path class="line" d="${path}" stroke="${sColor(s.slot)}"/>` + pts.map((p, i) => (p ? `<circle class="dot ${G[i].cls}" cx="${p[0]}" cy="${p[1]}" r="4" fill="${sColor(s.slot)}"/>` : "")).join("");
   }
   G.forEach((g, i) => {
     if (i % every === 0 || i === G.length - 1) out += `<text class="xlabel" x="${x(i)}" y="${H - mb + 18}" text-anchor="middle">${esc(trunc(g.label, 12))}</text>`;
     const half = G.length === 1 ? pw / 2 : pw / (G.length - 1) / 2;
-    out += `<rect class="hit" x="${x(i) - half}" y="${mt}" width="${half * 2}" height="${ph}" data-x="${x(i)}" data-tip="${esc(`<b>${esc(g.label)}</b><br>` + d.series.map((s) => `<span class="sw" style="background:${sColor(s.slot)}"></span>${d.Sp ? esc(s.label) + ": " : ""}${esc(fmtVal(g.values[s.key], d.M))}`).join("<br>"))}"/>`;
+    if (g.cls === "xf-on") out += `<rect class="sel-band" x="${x(i) - half}" y="${mt}" width="${half * 2}" height="${ph}"/>`;
+    out += `<rect class="hit" data-key="${esc(g.key)}" x="${x(i) - half}" y="${mt}" width="${half * 2}" height="${ph}" data-x="${x(i)}" data-tip="${esc(`<b>${esc(g.label)}</b><br>` + d.series.map((s) => `<span class="sw" style="background:${sColor(s.slot)}"></span>${d.Sp ? esc(s.label) + ": " : ""}${esc(fmtVal(g.values[s.key], d.M))}`).join("<br>"))}"/>`;
   });
   return out + `</svg>`;
 }
 function svgDonut(d, H = 260) {
   // One ring, slices capped at SERIES_MAX (rest → Other), each with a legend row.
   let G = d.groups.filter((g) => g.total > 0);
-  if (G.length > SERIES_MAX) { const rest = G.slice(SERIES_MAX - 1); G = [...G.slice(0, SERIES_MAX - 1), { label: `Other (${rest.length})`, total: rest.reduce((t, g) => t + g.total, 0), other: true }]; }
+  if (G.length > SERIES_MAX) { const rest = G.slice(SERIES_MAX - 1); G = [...G.slice(0, SERIES_MAX - 1), { key: "__other", cls: "", label: `Other (${rest.length})`, total: rest.reduce((t, g) => t + g.total, 0), other: true }]; }
   const sum = G.reduce((t, g) => t + g.total, 0); if (!sum) return emptyChart();
   const C = Math.round(Math.max(150, Math.min(H, 420)) * 0.37), R = C - 12, r = Math.round(R * 0.64); let a0 = -Math.PI / 2, out = "";
   G.forEach((g, i) => {
     const frac = g.total / sum, a1 = a0 + frac * Math.PI * 2, big = a1 - a0 > Math.PI ? 1 : 0, col = g.other ? sColor("o") : sColor(i + 1);
     const p = (ang, rad) => `${C + rad * Math.cos(ang)},${C + rad * Math.sin(ang)}`;
     const tip = `${esc(g.label)}: <b>${esc(fmtVal(g.total, d.M))}</b> (${Math.round(frac * 100)}%)`;
-    out += frac >= 0.9999 ? `<circle cx="${C}" cy="${C}" r="${(R + r) / 2}" fill="none" stroke="${col}" stroke-width="${R - r}" class="mark" data-tip="${esc(tip)}"/>`
-      : `<path class="mark slice" d="M${p(a0, R)}A${R},${R} 0 ${big} 1 ${p(a1, R)}L${p(a1, r)}A${r},${r} 0 ${big} 0 ${p(a0, r)}Z" fill="${col}" data-tip="${esc(tip)}"/>`;
+    out += frac >= 0.9999 ? `<circle cx="${C}" cy="${C}" r="${(R + r) / 2}" fill="none" stroke="${col}" stroke-width="${R - r}" class="mark ${g.cls}" data-key="${esc(g.key)}" data-tip="${esc(tip)}"/>`
+      : `<path class="mark slice ${g.cls}" data-key="${esc(g.key)}" d="M${p(a0, R)}A${R},${R} 0 ${big} 1 ${p(a1, R)}L${p(a1, r)}A${r},${r} 0 ${big} 0 ${p(a0, r)}Z" fill="${col}" data-tip="${esc(tip)}"/>`;
     G[i].col = col; G[i].frac = frac; a0 = a1;
   });
   return `<div class="donut"><svg width="${C * 2}" height="${C * 2}" viewBox="0 0 ${C * 2} ${C * 2}" role="img" aria-label="${esc(G.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">${out}
     <text class="dtotal" x="${C}" y="${C + 4}" text-anchor="middle">${esc(fmtVal(sum, d.M))}</text><text class="tick" x="${C}" y="${C + 22}" text-anchor="middle">total</text></svg>
-    <ul class="dlegend">${G.map((g) => `<li><i style="background:${g.col}"></i><span>${esc(g.label)}</span><b class="mono">${esc(fmtVal(g.total, d.M))}</b><span class="muted mono">${Math.round(g.frac * 100)}%</span></li>`).join("")}</ul></div>`;
+    <ul class="dlegend">${G.map((g) => `<li class="${g.cls}" data-key="${esc(g.key)}"><i style="background:${g.col}"></i><span>${esc(g.label)}</span><b class="mono">${esc(fmtVal(g.total, d.M))}</b><span class="muted mono">${Math.round(g.frac * 100)}%</span></li>`).join("")}</ul></div>`;
 }
 function tableView(d) {
   const multi = d.series.length > 1;
   return `<div class="table-scroll"><table class="ctable"><thead><tr><th>${esc(d.D.label === DIMS.none.label ? "" : d.D.label)}</th>${multi ? d.series.map((s) => `<th class="num">${esc(s.label)}</th>`).join("") : ""}<th class="num">${multi ? "All" : esc(d.M.label)}</th><th class="num">Productions</th></tr></thead>
-    <tbody>${d.groups.map((g) => `<tr><td>${esc(g.label)}</td>${multi ? d.series.map((s) => `<td class="num mono">${esc(fmtVal(g.values[s.key], d.M))}</td>`).join("") : ""}<td class="num mono">${esc(fmtVal(g.total, d.M))}</td><td class="num mono">${g.nTotal}</td></tr>`).join("")}</tbody></table></div>`;
+    <tbody>${d.groups.map((g) => `<tr class="${g.cls}" data-key="${esc(g.key)}"><td>${esc(g.label)}</td>${multi ? d.series.map((s) => `<td class="num mono">${esc(fmtVal(g.values[s.key], d.M))}</td>`).join("") : ""}<td class="num mono">${esc(fmtVal(g.total, d.M))}</td><td class="num mono">${g.nTotal}</td></tr>`).join("")}</tbody></table></div>`;
 }
-function renderChart(el, spec, forceTable = false, height = null) {
-  const d = chartData(spec), W = Math.max(200, Math.floor(el.clientWidth || 600)), H = heightPx(height || spec.height);
+function renderChart(el, spec, forceTable = false, height = null, crossFilter = false) {
+  const d = chartData(spec, crossFilter), W = Math.max(200, Math.floor(el.clientWidth || 600)), H = heightPx(height || spec.height);
   el.style.setProperty("--ch", H + "px");
   if (!d.n) { el.innerHTML = emptyChart(); return; }
   if (d.M.key !== "count" && !d.nTotal) { el.innerHTML = emptyChart("None of these productions have reported this yet."); return; }
@@ -2926,7 +2971,105 @@ function saveDashPrefs(now = false) {
 }
 function widgetTitle(w) { return w.builtin ? DASH_BUILTIN[w.id].title : w.spec.title || autoTitle(w.spec); }
 
+// ── Dashboard cross-filters: click or brush any chart; filters apply to every widget ──
+// S.dashFilter = { dim: [keys] }. A chart grouped by a filtered dimension keeps all of its
+// groups and highlights the selected ones; everything else shows only matching applications.
+const XF_DIMS = ["status", "type", "sub", "studio", "region", "reviewer", "level", "timing", "compliance", "band", "month", "quarter"];
+const xfOn = () => Object.keys(S.dashFilter || {}).some((k) => S.dashFilter[k]?.length);
+const xfHas = (dim, key) => !!S.dashFilter?.[dim]?.includes(key);
+const xfSel = (dim, key) => (S.dashFilter?.[dim]?.length ? (xfHas(dim, key) ? "xf-on" : "xf-dim") : "");
+const xfPasses = (a, except = null) => Object.entries(S.dashFilter || {}).every(([dim, keys]) => dim === except || !keys?.length || !DIMS[dim] || keys.includes(DIMS[dim].get(a)));
+const xfLabel = (dim, key) => (DIMS[dim]?.fmt ? DIMS[dim].fmt(key) : key || "Not set");
+function xfSet(dim, keys, mode = "replace") {
+  S.dashFilter ||= {};
+  const cur = new Set(S.dashFilter[dim] || []);
+  if (mode === "toggle") keys.forEach((k) => (cur.has(k) ? cur.delete(k) : cur.add(k)));
+  else if (mode === "click") { const k = keys[0]; if (cur.size === 1 && cur.has(k)) cur.clear(); else { cur.clear(); cur.add(k); } }
+  else { cur.clear(); keys.forEach((k) => cur.add(k)); }
+  if (cur.size) S.dashFilter[dim] = [...cur]; else delete S.dashFilter[dim];
+  drawDashboard();
+}
+function xfBar() {
+  const chips = Object.entries(S.dashFilter || {}).filter(([, v]) => v?.length).map(([dim, keys]) =>
+    `<span class="xf-chip"><b>${esc(DIMS[dim]?.label.replace(/ \(.*\)$/, "") || dim)}:</b> ${esc(keys.length > 3 ? `${keys.length} selected` : keys.map((k) => xfLabel(dim, k)).join(", "))}
+      <button type="button" class="xf-x" data-xfclear="${esc(dim)}" aria-label="Remove ${esc(DIMS[dim]?.label || dim)} filter">×</button></span>`).join("");
+  const dim = S.xfPick || "type", vals = (() => { const m = new Map(); for (const a of S.dash.allApps) { const k = DIMS[dim].get(a); if (!m.has(k)) m.set(k, 0); m.set(k, m.get(k) + 1); }
+    return [...m].sort((x, y) => (DIMS[dim].order ? DIMS[dim].order(x[0]) - DIMS[dim].order(y[0]) : DIMS[dim].time ? String(x[0]).localeCompare(String(y[0])) : y[1] - x[1])); })();
+  return `<div class="xf-bar" role="region" aria-label="Dashboard filters">
+    <details class="menu" id="xfMenu"><summary class="btn">Filter <span aria-hidden="true">▾</span></summary>
+      <div class="menu-list xf-menu">
+        <label class="field"><span>Filter by</span><select id="xfDim">${XF_DIMS.map((k) => `<option value="${k}" ${k === dim ? "selected" : ""}>${esc(DIMS[k].label)}</option>`).join("")}</select></label>
+        <div class="xf-vals">${vals.map(([k, n]) => `<label class="check"><input type="checkbox" value="${esc(k)}" ${xfHas(dim, k) ? "checked" : ""}>${esc(xfLabel(dim, k))} <span class="muted mono">${n}</span></label>`).join("")}</div>
+        <div class="row-actions"><button type="button" class="primary" id="xfApply">Apply</button></div>
+      </div></details>
+    ${chips ? `${chips}<button type="button" class="link small" id="xfClearAll">Clear all</button><span class="muted small xf-count">${S.dash.apps.length} of ${S.dash.allApps.length} applications</span>`
+      : `<span class="muted small">Click or drag across any chart to filter the whole dashboard. Shift-click to add to a selection.</span>`}
+  </div>`;
+}
+function wireXf() {
+  const board = $app.querySelector(".dboard");
+  // Built-in widgets: pipeline stages, table rows
+  const pick = (e) => {
+    const t = e.target.closest("[data-xf]"); if (!t || S.dashEdit) return;
+    e.preventDefault(); xfSet(t.dataset.xf, [t.dataset.key], e.shiftKey || e.metaKey || e.ctrlKey ? "toggle" : "click");
+  };
+  board?.addEventListener("click", pick);
+  board?.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("tr[data-xf]")) pick(e); });
+  document.getElementById("xfClearAll")?.addEventListener("click", () => { S.dashFilter = {}; drawDashboard(); });
+  $app.querySelectorAll("[data-xfclear]").forEach((b) => b.addEventListener("click", () => { delete S.dashFilter[b.dataset.xfclear]; drawDashboard(); }));
+  document.getElementById("xfDim")?.addEventListener("change", (e) => { S.xfPick = e.target.value; drawDashboard(); requestAnimationFrame(() => { const m = document.getElementById("xfMenu"); if (m) m.open = true; }); });
+  document.getElementById("xfApply")?.addEventListener("click", () => {
+    const keys = [...document.querySelectorAll(".xf-vals input:checked")].map((i) => i.value);
+    xfSet(S.xfPick || "type", keys, "replace");
+  });
+  // Custom charts: click a mark, or drag across several
+  $app.querySelectorAll(".chart[data-wid]").forEach((el) => wireBrush(el));
+}
+function wireBrush(el) {
+  el.addEventListener("pointerdown", (e) => {
+    if (S.dashEdit || e.button !== 0) return;
+    const dim = el.dataset.dim; if (!dim || dim === "none") return;
+    const svg = e.target.closest("svg.chart-svg"), hb = e.target.closest(".hbars");
+    const start = { x: e.clientX, y: e.clientY }, target = e.target.closest("[data-key]");
+    if (!svg && !hb) { // donut slices, table rows: click only
+      if (target && target.dataset.key !== "__other") { const up = () => { el.removeEventListener("pointerup", up); xfSet(dim, [target.dataset.key], e.shiftKey || e.metaKey || e.ctrlKey ? "toggle" : "click"); }; el.addEventListener("pointerup", up); }
+      return;
+    }
+    e.preventDefault();
+    const box = el.getBoundingClientRect(), vertical = !!hb;
+    const br = document.createElement("div"); br.className = "brush" + (vertical ? " v" : ""); el.appendChild(br);
+    const draw = (m) => {
+      if (vertical) { const t = Math.min(start.y, m.clientY) - box.top, h = Math.abs(m.clientY - start.y); Object.assign(br.style, { top: t + "px", height: h + "px", left: "0", width: "100%" }); }
+      else { const sv = svg.getBoundingClientRect(), l = Math.min(start.x, m.clientX) - box.left, w = Math.abs(m.clientX - start.x); Object.assign(br.style, { left: l + "px", width: w + "px", top: sv.top - box.top + "px", height: sv.height - 30 + "px" }); }
+    };
+    el.setPointerCapture(e.pointerId);
+    const move = (m) => draw(m);
+    const up = (u) => {
+      el.removeEventListener("pointermove", move); el.removeEventListener("pointerup", up); el.removeEventListener("pointercancel", up); br.remove();
+      const dist = vertical ? Math.abs(u.clientY - start.y) : Math.abs(u.clientX - start.x);
+      const add = e.shiftKey || e.metaKey || e.ctrlKey;
+      if (dist < 6) { // a click
+        const hit = target || document.elementFromPoint(u.clientX, u.clientY)?.closest?.("[data-key]");
+        if (hit && el.contains(hit) && hit.dataset.key !== "__other") xfSet(dim, [hit.dataset.key], add ? "toggle" : "click");
+        return;
+      }
+      const lo = vertical ? Math.min(start.y, u.clientY) : Math.min(start.x, u.clientX), hi = vertical ? Math.max(start.y, u.clientY) : Math.max(start.x, u.clientX);
+      const keys = new Set();
+      el.querySelectorAll(vertical ? ".hbar[data-key]" : ".hit[data-key]").forEach((g) => {
+        const r = g.getBoundingClientRect(), c = vertical ? r.top + r.height / 2 : r.left + r.width / 2;
+        if (c >= lo && c <= hi && g.dataset.key !== "__other") keys.add(g.dataset.key);
+      });
+      if (keys.size) xfSet(dim, [...keys], add ? "toggle" : "replace");
+    };
+    el.addEventListener("pointermove", move); el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  });
+}
+
 function drawDashboard() {
+  // Apply the cross-filters, then rebuild the built-in widgets from what's left.
+  S.dashFilter ||= {};
+  S.dash.apps = S.dash.allApps.filter((a) => xfPasses(a));
+  S.dash.html = buildDashHTML(S.dash.apps, S.dash.allApps.filter((a) => xfPasses(a, "status")));
   const map = dashWidgets(), layout = resolveLayout(), edit = !!S.dashEdit;
   const visible = layout.filter((e) => !e.hidden), hidden = layout.filter((e) => e.hidden);
   const tools = (e, w, i) => !edit ? "" : `<div class="dw-tools" role="group" aria-label="Arrange ${esc(widgetTitle(w))}" draggable="true">
@@ -2958,12 +3101,14 @@ function drawDashboard() {
         <div class="dash-editbar-actions">${hidden.length ? `<span class="muted small">Hidden:</span>${hidden.map((e) => `<button class="chip" data-show="${esc(e.id)}">+ ${esc(widgetTitle(map.get(e.id)))}</button>`).join("")}` : ""}
           <button class="link" id="dashReset">Reset to default</button>${isStaff() ? `<button class="link" id="dashMakeDefault">Make this everyone's default</button>` : ""}</div>
       </div>` : ""}
+    ${edit ? "" : xfBar()}
     <div class="dboard ${edit ? "editing" : ""}">${visible.map((e, i) => { const w = map.get(e.id);
       return `<div class="dw w-${e.size}" data-wid="${esc(e.id)}">${tools(e, w, i)}${w.builtin ? S.dash.html[e.id] : chartBlock(w)}${edit ? `<span class="dw-resize" title="Drag to resize" aria-hidden="true"></span>` : ""}</div>`; }).join("")
       || `<div class="panel block w-full"><div class="block-body"><p class="muted">Everything is hidden. Click Customize to show charts again.</p></div></div>`}</div>`;
   // Charts need their width, so render after they're in the page.
-  const draw = () => $app.querySelectorAll(".chart[data-wid]").forEach((el) => { const w = map.get(el.dataset.wid), e = layout.find((x) => x.id === el.dataset.wid); if (w) renderChart(el, w.spec, !!S.dashTables?.[w.id], e?.height); });
+  const draw = () => $app.querySelectorAll(".chart[data-wid]").forEach((el) => { const w = map.get(el.dataset.wid), e = layout.find((x) => x.id === el.dataset.wid); if (w) { el.dataset.dim = w.spec.type === "number" ? "none" : w.spec.dim; renderChart(el, w.spec, !!S.dashTables?.[w.id], e?.height, true); } });
   draw();
+  if (!edit) wireXf();
   S.dashRO?.disconnect();
   let lastW = $app.clientWidth, t;
   S.dashRO = new ResizeObserver(() => { if (Math.abs($app.clientWidth - lastW) < 8) return; lastW = $app.clientWidth; clearTimeout(t); t = setTimeout(draw, 120); });
