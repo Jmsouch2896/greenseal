@@ -1319,14 +1319,36 @@ async function ensureContact(name, title, deptId) {
     if (title && title !== c.title && canEdit) patch.title = title;
     if (deptId && !c.department_id && canEdit) patch.department_id = deptId;
     if (Object.keys(patch).length) { const { error } = await sb.from("contacts").update(patch).eq("contact_id", c.contact_id); if (!error) Object.assign(c, patch); }
+    S.relContacts?.add(c.contact_id);
     return c.contact_id;
   }
   const { data, error } = await sb.from("contacts").insert({ full_name: clean, title: title || null, department_id: deptId || null, created_by: S.me.id }).select().single();
   if (error) throw error;
-  S.contacts.push(data);
+  S.contacts.push(data); S.relContacts?.add(data.contact_id);
   return data.contact_id;
 }
 const contactOptions = () => (S.contacts || []).filter((c) => !c.archived)
+  .map((c) => `<option value="${esc(c.full_name)}">${esc([c.title, c.company].filter(Boolean).join(" · "))}</option>`).join("");
+// "Answered by" suggestions on an application only list people relevant to that production:
+// already named on it, added by its owner, named on the owner's other applications, or working at its studio.
+// Within a department, people from other departments are left out (people with no department stay).
+async function loadRelevantContacts(app, resp) {
+  const rel = new Set([...Object.values(S.deptAnswerers || {}), ...resp.map((r) => r.answered_by)].filter(Boolean));
+  const owner = app.submitted_by || S.me.id;
+  if (app.production_id != null && owner) {
+    const p = await sb.from("productions").select("production_id").eq("submitted_by", owner).neq("production_id", app.production_id);
+    const ids = (p.data || []).map((x) => x.production_id);
+    if (ids.length) {
+      const da = await sb.from("department_answerers").select("contact_id").in("production_id", ids);
+      (da.data || []).forEach((x) => rel.add(x.contact_id));
+    }
+  }
+  const studio = norm(app.studio_affiliation);
+  for (const c of S.contacts || []) if (c.created_by === owner || (studio && norm(c.company) === studio)) rel.add(c.contact_id);
+  S.relContacts = rel;
+}
+const relevantContactOptions = (did) => (S.contacts || [])
+  .filter((c) => !c.archived && S.relContacts?.has(c.contact_id) && (!did || !c.department_id || c.department_id === did || S.deptAnswerers?.[did] === c.contact_id))
   .map((c) => `<option value="${esc(c.full_name)}">${esc([c.title, c.company].filter(Boolean).join(" · "))}</option>`).join("");
 // Collect each production's prep and wrap answers to active questions.
 function answersByApp(rows) {
@@ -2950,6 +2972,7 @@ async function openApp(id) {
     app = a.data; resp = r.data;
   }
   useVersion(appVersion(app));
+  await loadRelevantContacts(app, resp);
   S.current = { app, resp: Object.fromEntries(resp.map((x) => [x.question_id, x])), confirm: false };
   if (S.openFor !== id) {
     S.openFor = id;
@@ -2992,7 +3015,7 @@ function drawApp() {
       <summary class="dept-head"><h3>${esc(d.name)}</h3>${deptDelegateTag(d.department_id, P)}<span class="dept-sum mono" id="dsum-${d.department_id}"></span></summary>
       <div class="answerer">
         <span class="label">Answered by</span>
-        ${P.canDept(d.department_id) ? `<input name="dans-${d.department_id}" id="dans-${d.department_id}" list="contact-names" value="${esc(ans?.full_name)}" placeholder="Name" aria-label="${esc(d.name)} answered by: name" autocomplete="off">
+        ${P.canDept(d.department_id) ? `<input name="dans-${d.department_id}" id="dans-${d.department_id}" list="contact-names-${d.department_id}" value="${esc(ans?.full_name)}" placeholder="Name" aria-label="${esc(d.name)} answered by: name" autocomplete="off">
           <input name="dtitle-${d.department_id}" id="dtitle-${d.department_id}" value="${esc(ans?.title)}" placeholder="Title" aria-label="${esc(d.name)} answered by: title">
           <span class="muted hint">Pick someone used before, or type a new name.</span>`
         : `<span>${ans ? `<b>${esc(ans.full_name)}</b>${ans.title ? `, ${esc(ans.title)}` : ""}` : '<span class="muted">Not recorded</span>'}</span>`}
@@ -3065,7 +3088,7 @@ function drawApp() {
       </div></section>`}
     </div>
     </div>
-    <datalist id="contact-names">${contactOptions()}</datalist>
+    ${S.depts.map((d) => `<datalist id="contact-names-${d.department_id}">${relevantContactOptions(d.department_id)}</datalist>`).join("")}
     <datalist id="studio-names">${companyOptions("studio")}</datalist>
     <datalist id="types"><option value="Film"><option value="Television"><option value="Commercial"><option value="Music video"></datalist>
     <datalist id="subtypes"><option value="Feature"><option value="MOW"><option value="Half Hour"><option value="Hour"><option value="Limited series"></datalist>`;
@@ -3182,7 +3205,7 @@ function question(q, r, P, showEarned) {
     <div class="q-wide">
       <div class="expl-row">
         <label class="field"><span>Evidence or explanation</span><textarea name="expl-${id}" id="expl-${id}" rows="2" placeholder="${canEdit ? "What was done, by whom, and any supporting detail" : ""}" ${dis}>${esc(r.explanation)}</textarea></label>
-        ${canEdit ? `<label class="field ans-by"><span>Answered by</span><input name="aby-${id}" id="aby-${id}" list="contact-names" value="${esc(own?.full_name)}" placeholder="Same as department${deptAns ? ` (${esc(deptAns.full_name)})` : ""}" autocomplete="off"></label>`
+        ${canEdit ? `<label class="field ans-by"><span>Answered by</span><input name="aby-${id}" id="aby-${id}" list="contact-names-${q.department_id}" value="${esc(own?.full_name)}" placeholder="Same as department${deptAns ? ` (${esc(deptAns.full_name)})` : ""}" autocomplete="off"></label>`
           : `<div class="field ans-by"><span>Answered by</span><p class="ans-by-val">${own ? esc(own.full_name) : deptAns ? `${esc(deptAns.full_name)} <span class="muted">(department)</span>` : '<span class="muted">Not recorded</span>'}</p></div>`}
       </div>
       <div class="evidence" data-ev="${id}">
