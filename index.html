@@ -979,6 +979,24 @@ th.num { font-family: var(--body); }
 .unit-seg button { border: 0; border-radius: 0; padding: 8px 12px; font-size: .84rem; }
 .unit-seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
 .cmp-stats strong small.unit { font-size: .55em; color: var(--muted); font-weight: 500; }
+.rep-flow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.rsec { grid-column: 1 / -1; min-width: 0; display: grid; gap: 8px; align-content: start; }
+.rsec.rs-half { grid-column: span 1; }
+.rsec > .rep-two, .rsec > section { margin: 0; }
+.report.editing .rsec { outline: 2px dashed var(--line); outline-offset: 6px; border-radius: 8px; }
+.rsec.rs-hidden > :not(.rs-tools) { opacity: .35; }
+.rs-tools { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; padding: 6px 12px; background: var(--accent-soft); border-radius: 8px; font-size: .86rem; }
+.rs-tools b { flex: 1 1 auto; min-width: 0; }
+.rep-editbar { padding: 16px 18px; margin-bottom: 18px; display: grid; gap: 12px; border-left: 4px solid var(--hl); }
+.rep-editbar .spacer { flex: 1 1 auto; }
+.rep-editbar .menu-list { left: 0; right: auto; min-width: 280px; }
+.rep-editbar .menu-list button { border: 0; background: none; text-align: left; padding: 8px 10px; border-radius: 6px; font-weight: 500; }
+.rep-editbar .menu-list button:hover { background: var(--accent-soft); }
+.rep-intro { margin-top: 8px; max-width: 70ch; }
+.rep-text p { white-space: normal; max-width: 75ch; }
+.rep-chart .chart { margin-top: 6px; }
+@media (max-width: 760px) { .rep-flow { grid-template-columns: minmax(0, 1fr); } .rsec.rs-half { grid-column: 1 / -1; } }
+@media print { .rsec.rs-hidden { display: none; } .rep-flow { gap: 14px; } .rep-chart, .rep-text { break-inside: avoid; } }
 </style>
 </head>
 <body>
@@ -1302,7 +1320,7 @@ async function boot() {
 
 async function start() {
   if (location.hash.startsWith("#verify-")) return renderVerify(location.hash.slice(8));
-  S.me = null; $actions.innerHTML = ""; S.notes = []; S.bellOpen = false;
+  S.me = null; S.repLoaded = false; S.repEdit = false; $actions.innerHTML = ""; S.notes = []; S.bellOpen = false;
   if (S.noteChannel) { sb.removeChannel(S.noteChannel); S.noteChannel = null; }
   clearInterval(S.notePoll);
   if (S.recovery) { renderBar(); return renderRecovery(); }
@@ -1685,9 +1703,20 @@ async function renderReport() {
   $app.innerHTML = `<p class="loading">Building the report…</p>`;
   const [p, r] = await Promise.all([
     sb.from("productions").select("*"),
-    fetchAll(() => sb.from("responses").select("production_id,question_id,wrap_answer,wrap_points").order("response_id")),
+    fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer,wrap_points").order("response_id")),
   ]);
   if (p.error || r.error) return fail(p.error || r.error);
+  if (!S.repLoaded) {
+    const [mine, def, sh] = await Promise.all([
+      sb.from("dashboard_prefs").select("report,charts").eq("user_id", S.me.id).maybeSingle(),
+      sb.from("app_settings").select("value").eq("key", "report_default").maybeSingle(),
+      sb.from("shared_charts").select("*").order("created_at"),
+    ]);
+    S.repDefault = def.data?.value || null;
+    S.repCfg = cleanReport(mine.data?.report || S.repDefault);
+    S.repDashCharts = [...(mine.data?.charts || []), ...((sh.data || []).map((x) => ({ ...x.spec, id: x.chart_id, shared: true })))];
+    S.repLoaded = true;
+  }
   const period = S.reportPeriod || "all", cutoff = period === "all" ? null : new Date(Date.now() - +period * 86400000).toISOString().slice(0, 10);
   const appsAll = p.data.filter((a) => appVersion(a) === S.formCurrent && a.status !== "draft");
   const apps = cutoff ? appsAll.filter((a) => (a.submission_date || "") >= cutoff) : appsAll;
@@ -1709,36 +1738,150 @@ async function renderReport() {
   const sample = apps.some((a) => a.footprint_is_sample), t = S.theme || THEME_DEFAULT;
   const periodLabel = { all: "All time", 30: "Last 30 days", 90: "Last 90 days", 365: "Last 12 months" }[period];
   const better = (m, a, b) => { const d = mdiff(m, a, b); return d == null ? "–" : `<span class="${mgood(m, d) ? "good" : mgood(m, d) === false ? "worse" : ""}">${mdiffText(m, d)}</span>`; };
-  $app.innerHTML = `
-    <div class="cert-tools noprint"><a class="back" href="#dashboard">← Dashboard</a>
-      <div class="seg" role="group" aria-label="Period">${[["all", "All time"], ["365", "12 months"], ["90", "90 days"], ["30", "30 days"]].map(([k, l]) => `<button data-period="${k}" aria-pressed="${String(period) === k}">${l}</button>`).join("")}</div>
-      <button class="primary" id="repPrint">Print or save as PDF</button></div>
-    <article class="report">
-      <header class="rep-head"><div>${t.logo_url ? `<img src="${esc(t.logo_url)}" alt="${esc(t.org)}" class="rep-logo">` : `<span class="brand"><span class="mark">${esc(t.org)}</span></span>`}</div>
-        <div><p class="eyebrow">${esc(t.org)} ${esc(t.name)} · ${esc(S.formCurrent)}</p><h1>Program report</h1><p class="muted">${esc(periodLabel)} · prepared ${esc(new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }))} by ${esc(S.me.full_name || S.me.email)}</p></div></header>
-      <section class="rep-kpis">
+  // Data for charts in the report: the same productions the report covers.
+  S.dash = { ...(S.dash || {}), allApps: apps, apps, by: answersByApp(r.data), respBy };
+  const cfg = S.repCfg, edit = !!S.repEdit;
+  const blocks = {
+    kpis: `<section class="rep-kpis">
         <div><span class="label">Applications submitted</span><strong>${apps.length}</strong></div>
         <div><span class="label">Certified</span><strong>${certified.length}</strong><small>${decided.length ? `${pct(approved.length, decided.length)}% approval rate` : "No decisions yet"}</small></div>
         <div><span class="label">Average certified score</span><strong>${avgScore == null ? "–" : Math.round(avgScore) + "%"}</strong></div>
         <div><span class="label">Median time to certify</span><strong>${turn == null ? "–" : turn + " days"}</strong><small>${open.length} in review now${open.filter((a) => dueInfo(a)?.overdue).length ? `, ${open.filter((a) => dueInfo(a)?.overdue).length} overdue` : ""}</small></div>
-      </section>
-      <section class="rep-sec"><h2>Certifications</h2>
+      </section>`,
+    levels: `<section class="rep-sec"><h2>Certifications</h2>
         <div class="rep-levels">${lvls.map((x) => `<div>${sealBadge(x.l.name)}<strong>${x.n}</strong><small>${x.l.min}% and above</small></div>`).join("")}</div>
-        ${S.cert.placeholder ? `<p class="muted small">Cutoffs are placeholders until EMA confirms them.</p>` : ""}</section>
-      <section class="rep-sec"><h2>Footprint: certified vs. not certified</h2>
+        ${S.cert.placeholder ? `<p class="muted small">Cutoffs are placeholders until EMA confirms them.</p>` : ""}</section>`,
+    footprint: `<section class="rep-sec"><h2>Footprint: certified vs. not certified</h2>
         <p class="muted small">Average per shoot day. ${certified.length} certified and ${others.length} other submitted productions.${sample ? " Includes invented sample figures from the demo data." : ""}</p>
         <div class="table-scroll"><table><thead><tr><th>Measure</th><th class="num">Certified</th><th class="num">Not certified</th><th class="num">Difference</th></tr></thead>
-          <tbody>${metricRows.map(({ m, a, b, na, nb }) => `<tr><td>${esc(m.label)}</td><td class="num">${mfmt(m, a)} <span class="muted small">(${na})</span></td><td class="num">${mfmt(m, b)} <span class="muted small">(${nb})</span></td><td class="num">${better(m, a, b)}</td></tr>`).join("")}</tbody></table></div></section>
-      <div class="rep-two">
+          <tbody>${metricRows.map(({ m, a, b, na, nb }) => `<tr><td>${esc(m.label)}</td><td class="num">${mfmt(m, a)} <span class="muted small">(${na})</span></td><td class="num">${mfmt(m, b)} <span class="muted small">(${nb})</span></td><td class="num">${better(m, a, b)}</td></tr>`).join("")}</tbody></table></div></section>`,
+    practices: `<div class="rep-two">
         <section class="rep-sec"><h2>Most adopted practices</h2><ol class="rep-list">${practices.slice(0, 6).map((x) => `<li><span>${esc(qTitle(x.q))}</span><b class="mono">${x.v}%</b></li>`).join("") || "<li class='muted'>Not enough answers yet</li>"}</ol></section>
         <section class="rep-sec"><h2>Least adopted practices</h2><ol class="rep-list">${practices.slice(-6).reverse().map((x) => `<li><span>${esc(qTitle(x.q))}</span><b class="mono">${x.v}%</b></li>`).join("") || "<li class='muted'>Not enough answers yet</li>"}</ol></section>
-      </div>
-      <section class="rep-sec"><h2>By production type</h2><div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Submitted</th><th class="num">Certified</th><th class="num">Average certified score</th></tr></thead>
-        <tbody>${types.map((x) => `<tr><td>${esc(x.t)}</td><td class="num">${x.n}</td><td class="num">${x.cert}</td><td class="num">${x.score == null ? "–" : Math.round(x.score) + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submissions in this period.</td></tr>`}</tbody></table></div></section>
+      </div>`,
+    types: `<section class="rep-sec"><h2>By production type</h2><div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Submitted</th><th class="num">Certified</th><th class="num">Average certified score</th></tr></thead>
+        <tbody>${types.map((x) => `<tr><td>${esc(x.t)}</td><td class="num">${x.n}</td><td class="num">${x.cert}</td><td class="num">${x.score == null ? "–" : Math.round(x.score) + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submissions in this period.</td></tr>`}</tbody></table></div></section>`,
+  };
+  const chartOf = (id) => cfg.charts.find((c) => "c:" + c.id === id);
+  const textOf = (id) => cfg.texts.find((x) => "t:" + x.id === id);
+  const label = (sec) => REPORT_BLOCKS[sec.id] || (chartOf(sec.id) ? chartOf(sec.id).title || autoTitle(chartOf(sec.id)) : "Text");
+  const secHTML = (sec, i, list) => {
+    const c = chartOf(sec.id), t = textOf(sec.id);
+    let inner = blocks[sec.id] || "";
+    if (c) inner = `<section class="rep-sec rep-chart"><h2>${esc(c.title || autoTitle(c))}</h2>${specSubtitle(c) ? `<p class="muted small">${esc(specSubtitle(c))}</p>` : ""}<div class="chart" data-rchart="${esc(c.id)}"></div></section>`;
+    if (t) inner = `<section class="rep-sec rep-text">${t.heading ? `<h2>${esc(t.heading)}</h2>` : ""}<p>${esc(t.body).replace(/\n/g, "<br>")}</p></section>`;
+    if (!inner) return "";
+    const tools = !edit ? "" : `<div class="rs-tools noprint"><b>${esc(label(sec))}</b>
+        <button type="button" class="link" data-rmove="-1" ${i === 0 ? "disabled" : ""} aria-label="Move up">↑</button>
+        <button type="button" class="link" data-rmove="1" ${i === list.length - 1 ? "disabled" : ""} aria-label="Move down">↓</button>
+        ${c ? `<span class="sizer" role="group" aria-label="Width">${[["half", "½"], ["full", "Full"]].map(([k, l]) => `<button type="button" data-rwidth="${k}" aria-pressed="${(sec.size || "full") === k}">${l}</button>`).join("")}</span><button type="button" class="link" data-redit>Edit</button>` : ""}
+        ${t ? `<button type="button" class="link" data-redit>Edit</button>` : ""}
+        <button type="button" class="link" data-rhide>${sec.hidden ? "Show" : "Hide"}</button>
+        ${c || t ? `<button type="button" class="link danger" data-rremove>Remove</button>` : ""}</div>`;
+    return `<div class="rsec ${c && sec.size === "half" ? "rs-half" : ""} ${sec.hidden ? "rs-hidden" : ""}" data-rid="${esc(sec.id)}">${tools}${inner}</div>`;
+  };
+  const shown = cfg.sections.filter((x) => edit || !x.hidden);
+  $app.innerHTML = `
+    <div class="cert-tools noprint"><a class="back" href="#dashboard">← Dashboard</a>
+      <div class="seg" role="group" aria-label="Period">${[["all", "All time"], ["365", "12 months"], ["90", "90 days"], ["30", "30 days"]].map(([k, l]) => `<button data-period="${k}" aria-pressed="${String(period) === k}">${l}</button>`).join("")}</div>
+      <div class="export">${edit ? `<button class="primary" id="repDone">Done</button>` : `<button id="repEdit">Customize</button><button class="primary" id="repPrint">Print or save as PDF</button>`}</div></div>
+    ${edit ? `<div class="panel rep-editbar noprint">
+        <div class="grid2"><label class="field"><span>Report title</span><input id="repTitle" maxlength="80" value="${esc(cfg.title)}"></label>
+          <label class="field"><span>Introduction <span class="muted">(optional, shown under the title)</span></span><textarea id="repIntro" rows="2" maxlength="600">${esc(cfg.intro)}</textarea></label></div>
+        <div class="row-actions">
+          <button type="button" id="repAddChart">+ New chart</button>
+          ${S.repDashCharts.length ? `<details class="menu"><summary class="btn">+ From the dashboard <span aria-hidden="true">▾</span></summary><div class="menu-list" role="menu">${S.repDashCharts.map((x) => `<button type="button" role="menuitem" data-fromdash="${esc(x.id)}">${esc(x.title || autoTitle(x))}${x.shared ? ' <span class="muted small">· shared</span>' : ""}</button>`).join("")}</div></details>` : ""}
+          <button type="button" id="repAddText">+ Text</button>
+          <span class="spacer"></span>
+          <button type="button" class="link" id="repReset">Reset to default</button>
+          ${isStaff() ? `<button type="button" class="link" id="repMakeDefault">Make this everyone's default</button>` : ""}
+        </div>
+        <p class="muted small">Changes save as you go and only change your copy of the report. Hidden sections are left out of the printout.</p></div>` : ""}
+    <article class="report ${edit ? "editing" : ""}">
+      <header class="rep-head"><div>${t.logo_url ? `<img src="${esc(t.logo_url)}" alt="${esc(t.org)}" class="rep-logo">` : `<span class="brand"><span class="mark">${esc(t.org)}</span></span>`}</div>
+        <div><p class="eyebrow">${esc(t.org)} ${esc(t.name)} · ${esc(S.formCurrent)}</p><h1>${esc(cfg.title)}</h1><p class="muted">${esc(periodLabel)} · prepared ${esc(new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }))} by ${esc(S.me.full_name || S.me.email)}</p>${cfg.intro ? `<p class="rep-intro">${esc(cfg.intro)}</p>` : ""}</div></header>
+      <div class="rep-flow">${shown.map((sec, i, list) => secHTML(sec, i, list)).join("")}</div>
       <footer class="rep-foot muted small">Scores are PEACH points earned as a share of points available, with N/A actions left out. Certified scores use verified points where reviewers entered them. Footprint CO₂ uses the emission factors on the Questions page.</footer>
     </article>`;
-  document.getElementById("repPrint").addEventListener("click", () => window.print());
+  // Draw the charts once they have a width.
+  $app.querySelectorAll("[data-rchart]").forEach((el) => { const c = cfg.charts.find((x) => x.id === el.dataset.rchart); if (c) renderChart(el, c, false, c.height); });
+  document.getElementById("repPrint")?.addEventListener("click", () => window.print());
   document.querySelectorAll("[data-period]").forEach((b) => b.addEventListener("click", () => { S.reportPeriod = b.dataset.period; renderReport(); }));
+  document.getElementById("repEdit")?.addEventListener("click", () => { S.repEdit = true; renderReport(); });
+  document.getElementById("repDone")?.addEventListener("click", async () => { S.repEdit = false; await saveReport(true); renderReport(); });
+  if (edit) wireReportEdit();
+}
+// ── Report customization: sections, charts and text blocks, saved per person ──
+const REPORT_BLOCKS = { kpis: "Key numbers", levels: "Certifications", footprint: "Footprint: certified vs. not certified", practices: "Most and least adopted practices", types: "By production type" };
+const REPORT_DEFAULT = { title: "Program report", intro: "", sections: Object.keys(REPORT_BLOCKS).map((id) => ({ id })), charts: [], texts: [] };
+function cleanReport(v) {
+  const x = v || {}, charts = Array.isArray(x.charts) ? x.charts.filter((c) => c && c.id && c.measure) : [], texts = Array.isArray(x.texts) ? x.texts.filter((t) => t && t.id) : [];
+  const valid = (id) => REPORT_BLOCKS[id] || charts.some((c) => "c:" + c.id === id) || texts.some((t) => "t:" + t.id === id);
+  const sections = (Array.isArray(x.sections) ? x.sections : REPORT_DEFAULT.sections).filter((sec) => sec && valid(sec.id)).map((sec) => ({ id: sec.id, hidden: !!sec.hidden, size: sec.size === "half" ? "half" : "full" }));
+  for (const id of Object.keys(REPORT_BLOCKS)) if (!sections.some((sec) => sec.id === id)) sections.push({ id, hidden: true, size: "full" });
+  return { title: typeof x.title === "string" && x.title.trim() ? x.title.slice(0, 80) : REPORT_DEFAULT.title, intro: typeof x.intro === "string" ? x.intro.slice(0, 600) : "", sections, charts, texts };
+}
+let repSaveT;
+function saveReport(now = false) {
+  clearTimeout(repSaveT);
+  const go = async () => { const { error } = await sb.from("dashboard_prefs").upsert({ user_id: S.me.id, report: S.repCfg }, { onConflict: "user_id" }); if (error) fail(error); };
+  if (now) return go();
+  repSaveT = setTimeout(go, 500);
+}
+function wireReportEdit() {
+  const cfg = S.repCfg, commit = () => { saveReport(); renderReport(); };
+  document.getElementById("repTitle").addEventListener("input", (e) => { cfg.title = e.target.value; document.querySelector(".report h1").textContent = e.target.value || REPORT_DEFAULT.title; saveReport(); });
+  document.getElementById("repIntro").addEventListener("input", (e) => { cfg.intro = e.target.value; saveReport(); });
+  document.getElementById("repIntro").addEventListener("change", () => renderReport());
+  document.getElementById("repAddChart").addEventListener("click", () => openChartBuilder(null, { target: "report", onSave: (spec) => {
+    cfg.charts.push(spec); cfg.sections.push({ id: "c:" + spec.id, size: spec.size === "half" ? "half" : "full" }); commit(); toast("Chart added to the report"); } }));
+  document.querySelectorAll("[data-fromdash]").forEach((b) => b.addEventListener("click", () => {
+    const src = S.repDashCharts.find((x) => String(x.id) === b.dataset.fromdash); if (!src) return;
+    const spec = { ...structuredClone(src), id: "r" + Date.now().toString(36) }; delete spec.shared;
+    cfg.charts.push(spec); cfg.sections.push({ id: "c:" + spec.id, size: "full" }); commit(); toast("Chart copied into the report");
+  }));
+  document.getElementById("repAddText").addEventListener("click", () => {
+    const t = { id: "x" + Date.now().toString(36), heading: "Notes", body: "Write your commentary here." };
+    cfg.texts.push(t); cfg.sections.push({ id: "t:" + t.id, size: "full" }); commit();
+    requestAnimationFrame(() => document.querySelector(`[data-rid="t:${t.id}"] [data-redit]`)?.click());
+  });
+  document.getElementById("repReset").addEventListener("click", (e) => {
+    const b = e.currentTarget; if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm: reset (removes your charts and text)"; return; }
+    S.repCfg = cleanReport(S.repDefault); saveReport(); renderReport(); toast("Report reset");
+  });
+  document.getElementById("repMakeDefault")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget; if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm: use this report for everyone"; return; }
+    const { error } = await sb.from("app_settings").upsert({ key: "report_default", value: cfg, updated_by: S.me.id }, { onConflict: "key" });
+    if (error) return fail(error);
+    S.repDefault = structuredClone(cfg); b.dataset.armed = ""; b.textContent = "Make this everyone's default"; toast("Default report saved. People who haven't customized theirs now see it.");
+  });
+  document.querySelectorAll(".rsec").forEach((el) => {
+    const id = el.dataset.rid, idx = cfg.sections.findIndex((x) => x.id === id), sec = cfg.sections[idx];
+    el.querySelectorAll("[data-rmove]").forEach((b) => b.addEventListener("click", () => {
+      const j = idx + +b.dataset.rmove; if (j < 0 || j >= cfg.sections.length) return;
+      [cfg.sections[idx], cfg.sections[j]] = [cfg.sections[j], cfg.sections[idx]]; commit();
+      requestAnimationFrame(() => document.querySelector(`[data-rid="${CSS.escape(id)}"] [data-rmove="${b.dataset.rmove}"]`)?.focus());
+    }));
+    el.querySelector("[data-rhide]")?.addEventListener("click", () => { sec.hidden = !sec.hidden; commit(); });
+    el.querySelectorAll("[data-rwidth]").forEach((b) => b.addEventListener("click", () => { sec.size = b.dataset.rwidth; commit(); }));
+    el.querySelector("[data-rremove]")?.addEventListener("click", (e) => {
+      const b = e.currentTarget; if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm remove"; return; }
+      cfg.sections.splice(idx, 1); cfg.charts = cfg.charts.filter((c) => "c:" + c.id !== id); cfg.texts = cfg.texts.filter((t) => "t:" + t.id !== id); commit();
+    });
+    el.querySelector("[data-redit]")?.addEventListener("click", () => {
+      if (id.startsWith("c:")) {
+        const c = cfg.charts.find((x) => "c:" + x.id === id);
+        return openChartBuilder({ id, spec: c, own: true }, { target: "report", onSave: (spec) => { Object.assign(c, spec); commit(); toast("Chart updated"); } });
+      }
+      const t = cfg.texts.find((x) => "t:" + x.id === id), box = el.querySelector(".rep-text");
+      box.innerHTML = `<label class="field"><span>Heading</span><input data-th maxlength="80" value="${esc(t.heading || "")}"></label>
+        <label class="field"><span>Text</span><textarea data-tb rows="5" maxlength="3000">${esc(t.body || "")}</textarea></label>
+        <div class="row-actions"><button type="button" class="primary" data-tsave>Save text</button><button type="button" data-tcancel>Cancel</button></div>`;
+      box.querySelector("[data-tb]").focus();
+      box.querySelector("[data-tcancel]").addEventListener("click", () => renderReport());
+      box.querySelector("[data-tsave]").addEventListener("click", () => { t.heading = box.querySelector("[data-th]").value.trim(); t.body = box.querySelector("[data-tb]").value; commit(); });
+    });
+  });
 }
 
 // ── Import a filled-in PEACH workbook (.xlsx) ──
@@ -3553,7 +3696,7 @@ function drawDashboard() {
 document.addEventListener("click", (e) => { document.querySelectorAll("details.menu[open]").forEach((m) => { if (!m.contains(e.target)) m.open = false; }); });
 
 // ── Chart builder ──
-function openChartBuilder(w = null) {
+function openChartBuilder(w = null, opts = {}) {
   const editing = !!w, spec = w ? structuredClone({ ...w.spec, filters: w.spec.filters || {} }) : newSpec();
   const ms = measures(), groups = [...new Set(ms.map((m) => m.group))];
   const values = (k) => { const D = DIMS[k], seen = new Map(); for (const a of S.dash.apps) { const v = D.get(a); if (!seen.has(v)) seen.set(v, D.fmt ? D.fmt(v) : v || "Not set"); }
@@ -3588,12 +3731,12 @@ function openChartBuilder(w = null) {
           <fieldset class="field"><legend class="label">Height</legend><div class="chips">${HEIGHTS.map(([k, l]) =>
             `<label class="chip check-chip"><input type="radio" name="b-height" value="${k}" ${okHeight(spec.height) === k ? "checked" : ""}>${l}</label>`).join("")}</div></fieldset>
         </div>
-        ${isStaff() && !editing ? `<label class="check"><input type="checkbox" id="b-share">Share with everyone (reviewers and staff see it on their dashboard)</label>` : ""}
+        ${isStaff() && !editing && !opts.onSave ? `<label class="check"><input type="checkbox" id="b-share">Share with everyone (reviewers and staff see it on their dashboard)</label>` : ""}
         <p class="b-hint muted small" id="b-hint" role="status"></p>
       </div>
       <div class="builder-preview"><p class="label">Preview</p><h3 class="pv-title" id="b-pvtitle"></h3><p class="muted small" id="b-pvsub"></p><div class="chart" id="b-chart"></div></div>
     </div>
-    <div class="builder-foot">${editing && w.shared ? `<span class="muted small">Changes apply to everyone's dashboard.</span>` : ""}<button type="button" data-close>Cancel</button><button type="submit" class="primary" id="b-save">${editing ? "Save chart" : "Add to dashboard"}</button></div>
+    <div class="builder-foot">${editing && w.shared ? `<span class="muted small">Changes apply to everyone's dashboard.</span>` : ""}<button type="button" data-close>Cancel</button><button type="submit" class="primary" id="b-save">${editing ? "Save chart" : opts.target === "report" ? "Add to report" : "Add to dashboard"}</button></div>
   </form>`;
   const $ = (id) => dlg.querySelector("#" + id);
   const read = () => {
@@ -3629,6 +3772,7 @@ function openChartBuilder(w = null) {
     e.preventDefault(); read();
     if (spec.type === "donut" && !isAdditive(spec)) return;
     const clean = { ...spec, title: spec.title || "" };
+    if (opts.onSave) { dlg.close(); opts.onSave(clean); return; }
     if (editing && w.shared) {
       const { id, ...rest } = clean;
       const { error } = await sb.from("shared_charts").update({ spec: rest }).eq("chart_id", w.row.chart_id);
