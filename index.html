@@ -896,6 +896,81 @@ button.danger-fill { background: var(--bad); border-color: var(--bad); color: #f
   .who { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ═══ Streamlined layer: same brand, less noise ═══ */
+main { padding-block: 24px 64px; }
+h1 { font-size: clamp(1.55rem, 3vw, 2.05rem); text-transform: none; letter-spacing: -.005em; }
+.auth-intro h1, .cert-level { text-transform: var(--hcase); }
+h2 { font-size: 1.12rem; }
+.page-head { margin-bottom: 18px; align-items: flex-end; }
+.page-head > div { gap: 4px; }
+.page-head > div > p.muted { font-size: .92rem; }
+.eyebrow { font-size: .68rem; }
+.bar { box-shadow: inset 0 -2px 0 var(--hl); }
+.bar .wrap { padding-block: 8px; gap: 12px 20px; }
+.brand .bname { font-size: .72rem; }
+.nav { gap: 2px; align-items: center; }
+.nav a, .nav-menu > summary { padding: 7px 11px; border-radius: 8px; font-size: .9rem; font-weight: 600; color: var(--muted); }
+.nav a:hover, .nav-menu > summary:hover { color: var(--ink); }
+.nav a[aria-current="page"], .nav-menu > summary.on { color: var(--ink); background: var(--sunk); }
+.nav-menu > summary { list-style: none; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.nav-menu > summary::-webkit-details-marker, .me-menu > summary::-webkit-details-marker { display: none; }
+.nav-menu .menu-list { left: 0; right: auto; min-width: 240px; }
+.nav-menu .menu-list a, .me-menu .menu-list a, .me-menu .menu-list button { display: grid; gap: 1px; padding: 8px 10px; border-radius: 6px; text-decoration: none; color: var(--ink); font-size: .9rem; font-weight: 500; background: none; border: 0; text-align: left; width: 100%; }
+.nav-menu .menu-list a small { color: var(--muted); font-size: .78rem; font-weight: 400; }
+.nav-menu .menu-list a:hover, .me-menu .menu-list a:hover, .me-menu .menu-list button:hover { background: var(--accent-soft); }
+.nav-menu .menu-list a[aria-current="page"] b { color: var(--accent); }
+.who { gap: 8px; }
+.me-menu > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 999px; font-weight: 600; font-size: .9rem; }
+.me-menu > summary:hover { background: var(--sunk); }
+.me-menu .avatar { width: 30px; height: 30px; font-size: .74rem; }
+.me-menu .menu-list { min-width: 230px; }
+.me-head { display: grid; gap: 2px; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.me-head small { color: var(--muted); overflow-wrap: anywhere; }
+@media (max-width: 640px) { .me-name { display: none; } }
+
+button, .btn { border-radius: 8px; padding: 9px 13px; font-size: .88rem; }
+input, select, textarea { border-radius: 8px; }
+.panel { border-color: color-mix(in srgb, var(--line) 75%, var(--surface)); border-radius: 12px; box-shadow: 0 1px 2px rgb(30 38 29 / .04); }
+.block-head { border-bottom: 0; padding: 16px 20px 4px; align-items: baseline; }
+.block-head .muted { font-size: .84rem; }
+.block-body { padding: 12px 20px 20px; }
+.block-head + .table-scroll, .block-head + div > .table-scroll { margin-top: 8px; }
+th { font: 600 .76rem/1.2 var(--body); letter-spacing: 0; text-transform: none; padding: 10px 14px; border-bottom-color: var(--line); }
+td { padding: 11px 14px; border-bottom-color: color-mix(in srgb, var(--line) 60%, var(--surface)); }
+tbody tr:last-child td { border-bottom: 0; }
+.kpis { gap: 0; }
+.kpi { border-right-color: color-mix(in srgb, var(--line) 60%, var(--surface)); padding: 16px 18px; }
+.kpi strong { font-size: 1.75rem; }
+.toolbar { gap: 8px; }
+.chip { padding: 6px 11px; font-size: .82rem; }
+.tally > div { border-right-color: color-mix(in srgb, var(--line) 60%, var(--surface)); }
+.q { padding: 14px 20px; border-top-color: color-mix(in srgb, var(--line) 60%, var(--surface)); }
+.dept { border-top-color: color-mix(in srgb, var(--line) 70%, var(--surface)); }
+.actions { box-shadow: 0 -6px 18px rgb(30 38 29 / .06); }
+.back { font-size: .88rem; margin-bottom: 10px; }
+.dboard { gap: 18px; }
+.xf-bar { margin-top: -4px; }
+/* Read-only fields read like text, not greyed-out boxes */
+input:disabled:not([type=radio]):not([type=checkbox]), select:disabled, textarea:disabled { background: transparent; border-color: transparent; color: var(--ink); padding-left: 0; padding-right: 0; -webkit-text-fill-color: var(--ink); opacity: 1; resize: none; }
+select:disabled { appearance: none; }
+.q-ans input:disabled + *, .yn input:disabled { cursor: default; }
+.bar-row > b { font: 600 .86rem/1.25 var(--body); letter-spacing: 0; text-transform: none; }
+.bar-row > b .muted { font-weight: 400; }
+.dept-head h3 { font-size: .95rem; letter-spacing: .02em; text-transform: none; font-weight: 700; }
+.answerer { border-top-color: color-mix(in srgb, var(--line) 60%, var(--surface)); }
+.practice { border-top-color: color-mix(in srgb, var(--line) 60%, var(--surface)); }
+.practice .track { height: 4px; }
+.tag { border-color: color-mix(in srgb, var(--line) 70%, var(--surface)); }
+td.mono { white-space: nowrap; font-size: .86rem; }
+th.num { font-family: var(--body); }
+@media (max-width: 640px) {
+  .bar .wrap { row-gap: 6px; }
+  .bar .who { order: 2; margin-left: auto; }
+  .bar .nav { order: 3; width: 100%; flex-wrap: wrap; margin-inline: -4px; }
+  .nav-menu .menu-list { right: auto; left: 0; }
+  .bar .nav a, .bar .nav-menu > summary { white-space: nowrap; }
+  .xf-bar > span.muted { display: none; }
+}
 </style>
 </head>
 <body>
@@ -1288,11 +1363,20 @@ function renderBar() {
   const h = location.hash.slice(1);
   const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" || h === "design-certificate" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || h === "report" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
+  const settingsOn = ["questions", "people", "design"].includes(cur);
+  const sItem = (key, href, label, hint) => `<a role="menuitem" href="${href}" ${cur === key ? 'aria-current="page"' : ""}><b>${label}</b><small>${hint}</small></a>`;
+  const name = S.me ? S.me.full_name || S.me.email : "";
   document.getElementById("bar").innerHTML = `
     ${brandHTML()}
-    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#analysis", "Analysis") : ""}${link("list", "#applications", "Applications")}${isStaff() ? link("questions", "#questions", "Questions") + link("people", "#admin", "Admin") + link("design", "#design", "Design") : ""}</nav>
-    <div class="who"><div class="bell-wrap" id="bell"></div><a class="me-link" href="#account" title="My account">${esc(S.me.full_name || S.me.email)}</a><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
+    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#analysis", "Analysis") : ""}${link("list", "#applications", "Applications")}
+      ${isStaff() ? `<details class="menu nav-menu"><summary class="${settingsOn ? "on" : ""}">Settings <span aria-hidden="true">▾</span></summary>
+        <div class="menu-list" role="menu">${sItem("questions", "#questions", "Questions", "PEACH actions, levels, versions")}${sItem("people", "#admin", "Admin", "Users, contacts, companies")}${sItem("design", "#design", "Design", "Portal look and certificate")}</div></details>` : ""}</nav>
+    <div class="who"><div class="bell-wrap" id="bell"></div>
+      <details class="menu me-menu"><summary aria-label="Account: ${esc(name)}"><span class="avatar">${esc(initials(name))}</span><span class="me-name">${esc(name.split(" ")[0] || name)}</span><span aria-hidden="true">▾</span></summary>
+        <div class="menu-list" role="menu"><div class="me-head"><b>${esc(name)}</b><small>${esc(S.me.email || "")} · ${esc(S.me.role)}</small></div>
+          <a role="menuitem" href="#account">My account</a><button role="menuitem" type="button" id="signOut">Sign out</button></div></details></div>` : ""}`;
   document.getElementById("signOut")?.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = ""; });
+  document.querySelectorAll(".bar details.menu a").forEach((a) => a.addEventListener("click", () => a.closest("details").removeAttribute("open")));
   if (S.me) drawBell();
 }
 
