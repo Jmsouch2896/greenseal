@@ -1033,6 +1033,43 @@ th.num { font-family: var(--body); }
   .cmp-layout { grid-template-columns: minmax(0, 1fr); }
   .cmp-side { position: static; max-height: none; }
 }
+/* Map */
+.map-controls { display: flex; gap: 14px 22px; flex-wrap: wrap; align-items: end; padding: 14px 18px; margin-bottom: 16px; }
+.map-controls .field { min-width: 150px; }
+.map-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+.map-panel { padding: 14px 16px; display: grid; gap: 10px; }
+.map-chart { position: relative; }
+.map-svg { display: block; width: 100%; height: auto; }
+.rgn { stroke: none; cursor: default; }
+.rgn[data-k]:not([data-k=""]) { cursor: pointer; }
+.rgn:hover { filter: brightness(.96); }
+.rgn.sel { stroke: var(--ink); stroke-width: 1.5; }
+.rgn-mesh { fill: none; stroke: var(--surface); stroke-width: .8; pointer-events: none; }
+.ch0 { fill: var(--sunk); background: var(--sunk); }
+.ch1 { fill: color-mix(in srgb, var(--accent) 30%, var(--surface)); background: color-mix(in srgb, var(--accent) 30%, var(--surface)); }
+.ch2 { fill: color-mix(in srgb, var(--accent) 46%, var(--surface)); background: color-mix(in srgb, var(--accent) 46%, var(--surface)); }
+.ch3 { fill: color-mix(in srgb, var(--accent) 62%, var(--surface)); background: color-mix(in srgb, var(--accent) 62%, var(--surface)); }
+.ch4 { fill: color-mix(in srgb, var(--accent) 80%, var(--surface)); background: color-mix(in srgb, var(--accent) 80%, var(--surface)); }
+.ch5 { fill: var(--accent); background: var(--accent); }
+.spot { fill: var(--hl); stroke: var(--ink); stroke-width: 1.2; fill-opacity: .9; }
+.spot:hover { fill-opacity: 1; stroke-width: 2; }
+.map-legend { display: grid; gap: 6px; font-size: .84rem; }
+.ml-steps { display: flex; gap: 6px 14px; flex-wrap: wrap; }
+.ml-steps span { display: inline-flex; align-items: center; gap: 6px; }
+.ml-steps i { width: 18px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+.map-side { padding: 14px 16px; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+.ms-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.ms-head h2 { font-size: 1.05rem; }
+.ms-rank { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: .9rem; }
+.ms-rank li { display: grid; grid-template-columns: 1.4em minmax(0, 1fr) auto; gap: 8px; align-items: baseline; }
+.ms-rank li > .link { text-align: left; }
+.ms-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.ms-list li { display: grid; gap: 2px 8px; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-bottom: 8px; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, var(--surface)); }
+.ms-list li .small { grid-column: 1; }
+.ms-list li > :last-child { grid-column: 2; grid-row: 1 / span 2; }
+.map-note { margin: 0; }
+.geo-line { margin: 0; font-size: .9rem; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+@media (max-width: 900px) { .map-layout { grid-template-columns: minmax(0, 1fr); } .map-side { position: static; max-height: none; } }
 </style>
 </head>
 <body>
@@ -1404,6 +1441,7 @@ function route() {
   if (h === "new") return openApp(null);
   const certM = h.match(/^cert-(\d+)$/); if (certM) return renderCertificate(+certM[1]);
   if (h === "report" && isReviewerish()) return renderReport();
+  if (h === "map" && isReviewerish()) return renderMap();
   if (m) return openApp(+m[1]);
   if ((h === "admin" || h === "people") && isStaff()) return renderPeople("users");
   if (h === "contacts" && isStaff()) return renderPeople("contacts");
@@ -1423,14 +1461,14 @@ function route() {
 
 function renderBar() {
   const h = location.hash.slice(1);
-  const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" || h === "design-certificate" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || h === "report" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" || h === "design-certificate" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "map" ? "map" : h === "dashboard" || h === "report" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
   const settingsOn = ["questions", "people", "design"].includes(cur);
   const sItem = (key, href, label, hint) => `<a role="menuitem" href="${href}" ${cur === key ? 'aria-current="page"' : ""}><b>${label}</b><small>${hint}</small></a>`;
   const name = S.me ? S.me.full_name || S.me.email : "";
   document.getElementById("bar").innerHTML = `
     ${brandHTML()}
-    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#analysis", "Analysis") : ""}${link("list", "#applications", "Applications")}
+    ${S.me ? `<nav class="nav" aria-label="Main">${isReviewerish() ? link("dashboard", "#dashboard", "Dashboard") + link("compare", "#analysis", "Analysis") + link("map", "#map", "Map") : ""}${link("list", "#applications", "Applications")}
       ${isStaff() ? `<details class="menu nav-menu"><summary class="${settingsOn ? "on" : ""}">Settings <span aria-hidden="true">▾</span></summary>
         <div class="menu-list" role="menu">${sItem("questions", "#questions", "Questions", "PEACH actions, levels, versions")}${sItem("people", "#admin", "Admin", "Users, contacts, companies")}${sItem("design", "#design", "Design", "Portal look and certificate")}</div></details>` : ""}</nav>
     <div class="who"><div class="bell-wrap" id="bell"></div>
@@ -1731,6 +1769,159 @@ function drawCertActions() {
     if (error) return fail(error);
     S.certCfg = value; toast("Certificate design saved"); renderCertDesign();
   });
+}
+
+// ── Geography: geocoded locations and the map ──
+function geoLine(app) {
+  if (!app.production_location) return "";
+  const place = [app.geo_city, app.geo_region, app.geo_country].filter(Boolean).join(", ");
+  if (place) return `<p class="geo-line" style="grid-column:1/-1"><span aria-hidden="true">📍</span> ${esc(place)}${app.geo_lat != null ? ` <span class="muted mono small">${(+app.geo_lat).toFixed(3)}, ${(+app.geo_lng).toFixed(3)}</span>` : ""}
+    <span class="muted small">· ${app.geo_source === "nominatim" ? "located with OpenStreetMap" : "located"}</span>${isReviewerish() ? ` <button type="button" class="link small" id="regeo">Look up again</button>` : ""}</p>`;
+  if (app.geocoded_query) return `<p class="geo-line warn-txt" style="grid-column:1/-1">Couldn't find "${esc(app.production_location)}" on the map. Try "City, State" or "City, Country".${isReviewerish() ? ` <button type="button" class="link small" id="regeo">Look up again</button>` : ""}</p>`;
+  return `<p class="geo-line muted small" style="grid-column:1/-1">The location is placed on the map after saving.${isReviewerish() ? ` <button type="button" class="link small" id="regeo">Look it up now</button>` : ""}</p>`;
+}
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest?.("#regeo"); if (!b || !S.current?.app?.production_id) return;
+  b.disabled = true; b.textContent = "Looking up…";
+  const { data, error } = await sb.functions.invoke("geocode", { body: { production_id: S.current.app.production_id, force: true } });
+  if (error || data?.error) { b.disabled = false; b.textContent = "Look up again"; return fail(error || new Error(data.error)); }
+  toast(data?.geo ? `Located: ${[data.geo.geo_city, data.geo.geo_region, data.geo.geo_country].filter(Boolean).join(", ")}` : "Couldn't find that place");
+  openApp(S.current.app.production_id);
+});
+// ISO 3166-1 alpha-2 → numeric (world-atlas ids) for common production countries; others match by name.
+const ISO_NUM = { US: "840", CA: "124", MX: "484", GB: "826", IE: "372", FR: "250", DE: "276", ES: "724", PT: "620", IT: "380", NL: "528", BE: "056", CH: "756", AT: "040",
+  DK: "208", NO: "578", SE: "752", FI: "246", IS: "352", PL: "616", CZ: "203", HU: "348", RO: "642", BG: "100", GR: "300", HR: "191", RS: "688", SI: "705", SK: "703",
+  UA: "804", TR: "792", MA: "504", EG: "818", ZA: "710", KE: "404", NG: "566", GH: "288", AE: "784", IL: "376", JO: "400", SA: "682", IN: "356", CN: "156", JP: "392",
+  KR: "410", TW: "158", HK: "344", TH: "764", VN: "704", MY: "458", SG: "702", PH: "608", ID: "360", AU: "036", NZ: "554", BR: "076", AR: "032", CL: "152", CO: "170",
+  PE: "604", CR: "188", PA: "591", DO: "214", JM: "388", CU: "192", PR: "630", BS: "044", MT: "470", CY: "196", LU: "442", EE: "233", LV: "428", LT: "440", GE: "268" };
+const MAP_LIBS = ["https://cdn.jsdelivr.net/npm/d3-array@3.2.4/dist/d3-array.min.js", "https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/dist/d3-geo.min.js", "https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"];
+const MAP_DATA = { world: "https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json", us: "https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/states-10m.json" };
+function loadScript(src) { return new Promise((res, rej) => { const x = document.createElement("script"); x.src = src; x.onload = res; x.onerror = () => rej(new Error("Couldn't load the map tools. Check your connection.")); document.head.appendChild(x); }); }
+async function loadMapKit(view) {
+  if (!window.d3?.geoPath) { for (const src of MAP_LIBS) await loadScript(src); }
+  S.mapTopo ||= {};
+  if (!S.mapTopo[view]) { const r = await fetch(MAP_DATA[view]); if (!r.ok) throw new Error("Couldn't load the map outlines."); S.mapTopo[view] = await r.json(); }
+  const topo = S.mapTopo[view], obj = view === "world" ? topo.objects.countries : topo.objects.states;
+  const fc = window.topojson.feature(topo, obj);
+  if (view === "world") fc.features = fc.features.filter((f) => f.id !== "010"); // Antarctica
+  return { fc, mesh: window.topojson.mesh(topo, obj, (a, b) => a !== b) };
+}
+const normName = (n) => String(n || "").toLowerCase().replace(/^the /, "").replace(/[^a-z]/g, "");
+const NAME_ALIAS = { unitedstatesofamerica: "unitedstates", unitedstates: "unitedstates", czechia: "czechrepublic", demrepcongo: "democraticrepublicofthecongo", bosniaandherz: "bosniaandherzegovina", dominicanrep: "dominicanrepublic" };
+const nameKey = (n) => NAME_ALIAS[normName(n)] || normName(n);
+S.map = { view: "world", measure: "count", agg: "avg", set: "submitted", points: true, table: false, sel: null };
+async function renderMap() {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading the map…</p>`;
+  const [p, r] = await Promise.all([
+    sb.from("productions").select("*"),
+    fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer,wrap_points").order("response_id")),
+  ]);
+  if (p.error || r.error) return fail(p.error || r.error);
+  const respBy = {}; for (const x of r.data) (respBy[x.production_id] ||= {})[x.question_id] = x;
+  S.mapData = p.data.filter((a) => appVersion(a) === S.formCurrent || !a.form_version);
+  S.dash = { ...(S.dash || {}), allApps: S.mapData, apps: S.mapData, by: answersByApp(r.data), respBy };
+  drawMap();
+}
+async function drawMap() {
+  const M = S.map, ms = measures().filter((m) => !m.key.startsWith("cat:")), meas = ms.find((m) => m.key === M.measure) || ms[0];
+  const sets = { submitted: ["Submitted applications", (a) => a.status !== "draft"], certified: ["Certified productions", (a) => !!a.cert_level], all: ["All applications", () => true] };
+  const apps = S.mapData.filter(sets[M.set][1]);
+  const located = apps.filter((a) => a.geo_country_code || a.geo_country);
+  const missing = apps.filter((a) => !a.geo_country_code && !a.geo_country && a.production_location);
+  // Group by country (world) or state (US).
+  const keyOf = M.view === "world" ? (a) => a.geo_country_code || nameKey(a.geo_country) : (a) => (a.geo_country_code === "US" && a.geo_region ? nameKey(a.geo_region) : null);
+  const labelOf = M.view === "world" ? (a) => a.geo_country : (a) => a.geo_region;
+  const groups = new Map();
+  for (const a of located) { const k = keyOf(a); if (!k) continue; if (!groups.has(k)) groups.set(k, { key: k, label: labelOf(a), list: [] }); groups.get(k).list.push(a); }
+  const valueOf = (list) => (meas.key === "count" ? list.length : meas.groupFn ? meas.groupFn(list) : aggregate(list.map((a) => meas.get(a, "wrap")).filter((v) => v != null && isFinite(v)), M.agg));
+  for (const g of groups.values()) { g.value = valueOf(g.list); g.n = g.list.length; }
+  const vals = [...groups.values()].map((g) => g.value).filter((v) => v != null);
+  const lo = meas.key === "count" ? 0 : Math.min(...vals), hi = Math.max(...vals, 0);
+  const steps = 5, bin = (v) => (v == null ? 0 : hi === lo ? steps : Math.min(steps, 1 + Math.floor(((v - lo) / (hi - lo)) * steps * 0.9999)));
+  const edges = Array.from({ length: steps + 1 }, (_, i) => lo + ((hi - lo) * i) / steps);
+  const fmtV = (v) => fmtVal(v, meas);
+  const outside = M.view === "us" ? located.filter((a) => a.geo_country_code !== "US").length : 0;
+  $app.innerHTML = `
+    <div class="page-head"><div><p class="eyebrow">Where productions shoot</p><h1>Map</h1></div>
+      <div class="export">${isStaff() && missing.length ? `<button id="geoMissing">Locate ${missing.length} missing</button>` : ""}<button id="mapTable" aria-pressed="${M.table}">${M.table ? "Show map" : "Show table"}</button></div></div>
+    <div class="panel map-controls">
+      <div class="field"><span>Area</span><div class="seg unit-seg" role="group" aria-label="Area">${[["world", "Countries"], ["us", "U.S. states"]].map(([k, l]) => `<button type="button" data-mview="${k}" aria-pressed="${M.view === k}">${l}</button>`).join("")}</div></div>
+      <label class="field"><span>Shade by</span><select id="mMeasure">${ms.map((m) => `<option value="${esc(m.key)}" ${m.key === meas.key ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select></label>
+      ${meas.noAgg ? "" : `<label class="field"><span>Combine as</span><select id="mAgg">${AGGS.map(([k, l]) => `<option value="${k}" ${M.agg === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>`}
+      <label class="field"><span>Include</span><select id="mSet">${Object.entries(sets).map(([k, [l]]) => `<option value="${k}" ${M.set === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="check"><input type="checkbox" id="mPoints" ${M.points ? "checked" : ""}>Show each production</label>
+    </div>
+    <div class="map-layout">
+      <section class="panel map-panel"><div class="map-legend" id="mapLegend"></div><div class="chart map-chart" id="mapBox"><p class="loading">Drawing…</p></div>
+        <p class="muted small map-note">${located.length} of ${apps.length} productions placed${outside ? ` · ${outside} outside the U.S.` : ""}${missing.length ? ` · ${missing.length} not located yet` : ""}. Boundaries: Natural Earth (world-atlas, us-atlas). Locations: © OpenStreetMap contributors.</p></section>
+      <aside class="panel map-side" id="mapSide"></aside>
+    </div>`;
+  // Legend
+  document.getElementById("mapLegend").innerHTML = `<b>${esc(meas.label)}${meas.noAgg ? "" : ` · ${esc(AGGS.find(([k]) => k === M.agg)[1].toLowerCase())}`}</b>
+    <div class="ml-steps">${Array.from({ length: steps }, (_, i) => `<span><i class="ch${i + 1}"></i>${esc(fmtV(edges[i]))}${i === steps - 1 ? `–${esc(fmtV(edges[steps]))}` : ""}</span>`).join("")}<span><i class="ch0"></i>No productions</span></div>`;
+  const side = (g) => {
+    const el = document.getElementById("mapSide");
+    const list = g ? g.list : [...groups.values()].sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
+    el.innerHTML = g ? `<div class="ms-head"><h2>${esc(g.label)}</h2><button type="button" class="link small" id="msBack">All ${M.view === "world" ? "countries" : "states"}</button></div>
+        <p class="muted small">${esc(meas.label)}: <b>${esc(fmtV(g.value))}</b> · ${g.n} production${g.n === 1 ? "" : "s"}</p>
+        <ul class="ms-list">${g.list.map((a) => `<li><a href="#app-${a.production_id}">${esc(a.production_name)}</a><span class="muted small">${esc([a.geo_city, a.geo_region].filter(Boolean).join(", "))}</span>${a.cert_level ? sealBadge(a.cert_level) : pill(a.status)}</li>`).join("")}</ul>`
+      : `<div class="ms-head"><h2>${M.view === "world" ? "Countries" : "States"}</h2></div>
+        <ol class="ms-rank">${list.map((x, i) => `<li><span class="muted mono">${i + 1}</span><button type="button" class="link" data-mkey="${esc(x.key)}">${esc(x.label)}</button><span class="mono">${esc(fmtV(x.value))}${meas.key === "count" ? "" : `<span class="muted small"> · ${x.n}</span>`}</span></li>`).join("") || `<li class="muted">No located productions.</li>`}</ol>`;
+    el.querySelector("#msBack")?.addEventListener("click", () => { M.sel = null; side(null); document.querySelectorAll(".rgn.sel").forEach((x) => x.classList.remove("sel")); });
+    el.querySelectorAll("[data-mkey]").forEach((b) => b.addEventListener("click", () => { M.sel = b.dataset.mkey; side(groups.get(M.sel)); document.querySelectorAll(".rgn").forEach((x) => x.classList.toggle("sel", x.dataset.k === M.sel)); }));
+  };
+  side(M.sel ? groups.get(M.sel) : null);
+  // Controls
+  document.querySelectorAll("[data-mview]").forEach((b) => b.addEventListener("click", () => { M.view = b.dataset.mview; M.sel = null; drawMap(); }));
+  document.getElementById("mMeasure").addEventListener("change", (e) => { M.measure = e.target.value; drawMap(); });
+  document.getElementById("mAgg")?.addEventListener("change", (e) => { M.agg = e.target.value; drawMap(); });
+  document.getElementById("mSet").addEventListener("change", (e) => { M.set = e.target.value; drawMap(); });
+  document.getElementById("mPoints").addEventListener("change", (e) => { M.points = e.target.checked; drawMap(); });
+  document.getElementById("mapTable").addEventListener("click", () => { M.table = !M.table; drawMap(); });
+  document.getElementById("geoMissing")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget; b.disabled = true; let ok = 0;
+    for (const [i, a] of missing.entries()) {
+      b.textContent = `Locating ${i + 1} of ${missing.length}…`;
+      const { data } = await sb.functions.invoke("geocode", { body: { production_id: a.production_id, force: true } });
+      if (data?.geo) ok++;
+      await new Promise((r) => setTimeout(r, 1100)); // the map service allows about one lookup a second
+    }
+    toast(`Located ${ok} of ${missing.length}`); renderMap();
+  });
+  const box = document.getElementById("mapBox");
+  if (M.table) {
+    box.innerHTML = `<div class="table-scroll"><table class="ctable"><thead><tr><th>${M.view === "world" ? "Country" : "State"}</th><th class="num">${esc(meas.label)}</th><th class="num">Productions</th></tr></thead>
+      <tbody>${[...groups.values()].sort((a, b) => (b.value ?? -1) - (a.value ?? -1)).map((g) => `<tr><td>${esc(g.label)}</td><td class="num mono">${esc(fmtV(g.value))}</td><td class="num mono">${g.n}</td></tr>`).join("") || `<tr><td colspan="3" class="muted">No located productions.</td></tr>`}</tbody></table></div>`;
+    return;
+  }
+  let kit;
+  try { kit = await loadMapKit(M.view); } catch (err) { box.innerHTML = `<p class="muted">${esc(friendly(err))}</p>`; return; }
+  const W = Math.max(300, box.clientWidth), H = Math.round(W * (M.view === "world" ? 0.5 : 0.62));
+  const proj = M.view === "world" ? d3.geoEqualEarth().fitSize([W, H], kit.fc) : d3.geoAlbersUsa().fitSize([W, H], kit.fc);
+  const path = d3.geoPath(proj);
+  const featKey = (f) => (M.view === "world" ? Object.keys(ISO_NUM).find((c) => ISO_NUM[c] === f.id) || nameKey(f.properties.name) : nameKey(f.properties.name));
+  const groupFor = (f) => groups.get(featKey(f)) || (M.view === "world" ? groups.get(nameKey(f.properties.name)) : null);
+  let svg = `<svg class="map-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(meas.label)} by ${M.view === "world" ? "country" : "state"}: ${esc([...groups.values()].map((g) => `${g.label} ${fmtV(g.value)}`).join("; "))}">`;
+  for (const f of kit.fc.features) {
+    const g = groupFor(f), d = path(f); if (!d) continue;
+    const tip = g ? `<b>${esc(g.label)}</b><br>${esc(meas.label)}: <b>${esc(fmtV(g.value))}</b><br>${g.n} production${g.n === 1 ? "" : "s"}` : `${esc(f.properties.name)}: no productions`;
+    svg += `<path class="rgn ch${g ? bin(g.value) : 0} ${g && g.key === M.sel ? "sel" : ""}" d="${d}" data-k="${esc(g?.key || "")}" data-tip="${tip}"/>`;
+  }
+  svg += `<path class="rgn-mesh" d="${path(kit.mesh)}"/>`;
+  if (M.points) {
+    const spots = new Map();
+    for (const a of located) { if (a.geo_lat == null || (M.view === "us" && a.geo_country_code !== "US")) continue; const xy = proj([+a.geo_lng, +a.geo_lat]); if (!xy) continue; const k = xy.map((v) => Math.round(v)).join(","); if (!spots.has(k)) spots.set(k, { xy, list: [] }); spots.get(k).list.push(a); }
+    for (const { xy, list } of spots.values()) {
+      const tip = `<b>${esc([list[0].geo_city, list[0].geo_region].filter(Boolean).join(", ") || list[0].production_location)}</b><br>${list.slice(0, 6).map((a) => esc(a.production_name)).join("<br>")}${list.length > 6 ? `<br>+${list.length - 6} more` : ""}`;
+      svg += `<circle class="spot" cx="${xy[0]}" cy="${xy[1]}" r="${Math.min(14, 4 + Math.sqrt(list.length) * 2)}" data-tip="${tip}"/>`;
+    }
+  }
+  box.innerHTML = svg + "</svg>";
+  box.querySelectorAll(".rgn[data-k]").forEach((el) => el.addEventListener("click", () => {
+    if (!el.dataset.k) return; M.sel = M.sel === el.dataset.k ? null : el.dataset.k;
+    box.querySelectorAll(".rgn").forEach((x) => x.classList.toggle("sel", !!M.sel && x.dataset.k === M.sel)); side(M.sel ? groups.get(M.sel) : null);
+  }));
 }
 
 // ── Leadership report (printable) ──
@@ -2744,7 +2935,7 @@ function drawApp() {
     <div class="panel tally" id="tally"></div>
     <form id="appForm" novalidate>
       <section class="panel block"><div class="block-head"><h2>Production details</h2>${P.details ? "" : '<span class="muted">Locked after submission</span>'}</div>
-        <div class="block-body grid">${details}</div></section>
+        <div class="block-body grid">${details}${isNew ? "" : geoLine(app)}</div></section>
       <section class="panel block"><div class="block-head"><h2>Production footprint</h2>${app.footprint_is_sample ? '<span class="tag">Sample figures</span>' : '<span class="muted">Totals for the whole shoot, at wrap</span>'}</div>
         <div class="block-body grid">${FOOTPRINT.map(([k, label, unit]) => `
           <label class="field"><span>${esc(label)}${unit ? ` <span class="muted">(${esc(unit)})</span>` : ""}</span>
@@ -3008,6 +3199,9 @@ async function saveApp({ submit = false } = {}) {
         if (error) throw error;
       }
       if (det.studio_affiliation) await ensureCompany(det.studio_affiliation, "studio");
+      if ((det.production_location || "") !== (app.geocoded_query || "") ) {
+        try { await sb.functions.invoke("geocode", { body: { production_id: id } }); } catch (e) { console.warn("Geocoding failed", e); }
+      }
     }
     // Who answered: department level, then per-answer overrides.
     const byQ = {};
@@ -3207,7 +3401,8 @@ const DIMS = {
   type: { label: "Production type", get: (a) => a.production_type || "Not set" },
   sub: { label: "Format", get: (a) => a.production_sub_type || "Not set" },
   studio: { label: "Studio", get: (a) => a.studio_affiliation || "Not set" },
-  region: { label: "State / province", get: (a) => regionOf(a.production_location) },
+  region: { label: "State / province", get: (a) => regionOfApp(a) },
+  country: { label: "Country", get: (a) => a.geo_country || "Unknown" },
   status: { label: "Status", get: (a) => a.status, fmt: (v) => STATUS[v] || v, order: (v) => Object.keys(STATUS).indexOf(v) },
   reviewer: { label: "Reviewer", get: (a) => a.assigned_reviewer || "", fmt: (v) => (v ? personName(v) || "Unknown" : "Unassigned") },
   month: { label: "Submission month", time: true, get: (a) => (a.submission_date || "").slice(0, 7),
@@ -3491,7 +3686,7 @@ function widgetTitle(w) { return w.builtin ? DASH_BUILTIN[w.id].title : w.spec.t
 // ── Dashboard cross-filters: click or brush any chart; filters apply to every widget ──
 // S.dashFilter = { dim: [keys] }. A chart grouped by a filtered dimension keeps all of its
 // groups and highlights the selected ones; everything else shows only matching applications.
-const XF_DIMS = ["status", "type", "sub", "studio", "region", "reviewer", "level", "timing", "compliance", "band", "month", "quarter"];
+const XF_DIMS = ["status", "type", "sub", "studio", "country", "region", "reviewer", "level", "timing", "compliance", "band", "month", "quarter"];
 const xfOn = () => Object.keys(S.dashFilter || {}).some((k) => S.dashFilter[k]?.length);
 const xfHas = (dim, key) => !!S.dashFilter?.[dim]?.includes(key);
 const xfSel = (dim, key) => (S.dashFilter?.[dim]?.length ? (xfHas(dim, key) ? "xf-on" : "xf-dim") : "");
@@ -3848,15 +4043,17 @@ function typeIcon(k) {
 // series can sit in the same group. Filters narrow which productions are
 // compared; the department filter narrows which practices count.
 S.cmp = { mode: "compliance", threshold: 75, thresholdPts: null, unit: "pct", stage: "wrap", q: null, metric: "co2" };
-const emptyCmpFilters = () => ({ sel: { type: [], sub: [], studio: [], loc: [], status: [], rev: [] }, from: "", to: "", dmin: "", dmax: "", depts: [], footprintOnly: false });
+const emptyCmpFilters = () => ({ sel: { type: [], sub: [], studio: [], country: [], loc: [], status: [], rev: [] }, from: "", to: "", dmin: "", dmax: "", depts: [], footprintOnly: false });
 S.cmpF = emptyCmpFilters();
 S.cmpFiltersOpen = (() => { try { return localStorage.getItem("cmpSide") !== "0" && window.innerWidth > 900; } catch { return window.innerWidth > 900; } })();
+const regionOfApp = (a) => a.geo_region || regionOf(a.production_location);
 const regionOf = (loc) => { const parts = (loc || "").split(",").map((x) => x.trim()).filter(Boolean); return parts.length > 1 ? parts[parts.length - 1] : parts[0] || "Not set"; };
 const CMP_FACETS = [
   { key: "type", label: "Production type", get: (a) => a.production_type || "Not set" },
   { key: "sub", label: "Format", get: (a) => a.production_sub_type || "Not set" },
   { key: "studio", label: "Studio", get: (a) => a.studio_affiliation || "Not set" },
-  { key: "loc", label: "State / province", get: (a) => regionOf(a.production_location) },
+  { key: "country", label: "Country", get: (a) => a.geo_country || "Unknown" },
+  { key: "loc", label: "State / province", get: (a) => regionOfApp(a) },
   { key: "status", label: "Status", get: (a) => a.status, fmt: (v) => STATUS[v] || v, order: (v) => Object.keys(STATUS).indexOf(v) },
   { key: "rev", label: "Reviewer", get: (a) => a.assigned_reviewer || "", fmt: (v) => (v ? personName(v) || "Unknown" : "Unassigned") },
 ];
@@ -3865,7 +4062,7 @@ async function renderCompare(qid) {
   renderBar();
   $app.innerHTML = `<p class="loading">Loading productions…</p>`;
   const [p, r] = await Promise.all([
-    sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,production_location,form_version,cert_level,cert_score,review_due,submission_date,assigned_reviewer,status,footprint_is_sample," + FOOTPRINT_COLS).neq("status", "draft"),
+    sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,production_location,geo_city,geo_region,geo_region_code,geo_country,geo_country_code,form_version,cert_level,cert_score,review_due,submission_date,assigned_reviewer,status,footprint_is_sample," + FOOTPRINT_COLS).neq("status", "draft"),
     fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer").order("response_id")),
   ]);
   if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load productions", friendly(e)); return; }
