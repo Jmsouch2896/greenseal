@@ -624,7 +624,7 @@ button.danger-fill:disabled { opacity: .5; }
 /* Compare */
 .practice a { color: var(--ink); text-decoration: none; }
 .practice a:hover { color: var(--accent); text-decoration: underline; }
-.cmp-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto minmax(0, 1fr); gap: 14px; padding: 16px 18px; margin-bottom: 14px; align-items: end; }
+.cmp-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto minmax(0, 1fr); gap: 14px 22px; padding: 16px 18px; margin-bottom: 14px; align-items: end; }
 .cmp-title { font-size: 1.6rem; margin-bottom: 8px; }
 .cmp-filters { margin-bottom: 26px; }
 .fhead { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 12px 18px; }
@@ -677,7 +677,7 @@ button.danger-fill:disabled { opacity: .5; }
 .co2-out output { font-size: .92rem; padding: 6px 0; font-family: var(--body); display: flex; flex-wrap: wrap; gap: 4px 16px; }
 @media (max-width: 760px) { .co2-out { grid-column: auto; } }
 .co2-out output b { font-size: 1.15rem; color: var(--accent); }
-.thresh { display: grid; grid-template-columns: minmax(0, 1fr) 48px; gap: 10px; align-items: center; min-height: 40px; }
+.thresh { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 40px; }
 .thresh input { padding: 0; accent-color: var(--accent); border: 0; background: none; }
 .thresh output { font-weight: 600; text-align: right; }
 .sample-note { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .9rem; color: var(--muted); margin-bottom: 10px; }
@@ -971,6 +971,14 @@ th.num { font-family: var(--body); }
   .bar .nav a, .bar .nav-menu > summary { white-space: nowrap; }
   .xf-bar > span.muted { display: none; }
 }
+.unit-seg { display: inline-flex; }
+.th-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.th-head label { font-size: .82rem; font-weight: 600; color: var(--muted); }
+.unit-seg button { padding: 4px 10px !important; font-size: .78rem !important; }
+#cmp-th-out { white-space: nowrap; min-width: 4.5em; text-align: right; }
+.unit-seg button { border: 0; border-radius: 0; padding: 8px 12px; font-size: .84rem; }
+.unit-seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.cmp-stats strong small.unit { font-size: .55em; color: var(--muted); font-weight: 500; }
 </style>
 </head>
 <body>
@@ -3659,7 +3667,7 @@ function typeIcon(k) {
 // Emissions are compared per shoot day, so a 4-day commercial and a 70-day
 // series can sit in the same group. Filters narrow which productions are
 // compared; the department filter narrows which practices count.
-S.cmp = { mode: "compliance", threshold: 75, stage: "wrap", q: null, metric: "co2" };
+S.cmp = { mode: "compliance", threshold: 75, thresholdPts: null, unit: "pct", stage: "wrap", q: null, metric: "co2" };
 const emptyCmpFilters = () => ({ sel: { type: [], sub: [], studio: [], loc: [], status: [], rev: [] }, from: "", to: "", dmin: "", dmax: "", depts: [], footprintOnly: false });
 S.cmpF = emptyCmpFilters();
 S.cmpFiltersOpen = true;
@@ -3691,12 +3699,17 @@ async function renderCompare(qid) {
 }
 
 const activeQs = () => (S.cmpF.depts.length ? S.qs.filter((q) => S.cmpF.depts.includes(q.department_id)) : S.qs);
-function practiceScore(appId, stage, excludeQ, qs = activeQs()) {
+function practiceScore(appId, stage, excludeQ, qs = activeQs(), unit = S.cmp.unit) {
   const a = S.cmpData.ans[appId] || {}, answers = {};
   for (const [qid, v] of Object.entries(a)) if (v[stage]) answers[qid] = v[stage];
   const sc = peachScore(answers, qs.filter((q) => q.question_id !== excludeQ));
-  return sc.answered ? sc.pct : null;
+  return sc.answered ? (unit === "pts" ? sc.earned : sc.pct) : null;
 }
+// Points: base points available across the departments being counted (Innovation excluded).
+const cmpMaxPts = (qs = activeQs()) => qs.filter((q) => !q.is_innovation).reduce((t, q) => t + (+q.points_possible || 0), 0);
+const cmpUnit = () => S.cmp.unit === "pts";
+const cmpThreshold = () => { if (!cmpUnit()) return S.cmp.threshold; const max = cmpMaxPts(); if (S.cmp.thresholdPts == null || S.cmp.thresholdPts > max) S.cmp.thresholdPts = Math.round((max * S.cmp.threshold) / 100); return S.cmp.thresholdPts; };
+const cmpFmt = (v) => (v == null ? "–" : cmpUnit() ? `${fmt(Math.round(v * 10) / 10)} pts` : `${Math.round(v)}%`);
 
 const avg = (xs) => (xs.length ? xs.reduce((t, v) => t + v, 0) / xs.length : null);
 function groupStats(list, stage, q) {
@@ -3705,7 +3718,7 @@ function groupStats(list, stage, q) {
   const metrics = {};
   for (const m of METRICS) { const vals = list.map(m.get).filter((v) => v != null); metrics[m.key] = { v: avg(vals), n: vals.length }; }
   return {
-    n: list.length, score: s == null ? null : Math.round(s),
+    n: list.length, score: s == null ? null : cmpUnit() ? Math.round(s * 10) / 10 : Math.round(s),
     approved: dec.filter((a) => a.status === "approved").length, decided: dec.length,
     metrics, total: avg(list.map(tonnesCO2).filter((v) => v != null)),
   };
@@ -3774,7 +3787,7 @@ function filterPanel(all, shown) {
 }
 
 function drawCompare() {
-  const { mode, threshold, stage, q } = S.cmp;
+  const { mode, stage, q } = S.cmp, threshold = cmpThreshold();
   const byPractice = mode === "practice";
   const all = S.cmpData.apps;
   const apps = all.filter((a) => passesFilters(a));
@@ -3818,7 +3831,7 @@ function drawCompare() {
       <div class="cmp-stats">
         <div class="lead"><strong>${mfmt(M, g.metrics[M.key].v).replace(/ \S+$/, "") }</strong><small>${M.unit === "%" ? "of waste diverted from landfill" : `${esc(M.unit)} ${esc(M.noun)} per shoot day`}${g.metrics[M.key].n < g.n ? ` (${g.metrics[M.key].n} of ${g.n} reported)` : ""}</small></div>
         ${M.key === "co2" ? `<div><strong>${t1(g.total)}</strong><small>t CO₂ per production</small></div>` : `<div><strong>${t1(g.metrics.co2.v)}</strong><small>t CO₂ per shoot day</small></div>`}
-        <div><strong>${g.score ?? "–"}${g.score != null ? "%" : ""}</strong><small>${byPractice ? "score on other practices" : "practice score"}</small></div>
+        <div><strong>${g.score == null ? "–" : cmpUnit() ? `${fmt(g.score)}<small class="unit"> pts</small>` : g.score + "%"}</strong><small>${byPractice ? "score on other practices" : "practice score"}</small></div>
         <div><strong>${g.decided ? Math.round((g.approved / g.decided) * 100) + "%" : "–"}</strong><small>${g.decided ? `approved (${g.approved} of ${g.decided} decided)` : "none decided yet"}</small></div>
       </div>
       <ul class="cmp-list">${list.map((a) => `<li><a href="#app-${a.production_id}">${esc(a.production_name)}</a><span class="muted">${esc(a.production_type || "")}</span><span class="mono co2-chip">${M.get(a) == null ? "not reported" : mfmt(M, M.get(a)) + (M.unit === "%" ? " diverted" : "/day")}</span>${pill(a.status)}</li>`).join("") || `<li class="muted">None</li>`}</ul>
@@ -3848,14 +3861,16 @@ function drawCompare() {
         const dq = S.qs.filter((x) => x.department_id === d.department_id);
         return dq.length ? `<optgroup label="${esc(d.name)}">${dq.map((x) => `<option value="${x.question_id}" ${x.question_id === q ? "selected" : ""}>${esc(qTitle(x))}</option>`).join("")}</optgroup>` : "";
       }).join("")}</select></label>`
-      : `<label class="field cmp-wide"><span>Compliant at a practice score of at least</span><div class="thresh"><input type="range" id="cmp-th" min="10" max="100" step="5" value="${threshold}"><output class="mono" id="cmp-th-out">${threshold}%</output></div></label>`}
+      : `<div class="field cmp-wide"><div class="th-head"><label for="cmp-th">Compliant at a practice score of at least</label><div class="seg unit-seg" role="group" aria-label="Score as">${[["pct", "%"], ["pts", "Points"]].map(([k, l]) => `<button type="button" data-unit="${k}" aria-pressed="${S.cmp.unit === k}" title="${k === "pct" ? "Percent of points available" : "Points earned"}">${l}</button>`).join("")}</div></div><div class="thresh">${cmpUnit()
+          ? `<input type="range" id="cmp-th" min="0" max="${cmpMaxPts()}" step="1" value="${threshold}"><output class="mono" id="cmp-th-out">${threshold} pts</output>`
+          : `<input type="range" id="cmp-th" min="10" max="100" step="5" value="${threshold}"><output class="mono" id="cmp-th-out">${threshold}%</output>`}</div></div>`}
       <div class="field"><span>Stage</span><div class="chips">${[["wrap", "Wrap"], ["prep", "Prep"]].map(([k, l]) => `<button class="chip" data-stage="${k}" aria-pressed="${stage === k}">${l}</button>`).join("")}</div></div>
       <label class="field"><span>Compare on</span><select id="cmp-metric">${METRICS.map((m) => `<option value="${m.key}" ${m.key === M.key ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select></label>
     </div>
     ${filterPanel(all, apps.length)}
 
     <h2 class="cmp-title">${byPractice ? esc(question?.question_text || "") : "Compliant vs. non-compliant productions"}
-      <span class="muted">${byPractice ? `${esc(dept[question?.department_id] || "")} · ${stageWord}` : `Practice score of ${threshold}% or more ${stageWord}${S.cmpF.depts.length ? ", selected departments" : ""}`}</span></h2>
+      <span class="muted">${byPractice ? `${esc(dept[question?.department_id] || "")} · ${stageWord}` : `Practice score of ${cmpUnit() ? `${threshold} of ${cmpMaxPts()} points` : `${threshold}%`} or more ${stageWord}${S.cmpF.depts.length ? ", selected departments" : ""}`}</span></h2>
     ${sample ? `<p class="sample-note"><span class="tag">Sample figures</span> Some footprint numbers here are invented demo data, not real production results.</p>` : ""}
     <p class="cmp-verdict ${verdict ? "" : "muted"}">${verdict || (apps.length ? "Both groups need at least one production to compare. Try a different threshold or loosen the filters." : "No productions match these filters.")}</p>
     <div class="cmp-grid">
@@ -3905,12 +3920,14 @@ function drawCompare() {
           const dqs = qs.filter((x) => x.department_id === d.department_id);
           return `<tr class="${byPractice && question?.department_id === d.department_id ? "sel" : ""}"><td>${esc(d.name)} <span class="muted">${dqs.length}</span></td>${cols.map((a) => {
             const v = practiceScore(a.production_id, stage, null, dqs);
-            const band = v == null ? "" : v >= 75 ? "h4" : v >= 50 ? "h3" : v >= 25 ? "h2" : "h1";
-            return `<td class="cell ${band}" title="${esc(a.production_name)}, ${esc(d.name)}: ${v == null ? "no answers" : Math.round(v) + "%"}">${v == null ? "–" : Math.round(v) + "%"}</td>`;
+            const pctV = cmpUnit() ? practiceScore(a.production_id, stage, null, dqs, "pct") : v;
+            const band = pctV == null ? "" : pctV >= 75 ? "h4" : pctV >= 50 ? "h3" : pctV >= 25 ? "h2" : "h1";
+            const shown = v == null ? "–" : cmpUnit() ? fmt(Math.round(v * 10) / 10) : Math.round(v) + "%";
+            return `<td class="cell ${band}" title="${esc(a.production_name)}, ${esc(d.name)}: ${v == null ? "no answers" : cmpUnit() ? `${fmt(v)} of ${cmpMaxPts(dqs)} pts` : Math.round(v) + "%"}">${shown}</td>`;
           }).join("")}</tr>`;
         }).join("")}
         <tr class="total"><td>PEACH score</td>${cols.map((a) => { const s = practiceScore(a.production_id, stage) ?? 0;
-          return `<td class="num ${!byPractice ? (s >= threshold ? "ok-txt" : "warn-txt") : ""}">${Math.round(s)}%</td>`; }).join("")}</tr>
+          return `<td class="num ${!byPractice ? (s >= threshold ? "ok-txt" : "warn-txt") : ""}">${cmpFmt(s)}</td>`; }).join("")}</tr>
         <tr class="total"><td>${esc(M.label)}</td>${cols.map((a) => `<td class="num">${mfmt(M, M.get(a))}</td>`).join("")}</tr>
         ${M.key !== "co2" ? `<tr class="total"><td>CO₂ per shoot day</td>${cols.map((a) => `<td class="num">${mfmt(METRICS[0], tonnesPerDay(a))}</td>`).join("")}</tr>` : ""}</tbody>
       </table></div>` : `<div class="block-body"><p class="muted">No productions match these filters.</p></div>`}
@@ -3920,8 +3937,15 @@ function drawCompare() {
   document.getElementById("cmp-mode").addEventListener("change", (e) => { S.cmp.mode = e.target.value; history.replaceState(null, "", S.cmp.mode === "practice" ? "#analysis-" + S.cmp.q : "#analysis"); drawCompare(); });
   document.getElementById("cmp-q")?.addEventListener("change", (e) => { S.cmp.q = +e.target.value; history.replaceState(null, "", "#analysis-" + S.cmp.q); drawCompare(); });
   const th = document.getElementById("cmp-th");
-  th?.addEventListener("input", () => { document.getElementById("cmp-th-out").textContent = th.value + "%"; });
-  th?.addEventListener("change", () => { S.cmp.threshold = +th.value; drawCompare(); document.getElementById("cmp-th")?.focus(); });
+  th?.addEventListener("input", () => { document.getElementById("cmp-th-out").textContent = th.value + (cmpUnit() ? " pts" : "%"); });
+  th?.addEventListener("change", () => { if (cmpUnit()) S.cmp.thresholdPts = +th.value; else S.cmp.threshold = +th.value; drawCompare(); document.getElementById("cmp-th")?.focus(); });
+  $app.querySelectorAll("[data-unit]").forEach((b) => b.addEventListener("click", () => {
+    if (S.cmp.unit === b.dataset.unit) return;
+    const max = cmpMaxPts();   // keep the same cut-off when switching: 75% ↔ 75% of the points available
+    if (b.dataset.unit === "pts") S.cmp.thresholdPts = Math.round((max * S.cmp.threshold) / 100);
+    else if (S.cmp.thresholdPts != null && max) S.cmp.threshold = Math.min(100, Math.max(10, Math.round(((S.cmp.thresholdPts / max) * 100) / 5) * 5));
+    S.cmp.unit = b.dataset.unit; drawCompare(); document.querySelector(`[data-unit="${b.dataset.unit}"]`)?.focus();
+  }));
   $app.querySelectorAll("[data-stage]").forEach((b) => b.addEventListener("click", () => { S.cmp.stage = b.dataset.stage; drawCompare(); }));
   document.getElementById("cmp-metric").addEventListener("change", (e) => { S.cmp.metric = e.target.value; drawCompare(); document.getElementById("cmp-metric")?.focus(); });
   $app.querySelectorAll("tr[data-metric]").forEach((tr) => tr.addEventListener("click", () => { S.cmp.metric = tr.dataset.metric; drawCompare(); }));
