@@ -997,6 +997,42 @@ th.num { font-family: var(--body); }
 .rep-chart .chart { margin-top: 6px; }
 @media (max-width: 760px) { .rep-flow { grid-template-columns: minmax(0, 1fr); } .rsec.rs-half { grid-column: 1 / -1; } }
 @media print { .rsec.rs-hidden { display: none; } .rep-flow { gap: 14px; } .rep-chart, .rep-text { break-inside: avoid; } }
+/* Analysis: filter sidebar */
+.cmp-layout { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 20px; align-items: start; }
+.cmp-layout.side-closed { grid-template-columns: minmax(0, 1fr); }
+.cmp-main { min-width: 0; }
+.cmp-layout:not(.side-closed) .cmp-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: end; }
+@media (max-width: 1100px) { .cmp-layout:not(.side-closed) .cmp-controls { grid-template-columns: minmax(0, 1fr); } }
+.cmp-side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; padding: 14px 14px 10px; display: grid; gap: 4px; align-content: start; overscroll-behavior: contain; }
+.cmp-side.closed { position: static; max-height: none; padding: 0; overflow: visible; display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+.side-head { display: flex; justify-content: space-between; align-items: baseline; }
+.side-head h2 { font-size: 1.05rem; }
+.side-count { font-size: .84rem; margin: 2px 0 8px; }
+.side-count b { color: var(--ink); }
+.sfacet { border-top: 1px solid color-mix(in srgb, var(--line) 70%, var(--surface)); }
+.sfacet > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 2px; font-weight: 600; font-size: .86rem; }
+.sfacet > summary::-webkit-details-marker { display: none; }
+.sfacet > summary::after { content: "▾"; color: var(--muted); font-size: .8rem; margin-left: auto; transition: transform .15s; }
+.sfacet:not([open]) > summary::after { transform: rotate(-90deg); }
+.sfacet > summary .pill { margin-left: auto; }
+.sfacet > summary .pill + * { margin-left: 0; }
+.sfacet-body { padding: 0 0 12px; display: grid; gap: 8px; }
+.cmp-side .chips { display: grid; gap: 2px; }
+.cmp-side .fchip { display: flex; width: 100%; justify-content: space-between; align-items: center; gap: 8px; border: 0; border-radius: 6px; padding: 6px 8px 6px 30px; background: none; font-weight: 500; font-size: .86rem; text-align: left; position: relative; }
+.cmp-side .fchip::before { content: ""; position: absolute; left: 8px; top: 50%; width: 14px; height: 14px; margin-top: -7px; border: 1.5px solid var(--muted); border-radius: 4px; background: var(--surface); }
+.cmp-side .fchip[aria-pressed=true] { background: var(--accent-soft); color: var(--ink); }
+.cmp-side .fchip[aria-pressed=true]::before { background: var(--accent); border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--surface); }
+.cmp-side .fchip:hover:not(:disabled) { background: var(--sunk); }
+.cmp-side .fchip:disabled { opacity: .45; }
+.cmp-side .fchip .cnt { margin-left: auto; font-family: var(--mono); font-size: .74rem; color: var(--muted); }
+.cmp-side .frange { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; }
+.cmp-side .frange input { padding: 6px 7px; font-size: .84rem; }
+.cmp-side small { font-size: .76rem; }
+.cmp-side .check { white-space: normal; font-size: .86rem; }
+@media (max-width: 900px) {
+  .cmp-layout { grid-template-columns: minmax(0, 1fr); }
+  .cmp-side { position: static; max-height: none; }
+}
 </style>
 </head>
 <body>
@@ -3814,7 +3850,7 @@ function typeIcon(k) {
 S.cmp = { mode: "compliance", threshold: 75, thresholdPts: null, unit: "pct", stage: "wrap", q: null, metric: "co2" };
 const emptyCmpFilters = () => ({ sel: { type: [], sub: [], studio: [], loc: [], status: [], rev: [] }, from: "", to: "", dmin: "", dmax: "", depts: [], footprintOnly: false });
 S.cmpF = emptyCmpFilters();
-S.cmpFiltersOpen = true;
+S.cmpFiltersOpen = (() => { try { return localStorage.getItem("cmpSide") !== "0" && window.innerWidth > 900; } catch { return window.innerWidth > 900; } })();
 const regionOf = (loc) => { const parts = (loc || "").split(",").map((x) => x.trim()).filter(Boolean); return parts.length > 1 ? parts[parts.length - 1] : parts[0] || "Not set"; };
 const CMP_FACETS = [
   { key: "type", label: "Production type", get: (a) => a.production_type || "Not set" },
@@ -3907,27 +3943,23 @@ function filterPanel(all, shown) {
       return `<button class="chip fchip" data-facet="${f.key}" data-val="${esc(v)}" aria-pressed="${on}" ${!n && !on ? "disabled" : ""}>${esc(f.fmt ? f.fmt(v) : v)} <span class="cnt">${n}</span></button>`;
     }).join("")}</div></fieldset>`;
   };
-  const labels = activeFilterLabels();
-  return `<section class="panel cmp-filters">
-    <div class="fhead">
-      <button class="link ftoggle" id="fToggle" aria-expanded="${S.cmpFiltersOpen}">${S.cmpFiltersOpen ? "Hide filters" : "Show filters"}${labels.length ? ` <span class="pill role">${labels.length} active</span>` : ""}</button>
-      <span class="muted">Showing <b>${shown}</b> of ${all.length} submitted productions</span>
-      ${labels.length ? `<button class="link" id="fClear">Clear all</button>` : ""}
-    </div>
-    ${S.cmpFiltersOpen ? `<div class="fgrid">
-      ${CMP_FACETS.map(facet).join("")}
-      <fieldset class="facet"><legend class="label">Submitted</legend>
-        <div class="frange"><input type="date" id="f-from" value="${esc(F.from)}" aria-label="Submitted on or after"><span class="muted">to</span><input type="date" id="f-to" value="${esc(F.to)}" aria-label="Submitted on or before"></div></fieldset>
-      <fieldset class="facet"><legend class="label">Shoot days</legend>
-        <div class="frange"><input type="number" min="1" id="f-dmin" value="${esc(F.dmin)}" placeholder="Min" aria-label="Minimum shoot days"><span class="muted">to</span><input type="number" min="1" id="f-dmax" value="${esc(F.dmax)}" placeholder="Max" aria-label="Maximum shoot days"></div></fieldset>
-      <fieldset class="facet"><legend class="label">Departments that count toward the score</legend><div class="chips">${S.depts.filter((d) => S.qs.some((q) => q.department_id === d.department_id)).map((d) =>
-        `<button class="chip" data-dept="${d.department_id}" aria-pressed="${F.depts.includes(d.department_id)}">${esc(d.name)}</button>`).join("")}</div>
-        <small class="muted">None selected means all departments.</small></fieldset>
-      <fieldset class="facet"><legend class="label">Footprint</legend>
-        <label class="check"><input type="checkbox" id="f-fp" ${F.footprintOnly ? "checked" : ""}>Only productions that reported ${esc(metricOf(S.cmp.metric).short)}</label></fieldset>
-    </div>` : ""}
-    ${labels.length && !S.cmpFiltersOpen ? `<p class="fsummary muted">${labels.map(esc).join(" · ")}</p>` : ""}
-  </section>`;
+  const labels = activeFilterLabels(), F2 = F;
+  const nSel = (k) => (F2.sel[k] || []).length;
+  if (!S.cmpFiltersOpen) return `<aside class="cmp-side closed" aria-label="Filters">
+      <button class="btn side-open" id="fToggle" aria-expanded="false"><span aria-hidden="true">☰</span> Filters${labels.length ? ` <span class="pill role">${labels.length}</span>` : ""}</button>
+      ${labels.length ? `<button class="link small" id="fClear">Clear all</button>` : ""}</aside>`;
+  const sec = (title, n, body, open = true) => `<details class="sfacet" data-sec="${esc(title)}" ${(S.sideOpen?.[title] ?? open) ? "open" : ""}><summary><span>${title}</span>${n ? `<span class="pill role">${n}</span>` : ""}</summary><div class="sfacet-body">${body}</div></details>`;
+  return `<aside class="cmp-side panel" aria-label="Filters">
+    <div class="side-head"><h2>Filters</h2>
+      <button class="link small" id="fToggle" aria-expanded="true" title="Hide the filter sidebar">Hide</button></div>
+    <p class="side-count muted">Showing <b>${shown}</b> of ${all.length} submitted productions${labels.length ? ` · <button class="link small" id="fClear">Clear all</button>` : ""}</p>
+    ${CMP_FACETS.map((f) => { const body = facet(f); return body ? sec(f.label, nSel(f.key), body.replace(/^<fieldset class="facet"><legend class="label">[^<]*<\/legend>/, "").replace(/<\/fieldset>$/, ""), nSel(f.key) > 0 || ["type", "status"].includes(f.key)) : ""; }).join("")}
+    ${sec("Submitted", F.from || F.to ? 1 : 0, `<div class="frange"><input type="date" id="f-from" value="${esc(F.from)}" aria-label="Submitted on or after"><span class="muted">to</span><input type="date" id="f-to" value="${esc(F.to)}" aria-label="Submitted on or before"></div>`, !!(F.from || F.to))}
+    ${sec("Shoot days", F.dmin || F.dmax ? 1 : 0, `<div class="frange"><input type="number" min="1" id="f-dmin" value="${esc(F.dmin)}" placeholder="Min" aria-label="Minimum shoot days"><span class="muted">to</span><input type="number" min="1" id="f-dmax" value="${esc(F.dmax)}" placeholder="Max" aria-label="Maximum shoot days"></div>`, !!(F.dmin || F.dmax))}
+    ${sec("Departments that count", F.depts.length, `<div class="chips">${S.depts.filter((d) => S.qs.some((q) => q.department_id === d.department_id)).map((d) =>
+        `<button class="chip fchip" data-dept="${d.department_id}" aria-pressed="${F.depts.includes(d.department_id)}">${esc(d.name)}</button>`).join("")}</div><small class="muted">None selected means all departments count toward the score.</small>`, F.depts.length > 0)}
+    ${sec("Footprint", F.footprintOnly ? 1 : 0, `<label class="check"><input type="checkbox" id="f-fp" ${F.footprintOnly ? "checked" : ""}>Only productions that reported ${esc(metricOf(S.cmp.metric).short)}</label>`, F.footprintOnly)}
+  </aside>`;
 }
 
 function drawCompare() {
@@ -3997,6 +4029,9 @@ function drawCompare() {
       <div><p class="eyebrow">Best practices & footprint</p><h1>Analysis</h1>
         <p class="muted" style="max-width:66ch">Split submitted productions into those that follow best practices and those that don't, then compare their carbon, electricity, fuel, water and waste. Amounts are per shoot day so productions of different lengths compare fairly.</p></div>
     </div>
+    <div class="cmp-layout ${S.cmpFiltersOpen ? "" : "side-closed"}">
+    ${filterPanel(all, apps.length)}
+    <div class="cmp-main">
     <div class="panel cmp-controls">
       <label class="field"><span>Compare by</span><select id="cmp-mode">
         <option value="compliance" ${!byPractice ? "selected" : ""}>Overall compliance</option>
@@ -4011,7 +4046,6 @@ function drawCompare() {
       <div class="field"><span>Stage</span><div class="chips">${[["wrap", "Wrap"], ["prep", "Prep"]].map(([k, l]) => `<button class="chip" data-stage="${k}" aria-pressed="${stage === k}">${l}</button>`).join("")}</div></div>
       <label class="field"><span>Compare on</span><select id="cmp-metric">${METRICS.map((m) => `<option value="${m.key}" ${m.key === M.key ? "selected" : ""}>${esc(m.label)}</option>`).join("")}</select></label>
     </div>
-    ${filterPanel(all, apps.length)}
 
     <h2 class="cmp-title">${byPractice ? esc(question?.question_text || "") : "Compliant vs. non-compliant productions"}
       <span class="muted">${byPractice ? `${esc(dept[question?.department_id] || "")} · ${stageWord}` : `Practice score of ${cmpUnit() ? `${threshold} of ${cmpMaxPts()} points` : `${threshold}%`} or more ${stageWord}${S.cmpF.depts.length ? ", selected departments" : ""}`}</span></h2>
@@ -4075,7 +4109,8 @@ function drawCompare() {
         <tr class="total"><td>${esc(M.label)}</td>${cols.map((a) => `<td class="num">${mfmt(M, M.get(a))}</td>`).join("")}</tr>
         ${M.key !== "co2" ? `<tr class="total"><td>CO₂ per shoot day</td>${cols.map((a) => `<td class="num">${mfmt(METRICS[0], tonnesPerDay(a))}</td>`).join("")}</tr>` : ""}</tbody>
       </table></div>` : `<div class="block-body"><p class="muted">No productions match these filters.</p></div>`}
-    </section>`;
+    </section>
+    </div></div>`;
 
   // Controls
   document.getElementById("cmp-mode").addEventListener("change", (e) => { S.cmp.mode = e.target.value; history.replaceState(null, "", S.cmp.mode === "practice" ? "#analysis-" + S.cmp.q : "#analysis"); drawCompare(); });
@@ -4100,7 +4135,8 @@ function drawCompare() {
 
   // Filters (redraw, then put focus back on the control the viewer used)
   const redraw = (focusSel) => { drawCompare(); if (focusSel) document.querySelector(focusSel)?.focus(); };
-  document.getElementById("fToggle").addEventListener("click", () => { S.cmpFiltersOpen = !S.cmpFiltersOpen; redraw("#fToggle"); });
+  document.querySelectorAll(".sfacet").forEach((d) => d.addEventListener("toggle", () => { (S.sideOpen ||= {})[d.dataset.sec] = d.open; }));
+  document.getElementById("fToggle").addEventListener("click", () => { S.cmpFiltersOpen = !S.cmpFiltersOpen; try { localStorage.setItem("cmpSide", S.cmpFiltersOpen ? "1" : "0"); } catch {} redraw("#fToggle"); });
   document.getElementById("fClear")?.addEventListener("click", () => { S.cmpF = emptyCmpFilters(); redraw("#fToggle"); });
   $app.querySelectorAll("[data-facet]").forEach((b) => b.addEventListener("click", () => {
     const list = S.cmpF.sel[b.dataset.facet], v = b.dataset.val, i = list.indexOf(v);
