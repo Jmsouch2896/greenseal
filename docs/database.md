@@ -151,6 +151,7 @@ Applied in this order:
 31. `certificate_by_token_wrapper`
 32. `report_customization`
 33. `geocoding`
+34. `fix_answer_log_stage_array` (the activity-log trigger on `responses` failed with "malformed array literal" whenever answers were saved)
 
 The original `productions`, `questions`, `responses` and `departments` tables were loaded before migrations were tracked. The PEACH v2.0 questions were imported as data, not as a migration.
 
