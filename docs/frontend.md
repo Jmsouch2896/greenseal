@@ -30,7 +30,7 @@ Search for `// ──` to jump between sections. In order:
 | Notifications bell | `loadNotes`, `subscribeNotes` (Realtime), `drawBell` |
 | Auth | sign in, sign up, password reset and recovery |
 | Application list, Board | `renderList`, the kanban board with drag-and-drop |
-| Application detail | `openApp`, `drawApp`, `drawActions`, `saveApp`, evidence files |
+| Application detail | `openApp`, `drawApp`, `drawActions`, `saveApp`, evidence files. The page is two columns: the form in `.app-main`, and a sticky `.app-side` sidebar holding the score tally, Application tools (Import from Excel, certificate, Review, Who's answering, Delete) and an "On this page" list that jumps to departments and shows each one's progress. On phones the sidebar stacks above the form and the tools collapse |
 | Dashboard | `renderDashboard`, `buildDashHTML` (built-in widgets), `drawDashboard` |
 | Charts | `DIMS`, `measures`, `chartData`, `renderChart`, `svgBar`, `htmlHbar`, `svgLine`, `svgDonut`, `tableView` |
 | Layout, Cross-filters | `dashWidgets`, `resolveLayout`, `saveDashPrefs`, `xfSet`, `wireXf`, `wireBrush` |

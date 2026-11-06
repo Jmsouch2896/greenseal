@@ -1067,6 +1067,48 @@ th.num { font-family: var(--body); }
 .geo-opt > span { display: grid; gap: 2px; min-width: 0; }
 .geo-opt .small { overflow-wrap: anywhere; }
 .geo-line { margin: 0; font-size: .9rem; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+/* Application page: tools sidebar */
+.wrap:has(.app-layout) { max-width: 1320px; }
+.app-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+.app-main { grid-column: 1; grid-row: 1; min-width: 0; }
+.app-side { grid-column: 2; grid-row: 1; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); max-height: calc(100vh - 24px); overflow: auto; display: grid; gap: 12px; align-content: start; overscroll-behavior: contain; padding-bottom: 80px; }
+.app-side .panel { margin: 0; }
+.side-tally { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+.side-tally > div { padding: 10px 12px; }
+.side-tally > div:nth-child(2) { border-right: 0; }
+.side-tally > div:nth-child(-n+2) { border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, var(--surface)); }
+.side-tally strong { font-size: 1.15rem; }
+.side-tally .tsub { font-size: .74rem; }
+.side-nav { padding: 12px 14px; display: grid; gap: 2px; font-size: .9rem; }
+.side-nav .label { margin: 0 0 4px; }
+.side-nav > a, .side-act { color: var(--ink); text-decoration: none; padding: 4px 0; font-weight: 500; text-align: left; }
+.side-nav > a:hover, .side-act:hover { color: var(--accent); text-decoration: underline; }
+.side-depts { list-style: none; margin: 0 0 4px; padding: 0 0 0 10px; border-left: 2px solid color-mix(in srgb, var(--line) 70%, var(--surface)); display: grid; gap: 0; max-height: 280px; overflow: auto; }
+.side-depts a { display: flex; justify-content: space-between; gap: 8px; padding: 3px 4px; color: var(--muted); text-decoration: none; font-size: .84rem; border-radius: 4px; }
+.side-depts a:hover { background: var(--sunk); color: var(--ink); }
+.side-depts a.done .mono { color: var(--ok); }
+.side-depts a.done .mono::after { content: " ✓"; }
+.side-tools > summary { display: none; }
+.side-stack { display: grid; gap: 12px; }
+.side-block .block-head { padding: 12px 14px 0; }
+.side-block .block-head h2 { font-size: 1rem; }
+.side-block .block-body { padding: 10px 14px 14px; }
+.side-block .block-body.grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.side-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.side-block .team-add { grid-template-columns: minmax(0, 1fr); }
+.side-block .team-list li { grid-template-columns: minmax(0, 1fr); gap: 2px; padding-block: 8px; }
+.dept, #sec-details, #sec-footprint, #sec-peach, #activity { scroll-margin-top: 16px; }
+@media (max-width: 900px) {
+  .app-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .app-main, .app-side { grid-column: 1; grid-row: auto; }
+  .app-side { position: static; max-height: none; overflow: visible; padding-bottom: 0; }
+  .side-nav { display: none; }
+  .side-tools > summary { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); font-weight: 600; list-style: none; }
+  .side-tools > summary::-webkit-details-marker { display: none; }
+  .side-tools > summary::after { content: "▾"; color: var(--muted); }
+  .side-tools[open] > summary { margin-bottom: 12px; }
+  .side-tools[open] > summary::after { content: "▴"; }
+}
 </style>
 </head>
 <body>
@@ -2346,7 +2388,7 @@ function deptDelegateTag(did, P) {
 function teamSection(app) {
   const byDept = S.depts.map((d) => ({ d, list: (S.delegates || []).filter((x) => x.department_id === d.department_id) }));
   const assigned = byDept.filter((x) => x.list.length);
-  return `<section class="panel block team" id="team"><div class="block-head"><div><h2>Who's answering</h2><p class="muted small" style="margin-top:4px">Ask department heads to answer their own sections. They can only edit the departments you give them, and only while this is a draft.</p></div></div>
+  return `<section class="panel block team side-block" id="team"><div class="block-head"><div><h2>Who's answering</h2><p class="muted small" style="margin-top:4px">Ask department heads to answer their own sections. They can only edit the departments you give them, and only while this is a draft.</p></div></div>
     <div class="block-body">
       ${assigned.length ? `<ul class="team-list">${assigned.map(({ d, list }) => list.map((x) => `<li data-del="${x.delegate_id}"><b>${esc(d.name)}</b><span>${esc(x.email)}</span>
         <span class="muted small">${x.user_id ? "Has an account" : "Invited · waiting for sign-up"}</span><button type="button" class="link danger small" data-unassign>Remove</button></li>`).join("")).join("")}</ul>` : `<p class="muted">Nobody else is answering yet.</p>`}
@@ -2965,30 +3007,54 @@ function drawApp() {
     <div class="page-head">
       <div><p class="eyebrow">${isNew ? "New application" : "Application #" + app.production_id}</p>
         <h1>${esc(app.production_name || "Untitled production")}</h1>
-        ${isNew ? "" : `<div class="meta">${pill(app.status)}${app.submission_date ? `<span>Submitted ${esc(date(app.submission_date))}</span>` : ""}${app.source_file ? `<span class="mono">${esc(app.source_file)}</span>` : ""}${isReviewerish() && app.submitted_by ? `<span>By ${esc(personName(app.submitted_by) || "unknown")}</span>` : ""}${appSealMeta(app)}${isReviewerish() ? dueBadge(app) : ""}<button type="button" class="link" id="toActivity">Activity &amp; comments<span id="actCount"></span></button></div>`}
+        ${isNew ? "" : `<div class="meta">${pill(app.status)}${app.submission_date ? `<span>Submitted ${esc(date(app.submission_date))}</span>` : ""}${app.source_file ? `<span class="mono">${esc(app.source_file)}</span>` : ""}${isReviewerish() && app.submitted_by ? `<span>By ${esc(personName(app.submitted_by) || "unknown")}</span>` : ""}${appSealMeta(app)}${isReviewerish() ? dueBadge(app) : ""}</div>`}
       </div>
     </div>
     ${isNew ? "" : appBanners(app, P)}
-    <div id="importPanel"></div>
-    <div class="panel tally" id="tally"></div>
-    <form id="appForm" novalidate>
-      <section class="panel block"><div class="block-head"><h2>Production details</h2>${P.details ? "" : '<span class="muted">Locked after submission</span>'}</div>
-        <div class="block-body grid">${details}${isNew ? "" : geoLine(app)}</div></section>
-      <section class="panel block"><div class="block-head"><h2>Production footprint</h2>${app.footprint_is_sample ? '<span class="tag">Sample figures</span>' : '<span class="muted">Totals for the whole shoot, at wrap</span>'}</div>
-        <div class="block-body grid">${FOOTPRINT.map(([k, label, unit]) => `
-          <label class="field"><span>${esc(label)}${unit ? ` <span class="muted">(${esc(unit)})</span>` : ""}</span>
-            <input type="number" min="${k === "shoot_days" ? 1 : 0}" step="${k === "shoot_days" ? 1 : "any"}" inputmode="decimal" name="${k}" id="d-${k}" value="${app[k] ?? ""}" ${dis(P.details)}></label>`).join("")}
-          <div class="field co2-out"><span>Per shoot day</span><output id="co2-out"></output></div>
-        </div></section>
-      ${P.team ? teamSection(app) : ""}
-      <section class="panel block"><div class="block-head"><div><h2>PEACH checklist</h2><p class="muted" style="font-size:.88rem;margin-top:4px">${S.qs.length} actions across ${S.depts.length} departments. Answer at prep, then again at wrap. N/A takes a question out of the points available.</p></div>
-        <div class="dept-tools">${P.answers && !isNew ? `<label class="btn small-btn" title="Fill answers from a completed PEACH workbook (.xlsx)">Import from Excel<input type="file" class="sr" id="xlsImport" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>` : ""}<button type="button" class="link" id="openAll">Expand all</button><button type="button" class="link" id="closeAll">Collapse all</button></div></div>${depts}</section>
-      ${P.score && !isNew ? `<section class="panel block"><div class="block-head"><h2>Review</h2><button type="button" class="link" id="autofill">Fill points from answers</button></div>
+    <div class="app-layout">
+    <aside class="app-side" aria-label="Application tools">
+      <div class="panel tally side-tally" id="tally"></div>
+      ${isNew ? "" : `<details class="side-tools" id="sideTools" ${window.innerWidth > 900 ? "open" : ""}><summary>Application tools</summary>
+        <div class="side-stack">
+          ${(P.answers && !isNew) || (app.status === "approved" && app.cert_level) ? `<section class="panel block side-block"><div class="block-head"><h2>Tools</h2></div><div class="block-body side-btns">
+            ${P.answers && !isNew ? `<label class="btn small-btn" title="Fill answers from a completed PEACH workbook (.xlsx)">Import from Excel<input type="file" class="sr" id="xlsImport" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>` : ""}
+            ${app.status === "approved" && app.cert_level ? `<a class="btn" href="#cert-${app.production_id}">Certificate &amp; sending</a>` : ""}
+          </div></section>` : ""}
+          ${P.score && !isNew ? `<section class="panel block side-block" id="sec-review"><div class="block-head"><h2>Review</h2><button type="button" class="link" id="autofill">Fill points from answers</button></div>
         <div class="block-body grid">
           <label class="field"><span>Status</span><select id="rv-status">${Object.entries(STATUS).filter(([k]) => isStaff() || k !== "draft").map(([k, l]) => `<option value="${k}" ${app.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
           <label class="field"><span>Review due</span><input type="date" id="rv-due" value="${esc(app.review_due || "")}"></label>
           <label class="field"><span>Assigned reviewer</span><select id="rv-assign"><option value="">Unassigned</option>${reviewers.map((p) => `<option value="${esc(p.id)}" ${app.assigned_reviewer === p.id ? "selected" : ""}>${esc(p.full_name || p.email)}</option>`).join("")}</select></label>
         </div>${requestChangesBlock(app)}</section>` : ""}
+          ${P.team ? teamSection(app) : ""}
+          ${!isNew && P.del ? `<section class="panel block danger-zone side-block" id="dangerZone"><div class="block-head"><h2>Delete application</h2></div>
+      <div class="block-body" id="delBody">
+        <p>Permanently removes <b>${esc(app.production_name || "this application")}</b> with all its answers, evidence files, comments and activity. This can't be undone.${isStaff() && !P.own ? " The submitter isn't notified." : ""}</p>
+        <button type="button" class="danger-outline" id="delStart">Delete application…</button>
+      </div></section>` : ""}
+        </div></details>`}
+      <nav class="panel side-nav" aria-label="On this page">
+        <p class="label">On this page</p>
+        <a href="#sec-details" data-jump="sec-details">Production details</a>
+        <a href="#sec-footprint" data-jump="sec-footprint">Footprint</a>
+        <a href="#sec-peach" data-jump="sec-peach">PEACH checklist</a>
+        <ol class="side-depts">${S.depts.filter((d) => S.qs.some((q) => q.department_id === d.department_id)).map((d) => `<li><a href="#sec-peach" data-dept-jump="${d.department_id}"><span>${esc(d.name)}</span><span class="mono small" id="snav-${d.department_id}"></span></a></li>`).join("")}</ol>
+        ${isNew ? "" : `<button type="button" class="link side-act" id="toActivity">Activity &amp; comments<span id="actCount"></span></button>`}
+      </nav>
+    </aside>
+    <div class="app-main">
+    <div id="importPanel"></div>
+    <form id="appForm" novalidate>
+      <section class="panel block" id="sec-details"><div class="block-head"><h2>Production details</h2>${P.details ? "" : '<span class="muted">Locked after submission</span>'}</div>
+        <div class="block-body grid">${details}${isNew ? "" : geoLine(app)}</div></section>
+      <section class="panel block" id="sec-footprint"><div class="block-head"><h2>Production footprint</h2>${app.footprint_is_sample ? '<span class="tag">Sample figures</span>' : '<span class="muted">Totals for the whole shoot, at wrap</span>'}</div>
+        <div class="block-body grid">${FOOTPRINT.map(([k, label, unit]) => `
+          <label class="field"><span>${esc(label)}${unit ? ` <span class="muted">(${esc(unit)})</span>` : ""}</span>
+            <input type="number" min="${k === "shoot_days" ? 1 : 0}" step="${k === "shoot_days" ? 1 : "any"}" inputmode="decimal" name="${k}" id="d-${k}" value="${app[k] ?? ""}" ${dis(P.details)}></label>`).join("")}
+          <div class="field co2-out"><span>Per shoot day</span><output id="co2-out"></output></div>
+        </div></section>
+      <section class="panel block" id="sec-peach"><div class="block-head"><div><h2>PEACH checklist</h2><p class="muted" style="font-size:.88rem;margin-top:4px">${S.qs.length} actions across ${S.depts.length} departments. Answer at prep, then again at wrap. N/A takes a question out of the points available.</p></div>
+        <div class="dept-tools"><button type="button" class="link" id="openAll">Expand all</button><button type="button" class="link" id="closeAll">Collapse all</button></div></div>${depts}</section>
     </form>
     ${isNew ? "" : `<section class="panel block activity" id="activity" aria-labelledby="actTitle">
       <div class="block-head"><h2 id="actTitle">Activity &amp; comments</h2>
@@ -2997,11 +3063,8 @@ function drawApp() {
         ${activityComposer(app)}
         <ol class="timeline" id="timeline"><li class="muted">Loading activity…</li></ol>
       </div></section>`}
-    ${!isNew && P.del ? `<section class="panel block danger-zone" id="dangerZone"><div class="block-head"><h2>Delete application</h2></div>
-      <div class="block-body" id="delBody">
-        <p>Permanently removes <b>${esc(app.production_name || "this application")}</b> with all its answers, evidence files, comments and activity. This can't be undone.${isStaff() && !P.own ? " The submitter isn't notified." : ""}</p>
-        <button type="button" class="danger-outline" id="delStart">Delete application…</button>
-      </div></section>` : ""}
+    </div>
+    </div>
     <datalist id="contact-names">${contactOptions()}</datalist>
     <datalist id="studio-names">${companyOptions("studio")}</datalist>
     <datalist id="types"><option value="Film"><option value="Television"><option value="Commercial"><option value="Music video"></datalist>
@@ -3019,6 +3082,11 @@ function drawApp() {
   form.addEventListener("input", co2); co2();
   form.addEventListener("submit", (e) => e.preventDefault());
   document.getElementById("autofill")?.addEventListener("click", autofill);
+  document.querySelectorAll("[data-jump]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); document.getElementById(a.dataset.jump)?.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+  document.querySelectorAll("[data-dept-jump]").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault(); const d = document.querySelector(`details.dept[data-dept="${a.dataset.deptJump}"]`); if (!d) return;
+    d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); d.querySelector("summary")?.focus({ preventScroll: true });
+  }));
   form.querySelectorAll("[data-up]").forEach((inp) => inp.addEventListener("change", () => uploadEvidence(+inp.dataset.up, inp)));
   // Choosing a known name fills in their title.
   form.querySelectorAll("[id^=dans-]").forEach((inp) => inp.addEventListener("change", () => {
@@ -3168,6 +3236,8 @@ function updateTally() {
     const dp = peachScore(prep, qs), dw = peachScore(wrap, qs), stage = dw.answered ? dw : dp;
     el.textContent = `${dp.answered}/${qs.length} prep · ${dw.answered}/${qs.length} wrap · ${fmt(stage.earned)}/${fmt(stage.available)} pts`;
     el.classList.toggle("done", dw.answered === qs.length);
+    const nav = document.getElementById("snav-" + d.department_id);
+    if (nav) { const st = dw.answered ? dw : dp; nav.textContent = `${st.answered}/${qs.length}`; nav.title = `${dw.answered ? "Wrap" : "Prep"}: ${st.answered} of ${qs.length} answered`; nav.parentElement.classList.toggle("done", dw.answered === qs.length); }
   }
   return { prepAns: Pp.answered, wrapAns: W.answered, n };
 }
