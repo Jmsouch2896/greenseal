@@ -30,7 +30,7 @@ Search for `// ──` to jump between sections. In order:
 | Notifications bell | `loadNotes`, `subscribeNotes` (Realtime), `drawBell` |
 | Auth | sign in, sign up, password reset and recovery |
 | Application list, Board | `renderList`, the kanban board with drag-and-drop |
-| Application detail | `openApp`, `loadRelevantContacts` (the "Answered by" suggestions list only contacts already on the application, added by its owner, named on the owner's other applications, or at its studio; one datalist per department, leaving out people from other departments), `drawApp`, `drawActions`, `saveApp`, evidence files. The page is two columns: the form in `.app-main`, and a sticky `.app-side` sidebar holding the score tally, Application tools (Import from Excel, certificate, Review, Who's answering, Delete) and an "On this page" list that jumps to departments and shows each one's progress. On phones the sidebar stacks above the form and the tools collapse |
+| Application detail | `openApp`, `loadRelevantContacts` (the "Answered by" suggestions list only contacts already on the application, added by its owner, named on the owner's other applications, or at its studio; one datalist per department, leaving out people from other departments), `drawApp`, `drawActions`, `saveApp`, evidence files. The page is two columns: the form in `.app-main`, and a sticky `.app-side` sidebar holding the score tally, Application tools (Attachments: every file on the application grouped by department, each linked to its action, with Download all as a .zip built in the browser by JSZip 3.10.1 from cdnjs; Import from Excel, certificate, Review, Who's answering, Delete) and an "On this page" list that jumps to departments and shows each one's progress. On phones the sidebar stacks above the form and the tools collapse |
 | Dashboard | `renderDashboard`, `buildDashHTML` (built-in widgets), `drawDashboard` |
 | Charts | `DIMS`, `measures`, `chartData`, `renderChart`, `svgBar`, `htmlHbar`, `svgLine`, `svgDonut`, `tableView` |
 | Layout, Cross-filters | `dashWidgets`, `resolveLayout`, `saveDashPrefs`, `xfSet`, `wireXf`, `wireBrush` |
@@ -127,6 +127,7 @@ All pinned to exact versions:
 |---|---|---|
 | supabase-js | 2.117.3 | always (jsDelivr) |
 | SheetJS (xlsx) | 0.18.5 | on Excel import (cdnjs) |
+| JSZip | 3.10.1 | on Download all attachments (cdnjs) |
 | d3-array, d3-geo, topojson-client | 3.2.4, 3.1.1, 3.1.0 | on first map (jsDelivr) |
 | world-atlas, us-atlas | 2.0.2, 3.0.1 | on first map (jsDelivr) |
 

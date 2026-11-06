@@ -1109,6 +1109,17 @@ th.num { font-family: var(--body); }
   .side-tools[open] > summary { margin-bottom: 12px; }
   .side-tools[open] > summary::after { content: "▴"; }
 }
+/* All attachments (sidebar) */
+#filesPanel { display: grid; gap: 10px; }
+#filesPanel > p { margin: 0; }
+#filesCount { font-size: .8rem; color: var(--muted); font-weight: 400; }
+.files-all { display: grid; gap: 10px; max-height: 360px; overflow: auto; }
+.fa-group .label { margin: 0 0 4px; }
+.fa-group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fa-group li { display: grid; gap: 1px; font-size: .88rem; }
+.fa-name { text-align: left; overflow-wrap: anywhere; }
+.fa-meta { display: flex; gap: 8px; align-items: baseline; }
+.q.q-hl { outline: 2px solid var(--hl); outline-offset: 4px; border-radius: 4px; transition: outline-color .3s; }
 </style>
 </head>
 <body>
@@ -3039,6 +3050,8 @@ function drawApp() {
       <div class="panel tally side-tally" id="tally"></div>
       ${isNew ? "" : `<details class="side-tools" id="sideTools" ${window.innerWidth > 900 ? "open" : ""}><summary>Application tools</summary>
         <div class="side-stack">
+          <section class="panel block side-block" id="sec-files"><div class="block-head"><h2>Attachments <span class="cnt mono" id="filesCount"></span></h2></div>
+            <div class="block-body" id="filesPanel"><p class="muted small">Loading files…</p></div></section>
           ${(P.answers && !isNew) || (app.status === "approved" && app.cert_level) ? `<section class="panel block side-block"><div class="block-head"><h2>Tools</h2></div><div class="block-body side-btns">
             ${P.answers && !isNew ? `<label class="btn small-btn" title="Fill answers from a completed PEACH workbook (.xlsx)">Import from Excel<input type="file" class="sr" id="xlsImport" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>` : ""}
             ${app.status === "approved" && app.cert_level ? `<a class="btn" href="#cert-${app.production_id}">Certificate &amp; sending</a>` : ""}
@@ -3134,14 +3147,17 @@ async function loadEvidence(onlyQid) {
     // One listing of the application's folder tells us which questions have files.
     document.querySelectorAll("ul.files").forEach((ul) => (ul.innerHTML = `<li class="muted">${P.answers ? "No files yet" : "None attached"}</li>`));
     const { data, error } = await sb.storage.from(BUCKET).list(`${pid}`, { limit: 1000 });
-    if (error) return;
+    if (error) { const fp = document.getElementById("filesPanel"); if (fp) fp.innerHTML = `<p class="muted small">Couldn't load the files.</p>`; return; }
     qids = (data || []).filter((f) => !f.id && /^\d+$/.test(f.name)).map((f) => +f.name);
+    S.evFiles = [];
   }
   await Promise.all(qids.map(async (qid) => {
-    const ul = document.getElementById("files-" + qid); if (!ul) return;
+    const ul = document.getElementById("files-" + qid); // may be missing if the action is no longer on the form
     const { data, error } = await sb.storage.from(BUCKET).list(`${pid}/${qid}`, { limit: 100, sortBy: { column: "created_at", order: "asc" } });
-    if (error) { ul.innerHTML = `<li class="muted">Couldn't load files</li>`; return; }
+    if (error) { if (ul) ul.innerHTML = `<li class="muted">Couldn't load files</li>`; return; }
     const files = (data || []).filter((f) => f.id && !f.name.startsWith("."));
+    S.evFiles = (S.evFiles || []).filter((x) => x.qid !== qid).concat(files.map((f) => ({ qid, path: `${pid}/${qid}/${f.name}`, name: evName(f.name), size: f.metadata?.size || 0, at: f.created_at })));
+    if (!ul) return;
     ul.innerHTML = files.length
       ? files.map((f) => `<li><button type="button" class="link" data-view="${esc(`${pid}/${qid}/${f.name}`)}">${esc(evName(f.name))}</button>
           <span class="muted mono">${f.metadata?.size ? Math.max(1, Math.round(f.metadata.size / 1024)) + " KB" : ""}</span>
@@ -3153,6 +3169,61 @@ async function loadEvidence(onlyQid) {
       if (error) return fail(error); toast("File removed"); loadEvidence(qid);
     }));
   }));
+  drawFilesPanel();
+}
+// ── All attachments for the application (sidebar), with download-all as a .zip ──
+const fmtSize = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB");
+function drawFilesPanel() {
+  const box = document.getElementById("filesPanel"); if (!box) return;
+  const files = S.evFiles || [], total = files.reduce((t, f) => t + f.size, 0);
+  const head = document.getElementById("filesCount"); if (head) head.textContent = files.length ? `${files.length}` : "";
+  if (!files.length) { box.innerHTML = `<p class="muted small">No files attached yet.</p>`; return; }
+  const qOf = (qid) => S.qs.find((q) => q.question_id === qid);
+  const groups = new Map();
+  for (const f of files) {
+    const q = qOf(f.qid), d = S.depts.find((x) => x.department_id === q?.department_id);
+    const key = d ? d.department_id : 0;
+    if (!groups.has(key)) groups.set(key, { name: d?.name || "Other actions", order: d ? S.depts.indexOf(d) : 999, list: [] });
+    groups.get(key).list.push({ ...f, code: q?.code || "", qtitle: (q?.question_text || "").replace(/^\[Innovation\]\s*/i, "").split(":")[0].slice(0, 60) });
+  }
+  box.innerHTML = `<p class="muted small">${files.length} file${files.length === 1 ? "" : "s"} · ${fmtSize(total)}</p>
+    <button type="button" class="btn" id="zipAll">Download all (.zip)</button>
+    <div class="files-all">${[...groups.values()].sort((a, b) => a.order - b.order).map((g) => `<div class="fa-group"><p class="label">${esc(g.name)}</p><ul>${g.list
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }) || a.name.localeCompare(b.name))
+      .map((f) => `<li><button type="button" class="link fa-name" data-view-file="${esc(f.path)}" title="Open ${esc(f.name)}">${esc(f.name)}</button>
+        <span class="fa-meta">${f.code ? `<button type="button" class="link small mono" data-goto-q="${f.qid}" title="Go to ${esc(f.qtitle)}">${esc(f.code)}</button>` : `<span class="muted small">Action not on this form</span>`}<span class="muted small">${fmtSize(f.size)}</span></span></li>`).join("")}</ul></div>`).join("")}</div>`;
+  box.querySelectorAll("[data-view-file]").forEach((b) => b.addEventListener("click", () => viewEvidence(b.dataset.viewFile)));
+  box.querySelectorAll("[data-goto-q]").forEach((b) => b.addEventListener("click", () => {
+    const q = document.getElementById("q-" + b.dataset.gotoQ); if (!q) return;
+    const d = q.closest("details.dept"); if (d) d.open = true;
+    q.scrollIntoView({ behavior: "smooth", block: "center" }); q.classList.add("q-hl"); setTimeout(() => q.classList.remove("q-hl"), 1800);
+  }));
+  document.getElementById("zipAll").addEventListener("click", (e) => zipEvidence(e.currentTarget));
+}
+async function zipEvidence(btn) {
+  const files = S.evFiles || []; if (!files.length) return;
+  const label = btn.textContent; btn.disabled = true;
+  try {
+    if (!window.JSZip) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const zip = new window.JSZip(), used = new Set();
+    for (const [i, f] of files.entries()) {
+      btn.textContent = `Adding ${i + 1} of ${files.length}…`;
+      const { data, error } = await sb.storage.from(BUCKET).download(f.path);
+      if (error) throw error;
+      const q = S.qs.find((x) => x.question_id === f.qid), d = S.depts.find((x) => x.department_id === q?.department_id);
+      const clean = (t) => String(t || "").replace(/[\\/:*?"<>|]+/g, "-").trim();
+      let name = `${clean(d?.name || "Other")}/${clean(q?.code || "action-" + f.qid)} - ${clean(f.name)}`, n = 2;
+      while (used.has(name)) name = name.replace(/(\.[^.\/]*)?$/, (ext) => ` (${n++})${ext || ""}`);
+      used.add(name); zip.file(name, data);
+    }
+    btn.textContent = "Making the .zip…";
+    const blob = await zip.generateAsync({ type: "blob" });
+    const a = document.createElement("a"), url = URL.createObjectURL(blob);
+    a.href = url; a.download = `${String(S.current.app.production_name || "application").replace(/[\\/:*?"<>|]+/g, "-")} - evidence.zip`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast(`Downloaded ${files.length} file${files.length === 1 ? "" : "s"}`);
+  } catch (err) { fail(err); }
+  btn.disabled = false; btn.textContent = label;
 }
 
 async function uploadEvidence(qid, input) {
