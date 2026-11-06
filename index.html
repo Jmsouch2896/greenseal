@@ -274,6 +274,26 @@ body:has(.actions) main { padding-bottom: 140px; }
 .export { display: flex; gap: 10px; flex-wrap: wrap; }
 /* Activity & comments */
 .activity { margin-top: 22px; scroll-margin-top: 16px; }
+.replies { list-style: none; margin: 10px 0 0 4px; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 10px; }
+.tl-comment.internal .replies { border-left-color: color-mix(in srgb, var(--warn) 35%, var(--line)); }
+.thread-actions { display: flex; gap: 6px 14px; align-items: baseline; flex-wrap: wrap; margin-top: 8px; }
+.thread-actions:empty { display: none; }
+.reply-box { display: grid; gap: 8px; margin-top: 10px; }
+.reply-box textarea { width: 100%; resize: vertical; min-height: 3.2rem; }
+.reply-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tl-comment.resolved { background: var(--bg); border-style: dashed !important; padding: 8px 14px !important; }
+.tl-comment.resolved.internal { background: var(--bg); }
+.tl-comment.resolved .tl-head { align-items: center; }
+.resolved-mark { color: var(--ok); font-weight: 700; }
+.tl-snippet { flex: 1 1 12rem; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.danger-zone { margin-top: 22px; border-color: color-mix(in srgb, var(--bad) 35%, var(--line)); }
+.danger-zone .block-head h2 { color: var(--bad); }
+.danger-zone .block-body { display: grid; gap: 12px; justify-items: start; }
+.danger-zone p { margin: 0; max-width: 65ch; }
+.danger-zone .field { width: min(100%, 26rem); }
+.danger-zone .row-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+button.danger-outline { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 50%, var(--line)); background: var(--surface); }
+button.danger-fill:disabled { opacity: .5; }
 #toActivity { white-space: nowrap; }
 .activity .block-head { align-items: center; flex-wrap: wrap; }
 .activity .seg button { border: 0; border-radius: 0; padding: 7px 12px; font-size: .84rem; }
@@ -289,7 +309,8 @@ body:has(.actions) main { padding-bottom: 140px; }
 .seg.vis label + label span { border-left: 1px solid var(--line); }
 .seg.vis input:checked + span { background: var(--accent-soft); box-shadow: inset 0 -3px 0 var(--accent); }
 .seg.vis input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
-.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+.timeline > li { min-width: 0; }
 .timeline > li { padding: 10px 0; border-top: 1px solid var(--line); }
 .timeline > li:first-child { border-top: 0; }
 .tl-event { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto; gap: 8px; align-items: baseline; font-size: .9rem; color: var(--muted); }
@@ -1068,7 +1089,7 @@ function activityComposer(app) {
   if (!isReviewerish() && !own) return "";
   return `<form class="composer" id="composer" novalidate>
     <label class="sr" for="cm-body">Comment</label>
-    <textarea id="cm-body" rows="3" maxlength="5000" placeholder="${isReviewerish() ? "Add a note or a comment for the submitter" : "Ask the reviewers a question or reply to a comment"}"></textarea>
+    <textarea id="cm-body" rows="3" maxlength="5000" placeholder="${isReviewerish() ? "Start a conversation: a note for reviewers, or a comment for the submitter" : "Ask the reviewers a question"}"></textarea>
     <div class="composer-row">
       ${isReviewerish() ? `<fieldset class="seg vis" aria-label="Who can see it">
         <label><input type="radio" name="cm-vis" value="internal" ${S.cmVis !== "shared" ? "checked" : ""}><span>Internal note <small>reviewers &amp; staff</small></span></label>
@@ -1088,30 +1109,135 @@ async function loadActivity(pid) {
 }
 function drawTimeline() {
   const el = document.getElementById("timeline"); if (!el || !S.activity) return;
-  const f = S.actFilter || "all", A = S.activity;
+  const f = S.actFilter || "all", A = S.activity, app = S.current?.app || {};
+  const own = app.submitted_by === S.me.id;
+  const replies = new Map();
+  for (const c of A.comments) if (c.parent_id) { if (!replies.has(c.parent_id)) replies.set(c.parent_id, []); replies.get(c.parent_id).push(c); }
+  for (const l of replies.values()) l.sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
+  const threads = A.comments.filter((c) => !c.parent_id).map((c) => {
+    const rs = replies.get(c.comment_id) || [];
+    return { c, rs, t: rs.length ? rs[rs.length - 1].created_at : c.created_at };
+  });
   const items = [
-    ...(f !== "events" ? A.comments.map((c) => ({ t: c.created_at, c })) : []),
+    ...(f !== "events" ? threads.map((th) => ({ t: th.t, th })) : []),
     ...(f !== "comments" ? A.events.map((e) => ({ t: e.updated_at || e.created_at, e })) : []),
   ].sort((x, y) => new Date(y.t) - new Date(x.t));
   const cnt = document.getElementById("actCount"); if (cnt) cnt.textContent = A.comments.length ? ` (${A.comments.length} comment${A.comments.length === 1 ? "" : "s"})` : "";
   const when = (iso) => `<time datetime="${esc(iso)}" title="${esc(new Date(iso).toLocaleString())}">${esc(since(iso))}</time>`;
+  const tagFor = (c) => c.internal ? '<span class="tag tag-internal">Internal note</span>'
+    : !isReviewerish() ? "" : c.author && c.author === app.submitted_by ? '<span class="tag tag-shared">From the submitter</span>' : '<span class="tag tag-shared">Shared with submitter</span>';
+  const removeBtn = isStaff() ? `<button type="button" class="link danger small" data-delc>Remove</button>` : "";
+  const threadHTML = ({ c, rs }) => {
+    const id = c.comment_id, resolved = !!c.resolved_at, open = !resolved || S.openThreads?.has(id);
+    const canReply = isReviewerish() || (!c.internal && own), canResolve = isReviewerish() || c.author === S.me.id;
+    if (!open) return `<li class="tl-comment thread resolved ${c.internal ? "internal" : "shared"}" data-cid="${id}">
+        <div class="tl-head"><span class="resolved-mark" aria-hidden="true">✓</span><b>Resolved</b><span class="tl-snippet">${esc(trunc(c.body.replace(/\s+/g, " "), 90))}</span>
+          <span class="muted small">${rs.length + 1} message${rs.length ? "s" : ""}${c.resolved_by ? ` · by ${esc(whoName(c.resolved_by))}` : ""}</span>
+          <button type="button" class="link small" data-showthread>Show</button></div></li>`;
+    const draft = S.replyDrafts?.[id] ?? "";
+    return `<li class="tl-comment thread ${c.internal ? "internal" : "shared"} ${resolved ? "resolved-open" : ""}" data-cid="${id}">
+      <div class="tl-head"><b>${esc(whoName(c.author))}</b>${tagFor(c)}${when(c.created_at)}${removeBtn}</div>
+      <p class="tl-body">${esc(c.body)}</p>
+      ${rs.length ? `<ol class="replies" aria-label="Replies">${rs.map((r) => `<li data-cid="${r.comment_id}">
+        <div class="tl-head"><b>${esc(whoName(r.author))}</b>${!c.internal && isReviewerish() && r.author === app.submitted_by ? '<span class="tag tag-shared">Submitter</span>' : ""}${when(r.created_at)}${removeBtn}</div>
+        <p class="tl-body">${esc(r.body)}</p></li>`).join("")}</ol>` : ""}
+      ${S.replyOpen?.has(id) ? `<div class="reply-box"><label class="sr" for="rp-${id}">Reply</label>
+          <textarea id="rp-${id}" rows="2" maxlength="5000" data-draft="${id}" placeholder="${c.internal ? "Reply (reviewers and staff only)" : "Reply (the submitter sees this)"}">${esc(draft)}</textarea>
+          <div class="reply-actions"><button type="button" class="primary" data-postreply>Post reply</button><button type="button" data-cancelreply>Cancel</button></div></div>` : ""}
+      <div class="thread-actions">
+        ${canReply && !S.replyOpen?.has(id) ? `<button type="button" class="link small" data-reply>Reply</button>` : ""}
+        ${canResolve ? `<button type="button" class="link small" data-resolve>${resolved ? "Reopen" : "Resolve"}</button>` : ""}
+        ${resolved ? `<span class="muted small">Resolved${c.resolved_by ? ` by ${esc(whoName(c.resolved_by))}` : ""} · <button type="button" class="link small" data-hidethread>Collapse</button></span>` : ""}
+      </div></li>`;
+  };
   el.innerHTML = A.error && !items.length ? `<li class="muted">Couldn't load activity. ${esc(friendly(A.error))}</li>`
-    : items.map(({ c, e }) => c ? `<li class="tl-comment ${c.internal ? "internal" : "shared"}" data-cid="${c.comment_id}">
-        <div class="tl-head"><b>${esc(whoName(c.author))}</b>${c.internal ? '<span class="tag tag-internal">Internal note</span>' : !isReviewerish() ? "" : c.author && c.author === S.current?.app?.submitted_by ? '<span class="tag tag-shared">From the submitter</span>' : '<span class="tag tag-shared">Shared with submitter</span>'}${when(c.created_at)}
-          ${isStaff() ? `<button type="button" class="link danger small" data-delc>Remove</button>` : ""}</div>
-        <p class="tl-body">${esc(c.body)}</p></li>`
+    : items.map(({ th, e }) => th ? threadHTML(th)
       : `<li class="tl-event"><span class="tl-ico" aria-hidden="true">${EVENT_ICON[e.kind] || "•"}</span><span><b>${esc(whoName(e.actor))}</b> ${esc(eventText(e))}</span>${when(e.updated_at || e.created_at)}</li>`).join("")
       || `<li class="muted">${f === "comments" ? "No comments yet." : "Nothing recorded yet. Changes made from now on will show here."}</li>`;
-  el.querySelectorAll("[data-delc]").forEach((b) => b.addEventListener("click", async () => {
-    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm remove?"; return; }
-    const id = +b.closest("li").dataset.cid;
-    const { error } = await sb.from("application_comments").delete().eq("comment_id", id);
-    if (error) return fail(error);
-    A.comments = A.comments.filter((x) => x.comment_id !== id); drawTimeline(); toast("Comment removed");
-  }));
 }
+// One set of listeners for the whole timeline (it re-renders often).
+function wireDelete(app) {
+  const start = document.getElementById("delStart"); if (!start) return;
+  const name = (app.production_name || "").trim(), word = name || "delete";
+  start.addEventListener("click", () => {
+    const body = document.getElementById("delBody");
+    body.innerHTML = `<p>Permanently removes <b>${esc(name || "this application")}</b> with all its answers, evidence files, comments and activity. This can't be undone.</p>
+      <label class="field"><span>Type <b>${esc(word)}</b> to confirm</span><input id="delName" autocomplete="off" spellcheck="false"></label>
+      <div class="row-actions"><button type="button" class="danger-fill" id="delGo" disabled>Delete permanently</button><button type="button" id="delCancel2">Cancel</button></div>`;
+    const inp = document.getElementById("delName"), go = document.getElementById("delGo");
+    inp.focus();
+    inp.addEventListener("input", () => (go.disabled = inp.value.trim().toLowerCase() !== word.toLowerCase()));
+    document.getElementById("delCancel2").addEventListener("click", () => drawApp());
+    go.addEventListener("click", async () => {
+      go.disabled = true; setBusy(true);
+      try {
+        const pid = app.production_id;
+        // Evidence lives in storage under {production}/{question}/file; remove it first.
+        try {
+          const ev = sb.storage.from("evidence"), top = await ev.list(String(pid), { limit: 1000 });
+          const paths = [];
+          for (const f of top.data || []) {
+            if (f.id) { paths.push(`${pid}/${f.name}`); continue; }
+            const sub = await ev.list(`${pid}/${f.name}`, { limit: 1000 });
+            for (const x of sub.data || []) paths.push(`${pid}/${f.name}/${x.name}`);
+          }
+          if (paths.length) await ev.remove(paths);
+        } catch (err) { console.warn("Couldn't remove some evidence files", err); }
+        const { data, error } = await sb.from("productions").delete().eq("production_id", pid).select("production_id");
+        if (error) throw error;
+        if (!data?.length) throw new Error("This application can't be deleted any more. Submitted applications can only be deleted by EMA staff.");
+        toast(`${name || "Application"} deleted`);
+        location.hash = "applications";
+      } catch (err) { fail(err); go.disabled = false; } finally { setBusy(false); }
+    });
+  });
+}
+function wireTimeline(pid) {
+  const el = document.getElementById("timeline"); if (!el) return;
+  S.openThreads ||= new Set(); S.replyOpen ||= new Set(); S.replyDrafts ||= {};
+  const row = (id) => S.activity.comments.find((x) => x.comment_id === id);
+  el.addEventListener("input", (e) => { const t = e.target.closest("[data-draft]"); if (t) S.replyDrafts[t.dataset.draft] = t.value; });
+  el.addEventListener("click", async (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const li = b.closest("li[data-cid]"), thread = b.closest("li.thread"), tid = thread ? +thread.dataset.cid : null;
+    if (b.hasAttribute("data-reply")) { S.replyOpen.add(tid); drawTimeline(); document.getElementById("rp-" + tid)?.focus(); return; }
+    if (b.hasAttribute("data-cancelreply")) { S.replyOpen.delete(tid); delete S.replyDrafts[tid]; drawTimeline(); return; }
+    if (b.hasAttribute("data-showthread")) { S.openThreads.add(tid); drawTimeline(); return; }
+    if (b.hasAttribute("data-hidethread")) { S.openThreads.delete(tid); drawTimeline(); return; }
+    if (b.hasAttribute("data-postreply")) {
+      const ta = document.getElementById("rp-" + tid), body = ta.value.trim(), parent = row(tid);
+      if (!body) { ta.focus(); return toast("Write a reply first.", "bad"); }
+      b.disabled = true;
+      const { data, error } = await sb.from("application_comments").insert({ production_id: pid, author: S.me.id, body, parent_id: tid, internal: parent.internal }).select().single();
+      b.disabled = false;
+      if (error) return fail(error);
+      if (!S.activity.comments.some((x) => x.comment_id === data.comment_id)) S.activity.comments.push(data);
+      parent.resolved_at = null; parent.resolved_by = null; // replying reopens the conversation
+      S.replyOpen.delete(tid); delete S.replyDrafts[tid]; drawTimeline(); toast("Reply posted");
+      return;
+    }
+    if (b.hasAttribute("data-resolve")) {
+      const c = row(tid), resolving = !c.resolved_at;
+      const { data, error } = await sb.from("application_comments").update({ resolved_at: resolving ? new Date().toISOString() : null }).eq("comment_id", tid).select().single();
+      if (error) return fail(error);
+      Object.assign(c, { resolved_at: data?.resolved_at ?? (resolving ? new Date().toISOString() : null), resolved_by: data?.resolved_by ?? (resolving ? S.me.id : null) });
+      S.openThreads.delete(tid); drawTimeline(); toast(resolving ? "Conversation resolved" : "Conversation reopened");
+      return;
+    }
+    if (b.hasAttribute("data-delc")) {
+      if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = li.closest(".replies") ? "Confirm remove?" : "Remove the whole conversation?"; return; }
+      const id = +li.dataset.cid;
+      const { error } = await sb.from("application_comments").delete().eq("comment_id", id);
+      if (error) return fail(error);
+      S.activity.comments = S.activity.comments.filter((x) => x.comment_id !== id && x.parent_id !== id); drawTimeline(); toast("Removed");
+    }
+  });
+}
+
 function wireActivity(app) {
   const pid = app.production_id;
+  wireTimeline(pid);
+  wireDelete(app);
   document.getElementById("toActivity")?.addEventListener("click", () => { const s = document.getElementById("activity"); s.scrollIntoView({ behavior: "smooth", block: "start" }); document.getElementById("cm-body")?.focus({ preventScroll: true }); });
   document.querySelectorAll("[data-actf]").forEach((b) => b.addEventListener("click", () => {
     S.actFilter = b.dataset.actf; document.querySelectorAll("[data-actf]").forEach((x) => x.setAttribute("aria-pressed", x === b)); drawTimeline();
@@ -1135,6 +1261,10 @@ function wireActivity(app) {
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "application_comments", filter: `production_id=eq.${pid}` }, (p) => {
       if (S.activity?.pid !== pid || S.activity.comments.some((x) => x.comment_id === p.new.comment_id)) return;
       S.activity.comments.unshift(p.new); drawTimeline();
+    })
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "application_comments", filter: `production_id=eq.${pid}` }, (p) => {
+      const c = S.activity?.pid === pid && S.activity.comments.find((x) => x.comment_id === p.new.comment_id);
+      if (c) { Object.assign(c, p.new); drawTimeline(); }
     }).subscribe();
 }
 
@@ -1457,6 +1587,7 @@ function perms(app) {
     answers: staff || (own && draft),
     score: staff || (role() === "reviewer" && !draft),
     submit: own && draft,
+    del: staff || (own && draft),
   };
 }
 
@@ -1520,6 +1651,11 @@ function drawApp() {
         ${activityComposer(app)}
         <ol class="timeline" id="timeline"><li class="muted">Loading activity…</li></ol>
       </div></section>`}
+    ${!isNew && P.del ? `<section class="panel block danger-zone" id="dangerZone"><div class="block-head"><h2>Delete application</h2></div>
+      <div class="block-body" id="delBody">
+        <p>Permanently removes <b>${esc(app.production_name || "this application")}</b> with all its answers, evidence files, comments and activity. This can't be undone.${isStaff() && !P.own ? " The submitter isn't notified." : ""}</p>
+        <button type="button" class="danger-outline" id="delStart">Delete application…</button>
+      </div></section>` : ""}
     <datalist id="contact-names">${contactOptions()}</datalist>
     <datalist id="studio-names">${companyOptions("studio")}</datalist>
     <datalist id="types"><option value="Film"><option value="Television"><option value="Commercial"><option value="Music video"></datalist>
