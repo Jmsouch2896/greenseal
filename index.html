@@ -335,7 +335,20 @@ button.danger-fill:disabled { opacity: .5; }
 .menu-list button:hover, .menu-list button:focus-visible { background: var(--accent-soft); }
 .chart-block [data-astable] { white-space: nowrap; }
 /* Dashboard layout (rearrangeable) */
-.dboard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.dboard { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.dw { grid-column: span 3; }
+.dw.w-third { grid-column: span 2; }
+.dw.w-twothirds { grid-column: span 4; }
+.dw.resizing { outline-color: var(--accent) !important; outline-style: solid !important; }
+.dw-resize { position: absolute; right: -9px; bottom: -9px; width: 22px; height: 22px; cursor: nwse-resize; touch-action: none; border-radius: 4px; background: var(--surface); border: 2px solid var(--accent);
+  background-image: linear-gradient(135deg, transparent 45%, var(--accent) 45% 55%, transparent 55%), linear-gradient(135deg, transparent 70%, var(--accent) 70% 80%, transparent 80%); z-index: 3; }
+.dw-size-label { position: absolute; right: 18px; bottom: 18px; z-index: 4; padding: 3px 8px; border-radius: 4px; background: var(--ink); color: var(--bg); font: 600 .78rem var(--mono); pointer-events: none; }
+.sizer { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.sizer button { border: 0; border-radius: 0; padding: 3px 8px; font-size: .78rem; min-width: 2rem; background: none; }
+.sizer button + button { border-left: 1px solid var(--line); }
+.sizer button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.chart .chart-svg { height: var(--ch, 260px); }
+@media (max-width: 1100px) and (min-width: 861px) { .dw.w-third { grid-column: span 3; } }
 .dw { min-width: 0; position: relative; }
 .dw.w-full { grid-column: 1 / -1; }
 .dw > section.block, .dw > .kpis { margin: 0; }
@@ -426,6 +439,8 @@ button.danger-fill:disabled { opacity: .5; }
 .b-hint:empty { display: none; }
 @media (max-width: 860px) {
   .dboard { grid-template-columns: minmax(0, 1fr); }
+  .dw, .dw.w-third, .dw.w-half, .dw.w-twothirds { grid-column: 1 / -1; }
+  .dw-resize { display: none; }
   .builder-body { grid-template-columns: minmax(0, 1fr); }
   .builder-form { border-right: 0; border-bottom: 1px solid var(--line); }
   .builder-preview { position: static; }
@@ -2037,6 +2052,12 @@ const DASH_BUILTIN = {
   types: { title: "By production type", size: "full" },
 };
 const DASH_DEFAULT = Object.entries(DASH_BUILTIN).map(([id, w]) => ({ id, size: w.size }));
+// Widths on a 6-column grid; heights apply to charts drawn by the chart builder.
+const WIDTHS = [["third", "⅓", 2], ["half", "½", 3], ["twothirds", "⅔", 4], ["full", "Full", 6]];
+const HEIGHTS = [["s", "S", 200], ["m", "M", 260], ["l", "L", 360], ["xl", "XL", 480]];
+const okWidth = (v, fb = "half") => (WIDTHS.some(([k]) => k === v) ? v : fb);
+const okHeight = (v) => (HEIGHTS.some(([k]) => k === v) ? v : "m");
+const heightPx = (v) => HEIGHTS.find(([k]) => k === okHeight(v))[2];
 const SERIES_MAX = 6; // validated categorical slots --s1..--s6; more series fold into "Other"
 const GROUP_MAX = 12; // categories beyond this fold into "Other" (except time)
 
@@ -2173,8 +2194,8 @@ function roundTop(x, y, w, h, r) {
   r = Math.min(r, w / 2, h);
   return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
 }
-function svgBar(d, W) {
-  const H = 260, ml = 48, mr = 8, mt = 14, mb = 44, pw = Math.max(80, W - ml - mr), ph = H - mt - mb;
+function svgBar(d, W, H = 260) {
+  const ml = 48, mr = 8, mt = 14, mb = 44, pw = Math.max(80, W - ml - mr), ph = H - mt - mb;
   const G = d.groups, band = pw / Math.max(1, G.length);
   const max = niceMax(Math.max(0, ...G.map((g) => (d.stacked ? d.series.reduce((t, s) => t + (g.values[s.key] || 0), 0) : Math.max(0, ...d.series.map((s) => g.values[s.key] || 0))))), d.M.key === "count");
   const y = (v) => mt + ph - (v / max) * ph;
@@ -2215,8 +2236,8 @@ function htmlHbar(d) {
         return `<i class="mark" style="--w:${(Math.max(0, v) / max) * 100}%;background:${sColor(s.slot)}" data-tip="${esc(tipOf(g, s, d))}"></i>`; }).join("")}</div>
       <span class="hval mono">${esc(fmtVal(d.stacked || d.series.length === 1 ? (d.stacked ? tot(g) : g.values[d.series[0].key]) : g.total, d.M))}</span></div>`).join("")}</div>`;
 }
-function svgLine(d, W) {
-  const H = 260, ml = 48, mr = 16, mt = 14, mb = 44, pw = Math.max(80, W - ml - mr), ph = H - mt - mb, G = d.groups;
+function svgLine(d, W, H = 260) {
+  const ml = 48, mr = 16, mt = 14, mb = 44, pw = Math.max(80, W - ml - mr), ph = H - mt - mb, G = d.groups;
   const max = niceMax(Math.max(0, ...G.flatMap((g) => d.series.map((s) => g.values[s.key] || 0))), d.M.key === "count");
   const x = (i) => ml + (G.length === 1 ? pw / 2 : (pw * i) / (G.length - 1)), y = (v) => mt + ph - (v / max) * ph;
   const ticks = [0, .25, .5, .75, 1].map((f) => f * max), every = Math.ceil(G.length / Math.max(1, Math.floor(pw / 70)));
@@ -2236,12 +2257,12 @@ function svgLine(d, W) {
   });
   return out + `</svg>`;
 }
-function svgDonut(d) {
+function svgDonut(d, H = 260) {
   // One ring, slices capped at SERIES_MAX (rest → Other), each with a legend row.
   let G = d.groups.filter((g) => g.total > 0);
   if (G.length > SERIES_MAX) { const rest = G.slice(SERIES_MAX - 1); G = [...G.slice(0, SERIES_MAX - 1), { label: `Other (${rest.length})`, total: rest.reduce((t, g) => t + g.total, 0), other: true }]; }
   const sum = G.reduce((t, g) => t + g.total, 0); if (!sum) return emptyChart();
-  const R = 84, r = 54, C = 96; let a0 = -Math.PI / 2, out = "";
+  const C = Math.round(Math.max(150, Math.min(H, 420)) * 0.37), R = C - 12, r = Math.round(R * 0.64); let a0 = -Math.PI / 2, out = "";
   G.forEach((g, i) => {
     const frac = g.total / sum, a1 = a0 + frac * Math.PI * 2, big = a1 - a0 > Math.PI ? 1 : 0, col = g.other ? sColor("o") : sColor(i + 1);
     const p = (ang, rad) => `${C + rad * Math.cos(ang)},${C + rad * Math.sin(ang)}`;
@@ -2250,7 +2271,7 @@ function svgDonut(d) {
       : `<path class="mark slice" d="M${p(a0, R)}A${R},${R} 0 ${big} 1 ${p(a1, R)}L${p(a1, r)}A${r},${r} 0 ${big} 0 ${p(a0, r)}Z" fill="${col}" data-tip="${esc(tip)}"/>`;
     G[i].col = col; G[i].frac = frac; a0 = a1;
   });
-  return `<div class="donut"><svg width="192" height="192" viewBox="0 0 192 192" role="img" aria-label="${esc(G.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">${out}
+  return `<div class="donut"><svg width="${C * 2}" height="${C * 2}" viewBox="0 0 ${C * 2} ${C * 2}" role="img" aria-label="${esc(G.map((g) => `${g.label}: ${fmtVal(g.total, d.M)}`).join("; "))}">${out}
     <text class="dtotal" x="${C}" y="${C + 4}" text-anchor="middle">${esc(fmtVal(sum, d.M))}</text><text class="tick" x="${C}" y="${C + 22}" text-anchor="middle">total</text></svg>
     <ul class="dlegend">${G.map((g) => `<li><i style="background:${g.col}"></i><span>${esc(g.label)}</span><b class="mono">${esc(fmtVal(g.total, d.M))}</b><span class="muted mono">${Math.round(g.frac * 100)}%</span></li>`).join("")}</ul></div>`;
 }
@@ -2259,8 +2280,9 @@ function tableView(d) {
   return `<div class="table-scroll"><table class="ctable"><thead><tr><th>${esc(d.D.label === DIMS.none.label ? "" : d.D.label)}</th>${multi ? d.series.map((s) => `<th class="num">${esc(s.label)}</th>`).join("") : ""}<th class="num">${multi ? "All" : esc(d.M.label)}</th><th class="num">Productions</th></tr></thead>
     <tbody>${d.groups.map((g) => `<tr><td>${esc(g.label)}</td>${multi ? d.series.map((s) => `<td class="num mono">${esc(fmtVal(g.values[s.key], d.M))}</td>`).join("") : ""}<td class="num mono">${esc(fmtVal(g.total, d.M))}</td><td class="num mono">${g.nTotal}</td></tr>`).join("")}</tbody></table></div>`;
 }
-function renderChart(el, spec, forceTable = false) {
-  const d = chartData(spec), W = Math.max(240, Math.floor(el.clientWidth || 600));
+function renderChart(el, spec, forceTable = false, height = null) {
+  const d = chartData(spec), W = Math.max(200, Math.floor(el.clientWidth || 600)), H = heightPx(height || spec.height);
+  el.style.setProperty("--ch", H + "px");
   if (!d.n) { el.innerHTML = emptyChart(); return; }
   if (d.M.key !== "count" && !d.nTotal) { el.innerHTML = emptyChart("None of these productions have reported this yet."); return; }
   if (spec.type === "number") {
@@ -2268,7 +2290,7 @@ function renderChart(el, spec, forceTable = false) {
     return;
   }
   if (forceTable || spec.type === "table") { el.innerHTML = tableView(d); return; }
-  const body = spec.type === "hbar" ? htmlHbar(d) : spec.type === "line" ? svgLine(d, W) : spec.type === "donut" ? svgDonut(d) : svgBar(d, W);
+  const body = spec.type === "hbar" ? htmlHbar(d) : spec.type === "line" ? svgLine(d, W, H) : spec.type === "donut" ? svgDonut(d, H) : svgBar(d, W, H);
   const note = d.M.key !== "count" && d.nTotal < d.n ? `<p class="muted small chart-note">${d.nTotal} of ${d.n} productions have reported this.</p>` : "";
   el.innerHTML = (spec.type === "donut" ? "" : legendHTML(d)) + body + note;
 }
@@ -2301,8 +2323,8 @@ function resolveLayout() {
   const map = dashWidgets(), seen = new Set();
   const base = S.dashPrefs.layout?.length ? S.dashPrefs.layout : S.dashDefault?.length ? S.dashDefault : DASH_DEFAULT;
   const out = [];
-  for (const e of base) if (map.has(e.id) && !seen.has(e.id)) { seen.add(e.id); out.push({ id: e.id, size: e.size === "full" ? "full" : "half", hidden: !!e.hidden }); }
-  for (const [id, w] of map) if (!seen.has(id)) out.push({ id, size: w.builtin ? DASH_BUILTIN[id].size : w.spec.size === "full" ? "full" : "half", hidden: false });
+  for (const e of base) if (map.has(e.id) && !seen.has(e.id)) { const w = map.get(e.id); seen.add(e.id); out.push({ id: e.id, size: okWidth(e.size), height: okHeight(e.height || w.spec?.height), hidden: !!e.hidden }); }
+  for (const [id, w] of map) if (!seen.has(id)) out.push({ id, size: okWidth(w.builtin ? DASH_BUILTIN[id].size : w.spec.size), height: okHeight(w.spec?.height), hidden: false });
   return out;
 }
 let dashSaveT;
@@ -2320,11 +2342,12 @@ function widgetTitle(w) { return w.builtin ? DASH_BUILTIN[w.id].title : w.spec.t
 function drawDashboard() {
   const map = dashWidgets(), layout = resolveLayout(), edit = !!S.dashEdit;
   const visible = layout.filter((e) => !e.hidden), hidden = layout.filter((e) => e.hidden);
-  const tools = (e, w, i) => !edit ? "" : `<div class="dw-tools" role="group" aria-label="Arrange ${esc(widgetTitle(w))}">
+  const tools = (e, w, i) => !edit ? "" : `<div class="dw-tools" role="group" aria-label="Arrange ${esc(widgetTitle(w))}" draggable="true">
       <span class="dw-grip" aria-hidden="true" title="Drag to move">⠿</span><b>${esc(widgetTitle(w))}</b>
       <button class="link" data-move="-1" ${i === 0 ? "disabled" : ""} aria-label="Move earlier">↑</button>
       <button class="link" data-move="1" ${i === visible.length - 1 ? "disabled" : ""} aria-label="Move later">↓</button>
-      <button class="link" data-size>${e.size === "full" ? "Make narrow" : "Make wide"}</button>
+      <span class="sizer" role="group" aria-label="Width">${WIDTHS.map(([k, l]) => `<button type="button" data-width="${k}" aria-pressed="${e.size === k}" title="${{ third: "One third", half: "Half", twothirds: "Two thirds", full: "Full width" }[k]}">${l}</button>`).join("")}</span>
+      ${w.builtin ? "" : `<span class="sizer" role="group" aria-label="Height">${HEIGHTS.map(([k, l]) => `<button type="button" data-height="${k}" aria-pressed="${e.height === k}" title="Height ${l}">${l}</button>`).join("")}</span>`}
       ${!w.builtin && (w.own || isStaff()) ? `<button class="link" data-edit>Edit</button>` : ""}
       <button class="link" data-hide>Hide</button>
       ${w.own ? `<button class="link danger" data-del>Delete</button>` : w.shared && isStaff() ? `<button class="link danger" data-del>Delete for everyone</button>` : ""}
@@ -2349,10 +2372,10 @@ function drawDashboard() {
           <button class="link" id="dashReset">Reset to default</button>${isStaff() ? `<button class="link" id="dashMakeDefault">Make this everyone's default</button>` : ""}</div>
       </div>` : ""}
     <div class="dboard ${edit ? "editing" : ""}">${visible.map((e, i) => { const w = map.get(e.id);
-      return `<div class="dw w-${e.size}" data-wid="${esc(e.id)}" ${edit ? 'draggable="true"' : ""}>${tools(e, w, i)}${w.builtin ? S.dash.html[e.id] : chartBlock(w)}</div>`; }).join("")
+      return `<div class="dw w-${e.size}" data-wid="${esc(e.id)}">${tools(e, w, i)}${w.builtin ? S.dash.html[e.id] : chartBlock(w)}${edit ? `<span class="dw-resize" title="Drag to resize" aria-hidden="true"></span>` : ""}</div>`; }).join("")
       || `<div class="panel block w-full"><div class="block-body"><p class="muted">Everything is hidden. Click Customize to show charts again.</p></div></div>`}</div>`;
   // Charts need their width, so render after they're in the page.
-  const draw = () => $app.querySelectorAll(".chart[data-wid]").forEach((el) => { const w = map.get(el.dataset.wid); if (w) renderChart(el, w.spec, !!S.dashTables?.[w.id]); });
+  const draw = () => $app.querySelectorAll(".chart[data-wid]").forEach((el) => { const w = map.get(el.dataset.wid), e = layout.find((x) => x.id === el.dataset.wid); if (w) renderChart(el, w.spec, !!S.dashTables?.[w.id], e?.height); });
   draw();
   S.dashRO?.disconnect();
   let lastW = $app.clientWidth, t;
@@ -2370,6 +2393,7 @@ function drawDashboard() {
     const id = b.closest(".dw").dataset.wid; (S.dashTables ||= {})[id] = !S.dashTables[id]; drawDashboard();
   }));
   const commit = (lay) => { S.dashPrefs.layout = lay; saveDashPrefs(); drawDashboard(); };
+  const refocus = (id, sel) => requestAnimationFrame(() => $app.querySelector(`.dw[data-wid="${CSS.escape(id)}"] ${sel}`)?.focus());
   $app.querySelectorAll("[data-show]").forEach((b) => b.addEventListener("click", () => commit(layout.map((e) => (e.id === b.dataset.show ? { ...e, hidden: false } : e)))));
   document.getElementById("dashReset")?.addEventListener("click", () => { S.dashPrefs.layout = []; saveDashPrefs(); drawDashboard(); toast("Back to the default layout"); });
   document.getElementById("dashMakeDefault")?.addEventListener("click", async (ev) => {
@@ -2390,7 +2414,8 @@ function drawDashboard() {
       [lay[a], lay[c]] = [lay[c], lay[a]]; commit(lay);
       requestAnimationFrame(() => $app.querySelector(`.dw[data-wid="${CSS.escape(id)}"] [data-move="${b.dataset.move}"]`)?.focus());
     }));
-    tb.querySelector("[data-size]").addEventListener("click", () => commit(layout.map((e, i) => (i === idx ? { ...e, size: e.size === "full" ? "half" : "full" } : e))));
+    tb.querySelectorAll("[data-width]").forEach((b) => b.addEventListener("click", () => { commit(layout.map((e, i) => (i === idx ? { ...e, size: b.dataset.width } : e))); refocus(id, `[data-width="${b.dataset.width}"]`); }));
+    tb.querySelectorAll("[data-height]").forEach((b) => b.addEventListener("click", () => { commit(layout.map((e, i) => (i === idx ? { ...e, height: b.dataset.height } : e))); refocus(id, `[data-height="${b.dataset.height}"]`); }));
     tb.querySelector("[data-hide]").addEventListener("click", () => commit(layout.map((e, i) => (i === idx ? { ...e, hidden: true } : e))));
     tb.querySelector("[data-edit]")?.addEventListener("click", () => openChartBuilder(w));
     tb.querySelector("[data-del]")?.addEventListener("click", async (ev) => {
@@ -2405,12 +2430,40 @@ function drawDashboard() {
       saveDashPrefs(); drawDashboard(); toast(`${widgetTitle(w)} deleted`);
     });
   });
+  // Resize by dragging the corner: width snaps to ⅓ ½ ⅔ full, height (charts) to S M L XL.
+  if (edit) $app.querySelectorAll(".dw-resize").forEach((h) => h.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    const dw = h.closest(".dw"), id = dw.dataset.wid, board = dw.parentElement, e0 = layout.find((x) => x.id === id), isChart = !map.get(id).builtin;
+    const colW = board.getBoundingClientRect().width / 6, left = dw.getBoundingClientRect().left, top0 = ev.clientY, h0 = heightPx(e0.height);
+    let size = e0.size, height = e0.height;
+    h.setPointerCapture(ev.pointerId); dw.classList.add("resizing");
+    const label = document.createElement("span"); label.className = "dw-size-label"; dw.appendChild(label);
+    const show = () => { label.textContent = WIDTHS.find(([k]) => k === size)[1] + (isChart ? ` · ${HEIGHTS.find(([k]) => k === height)[1]}` : ""); };
+    show();
+    const move = (m) => {
+      const span = Math.max(1, (m.clientX - left) / colW);
+      size = WIDTHS.reduce((best, x) => (Math.abs(x[2] - span) < Math.abs(best[2] - span) ? x : best))[0];
+      if (window.innerWidth > 860) { dw.classList.remove(...WIDTHS.map(([k]) => "w-" + k)); dw.classList.add("w-" + size); }
+      if (isChart) {
+        const want = h0 + (m.clientY - top0);
+        height = HEIGHTS.reduce((best, x) => (Math.abs(x[2] - want) < Math.abs(best[2] - want) ? x : best))[0];
+        dw.querySelector(".chart")?.style.setProperty("--ch", heightPx(height) + "px");
+      }
+      show();
+    };
+    const up = () => {
+      h.removeEventListener("pointermove", move); h.removeEventListener("pointerup", up); h.removeEventListener("pointercancel", up);
+      if (size !== e0.size || height !== e0.height) commit(layout.map((x) => (x.id === id ? { ...x, size, height } : x)));
+      else { dw.classList.remove("resizing"); label.remove(); }
+    };
+    h.addEventListener("pointermove", move); h.addEventListener("pointerup", up); h.addEventListener("pointercancel", up);
+  }));
   // Drag and drop (mouse); the arrow buttons cover keyboard and touch.
   if (edit) {
     const board = $app.querySelector(".dboard");
     board.addEventListener("dragstart", (e) => { const dw = e.target.closest?.(".dw"); if (!dw) return; S.dragId = dw.dataset.wid; dw.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", S.dragId); } catch {} });
     board.addEventListener("dragend", () => { board.querySelectorAll(".dragging,.drop-before,.drop-after").forEach((x) => x.classList.remove("dragging", "drop-before", "drop-after")); });
-    const where = (dw, e) => { const r = dw.getBoundingClientRect(), half = dw.classList.contains("w-half"); return (half ? e.clientX < r.left + r.width / 2 : e.clientY < r.top + r.height / 2) ? "before" : "after"; };
+    const where = (dw, e) => { const r = dw.getBoundingClientRect(), half = !dw.classList.contains("w-full"); return (half ? e.clientX < r.left + r.width / 2 : e.clientY < r.top + r.height / 2) ? "before" : "after"; };
     board.addEventListener("dragover", (e) => {
       const dw = e.target.closest?.(".dw"); if (!dw || !S.dragId || dw.dataset.wid === S.dragId) return;
       e.preventDefault(); e.dataTransfer.dropEffect = "move";
@@ -2459,9 +2512,12 @@ function openChartBuilder(w = null) {
           <p class="muted small">Nothing ticked in a group means everything in that group is included.</p>
         </details>
         <label class="field"><span>Title</span><input id="b-title" value="${esc(spec.title)}" placeholder="${esc(autoTitle(spec))}" maxlength="90"></label>
-        <fieldset class="field"><legend class="label">Width on the dashboard</legend><div class="chips">
-          <label class="chip check-chip"><input type="radio" name="b-size" value="half" ${spec.size !== "full" ? "checked" : ""}>Half</label>
-          <label class="chip check-chip"><input type="radio" name="b-size" value="full" ${spec.size === "full" ? "checked" : ""}>Full</label></div></fieldset>
+        <div class="grid2">
+          <fieldset class="field"><legend class="label">Width</legend><div class="chips">${WIDTHS.map(([k, l]) =>
+            `<label class="chip check-chip"><input type="radio" name="b-size" value="${k}" ${okWidth(spec.size) === k ? "checked" : ""}>${l}</label>`).join("")}</div></fieldset>
+          <fieldset class="field"><legend class="label">Height</legend><div class="chips">${HEIGHTS.map(([k, l]) =>
+            `<label class="chip check-chip"><input type="radio" name="b-height" value="${k}" ${okHeight(spec.height) === k ? "checked" : ""}>${l}</label>`).join("")}</div></fieldset>
+        </div>
         ${isStaff() && !editing ? `<label class="check"><input type="checkbox" id="b-share">Share with everyone (reviewers and staff see it on their dashboard)</label>` : ""}
         <p class="b-hint muted small" id="b-hint" role="status"></p>
       </div>
@@ -2475,6 +2531,7 @@ function openChartBuilder(w = null) {
     spec.measure = $("b-measure").value; spec.agg = $("b-agg").value; spec.stage = $("b-stage").value;
     spec.dim = $("b-dim").value; spec.split = $("b-split").value; spec.title = $("b-title").value.trim();
     spec.size = dlg.querySelector("input[name=b-size]:checked").value;
+    spec.height = dlg.querySelector("input[name=b-height]:checked").value;
     spec.filters = {}; for (const k of FILTER_DIMS) { const v = [...dlg.querySelectorAll(`input[data-f="${k}"]:checked`)].map((x) => x.value); if (v.length) spec.filters[k] = v; }
   };
   const sync = () => {
@@ -2517,7 +2574,7 @@ function openChartBuilder(w = null) {
     } else S.dashPrefs.charts = [...(S.dashPrefs.charts || []), clean];
     // Width chosen here applies to this person's layout entry.
     const wid = editing ? w.id : clean.id && !dlg.querySelector("#b-share")?.checked ? "c:" + clean.id : "s:" + S.sharedCharts[S.sharedCharts.length - 1].chart_id;
-    const lay = resolveLayout().map((x) => (x.id === wid ? { ...x, size: clean.size, hidden: false } : x));
+    const lay = resolveLayout().map((x) => (x.id === wid ? { ...x, size: clean.size, height: clean.height, hidden: false } : x));
     S.dashPrefs.layout = lay;
     await saveDashPrefs(true);
     dlg.close(); drawDashboard(); toast(editing ? "Chart saved" : "Chart added to your dashboard");
