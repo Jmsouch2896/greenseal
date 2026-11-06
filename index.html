@@ -1775,11 +1775,46 @@ function geoLine(app) {
   if (!app.production_location) return chg ? `<p class="geo-line muted small" style="grid-column:1/-1">No location yet.${chg}</p>` : "";
   const place = [app.geo_city, app.geo_region, app.geo_country].filter(Boolean).join(", ");
   if (place) return `<p class="geo-line" style="grid-column:1/-1"><span aria-hidden="true">📍</span> ${esc(place)}${app.geo_lat != null ? ` <span class="muted mono small">${(+app.geo_lat).toFixed(3)}, ${(+app.geo_lng).toFixed(3)}</span>` : ""}
-    <span class="muted small">· ${app.geo_source === "chosen" ? "place chosen on OpenStreetMap" : app.geo_source === "nominatim" ? "located with OpenStreetMap" : "located"}</span>${chg}</p>`;
+    <span class="muted small">· ${app.geo_source === "chosen" ? "place chosen on OpenStreetMap" : ["nominatim", "osm"].includes(app.geo_source) ? "located with OpenStreetMap" : "located"}</span>${chg}</p>`;
   if (app.geocoded_query) return `<p class="geo-line warn-txt" style="grid-column:1/-1">Couldn't find "${esc(app.production_location)}" on the map. Try "City, State" or "City, Country".${chg}${isReviewerish() ? ` <button type="button" class="link small" id="regeo">Look up again</button>` : ""}</p>`;
   return `<p class="geo-line muted small" style="grid-column:1/-1">The location is placed on the map after saving.${isReviewerish() ? ` <button type="button" class="link small" id="regeo">Look it up now</button>` : ""}</p>`;
 }
 document.addEventListener("click", (e) => { if (e.target.closest?.("#chgeo") && S.current?.app) openGeoDialog(S.current.app); });
+// Place search runs in the browser (Photon, OpenStreetMap data), falling back to the geocode function.
+const GEO_TYPES = ["city", "town", "village", "hamlet", "locality", "municipality", "district", "suburb"];
+async function searchPlaces(q, limit = 5) {
+  try {
+    const r = await fetch(`https://photon.komoot.io/api/?lang=en&limit=${limit}&q=${encodeURIComponent(q)}`);
+    if (!r.ok) throw new Error("photon " + r.status);
+    const data = await r.json();
+    return (data.features || []).map((f) => { const p = f.properties || {}, c = f.geometry?.coordinates || [];
+      return { geo_city: p.city || (GEO_TYPES.includes(p.type) || GEO_TYPES.includes(p.osm_value) ? p.name : null) || null,
+        geo_region: p.state || (p.type === "state" ? p.name : null) || null, geo_region_code: null,
+        geo_country: p.country || (p.type === "country" ? p.name : null) || null, geo_country_code: p.countrycode ? String(p.countrycode).toUpperCase() : null,
+        geo_lat: c[1] ?? null, geo_lng: c[0] ?? null, display: [p.name, p.county, p.state, p.country].filter((x, i, a) => x && a.indexOf(x) === i).join(", ") }; });
+  } catch (e) {
+    console.warn("Browser place search failed, asking the server", e);
+    const { data, error } = await sb.functions.invoke("geocode", { body: { query: q } });
+    if (error || data?.error) throw await fnError(error, data);
+    return data?.results || (data?.geo ? [data.geo] : []);
+  }
+}
+// Supabase hides a function's own error message behind "non-2xx status"; dig it out.
+async function fnError(error, data) {
+  if (data?.error) return new Error(data.error);
+  try { const j = await error?.context?.json?.(); if (j?.error) return new Error(j.error); } catch {}
+  return error || new Error("Something went wrong.");
+}
+// Place one production: let the server try first; if it can't reach the map service, look it up here and send the place.
+async function locateProduction(id, location, force = true) {
+  const { data, error } = await sb.functions.invoke("geocode", { body: { production_id: id, force } });
+  if (!error && !data?.error) return data;
+  if (!location) throw await fnError(error, data);
+  const [place] = await searchPlaces(location, 1);
+  const r = await sb.functions.invoke("geocode", { body: { production_id: id, location, ...(place ? { place } : {}) } });
+  if (r.error || r.data?.error) throw await fnError(r.error, r.data);
+  return r.data;
+}
 function openGeoDialog(app) {
   let dlg = document.getElementById("geoDlg");
   if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "geoDlg"; document.body.appendChild(dlg); }
@@ -1803,10 +1838,8 @@ function openGeoDialog(app) {
   const find = async () => {
     const q = $q.value.trim(); if (!q) { results = []; searched = ""; draw(); say("Leave it empty and save to remove the location."); return; }
     say("Searching…"); dlg.querySelector("#gFind").disabled = true;
-    const { data, error } = await sb.functions.invoke("geocode", { body: { query: q } });
-    dlg.querySelector("#gFind").disabled = false;
-    if (error || data?.error) { say(friendly(error || new Error(data.error)), true); return; }
-    results = data?.results || (data?.geo ? [data.geo] : []); searched = q; pick = 0; draw();
+    try { results = await searchPlaces(q); } catch (err) { dlg.querySelector("#gFind").disabled = false; say(friendly(err), true); return; }
+    dlg.querySelector("#gFind").disabled = false; searched = q; pick = 0; draw();
     say(results.length ? (results.length > 1 ? "Pick the right place, then save." : "") : `Couldn't find "${q}". Try adding the state or country.`, !results.length);
   };
   dlg.querySelector("#gFind").addEventListener("click", find);
@@ -1816,14 +1849,17 @@ function openGeoDialog(app) {
   dlg.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const q = $q.value.trim(), body = { production_id: app.production_id, location: q };
-    if (q && q === searched && results.length) body.pick = pick;
     $save.disabled = true; say("Saving…");
+    try {
+      if (q && !(q === searched && results.length)) { results = await searchPlaces(q); searched = q; pick = 0; }
+      if (q && results[pick]) { const { display, ...place } = results[pick]; body.place = place; }
+    } catch (err) { console.warn(err); }
     const { data, error } = await sb.functions.invoke("geocode", { body });
     $save.disabled = false;
-    if (error || data?.error) { say(friendly(error || new Error(data.error)), true); return; }
+    if (error || data?.error) { say(friendly(await fnError(error, data)), true); return; }
     const empty = { geo_city: null, geo_region: null, geo_region_code: null, geo_country: null, geo_country_code: null, geo_lat: null, geo_lng: null };
     const { display, ...geo } = data?.geo || empty;
-    Object.assign(app, empty, geo, { production_location: q || null, geocoded_query: q || null, geo_source: data?.geo ? (body.pick != null ? "chosen" : "nominatim") : null });
+    Object.assign(app, empty, geo, { production_location: q || null, geocoded_query: q || null, geo_source: data?.geo ? "chosen" : null });
     const inp = document.getElementById("d-production_location"); if (inp) inp.value = q;
     const line = document.querySelector(".geo-line"), html = geoLine(app);
     if (line) line.outerHTML = html || "";
@@ -1835,8 +1871,9 @@ function openGeoDialog(app) {
 document.addEventListener("click", async (e) => {
   const b = e.target.closest?.("#regeo"); if (!b || !S.current?.app?.production_id) return;
   b.disabled = true; b.textContent = "Looking up…";
-  const { data, error } = await sb.functions.invoke("geocode", { body: { production_id: S.current.app.production_id, force: true } });
-  if (error || data?.error) { b.disabled = false; b.textContent = "Look up again"; return fail(error || new Error(data.error)); }
+  let data;
+  try { data = await locateProduction(S.current.app.production_id, S.current.app.production_location); }
+  catch (err) { b.disabled = false; b.textContent = "Look up again"; return fail(err); }
   toast(data?.geo ? `Located: ${[data.geo.geo_city, data.geo.geo_region, data.geo.geo_country].filter(Boolean).join(", ")}` : "Couldn't find that place");
   openApp(S.current.app.production_id);
 });
@@ -3201,7 +3238,7 @@ async function saveApp({ submit = false } = {}) {
       }
       if (det.studio_affiliation) await ensureCompany(det.studio_affiliation, "studio");
       if ((det.production_location || "") !== (app.geocoded_query || "") ) {
-        try { await sb.functions.invoke("geocode", { body: { production_id: id } }); } catch (e) { console.warn("Geocoding failed", e); }
+        try { await locateProduction(id, det.production_location, false); } catch (e) { console.warn("Geocoding failed", e); }
       }
     }
     // Who answered: department level, then per-answer overrides.
@@ -3849,8 +3886,7 @@ function drawDashboard() {
     const b = e.currentTarget, list = S.dash.allApps.filter((a) => a.production_location && !a.geo_country && !a.geocoded_query); b.disabled = true; let ok = 0;
     for (const [i, a] of list.entries()) {
       b.textContent = `Locating ${i + 1} of ${list.length}…`;
-      const { data } = await sb.functions.invoke("geocode", { body: { production_id: a.production_id, force: true } });
-      if (data?.geo) ok++;
+      try { const data = await locateProduction(a.production_id, a.production_location); if (data?.geo) ok++; } catch (err) { console.warn(err); }
       if (i < list.length - 1) await new Promise((r) => setTimeout(r, 1100)); // the map service allows about one lookup a second
     }
     toast(`Located ${ok} of ${list.length}`); renderDashboard();
