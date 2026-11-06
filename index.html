@@ -326,7 +326,13 @@ button.danger-fill:disabled { opacity: .5; }
 .tag-internal { background: var(--warn); color: var(--surface); }
 .tag-shared { background: var(--info-soft); color: var(--info); }
 @media (max-width: 600px) { .tl-event { grid-template-columns: 1.4rem minmax(0, 1fr); } .tl-event time { grid-column: 2; } }
-.page-head > .export { flex: 1 1 auto; justify-content: flex-end; }
+.page-head > .export { display: flex; flex: 1 1 auto; justify-content: flex-end; align-items: center; }
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 200px; display: grid; padding: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 8px 24px rgb(0 0 0 / .12); }
+.menu-list button { border: 0; background: none; text-align: left; padding: 8px 10px; border-radius: 4px; font-weight: 500; }
+.menu-list button:hover, .menu-list button:focus-visible { background: var(--accent-soft); }
 .chart-block [data-astable] { white-space: nowrap; }
 /* Dashboard layout (rearrangeable) */
 .dboard { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
@@ -2332,7 +2338,9 @@ function drawDashboard() {
       <div><p class="eyebrow">PEACH v2.0 · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p><h1>Program dashboard</h1></div>
       <div class="export">
         ${edit ? `<button id="dashAdd">Add chart</button><button class="primary" id="dashDone">Done</button>`
-          : `<button id="dashAdd">Add chart</button><button id="dashEdit">Customize</button><button id="expApps">Export applications</button><button id="expAns">Export answers</button>`}
+          : `<details class="menu" id="expMenu"><summary class="btn">Export <span aria-hidden="true">▾</span></summary>
+              <div class="menu-list" role="menu"><button role="menuitem" id="expApps">Applications (CSV)</button><button role="menuitem" id="expAns">All answers (CSV)</button></div></details>
+            <button id="dashEdit">Customize</button><button class="primary" id="dashAdd">Add chart</button>`}
       </div>
     </div>
     ${edit ? `<div class="panel dash-editbar" role="status">
@@ -2351,8 +2359,10 @@ function drawDashboard() {
   S.dashRO = new ResizeObserver(() => { if (Math.abs($app.clientWidth - lastW) < 8) return; lastW = $app.clientWidth; clearTimeout(t); t = setTimeout(draw, 120); });
   S.dashRO.observe($app);
 
-  document.getElementById("expApps")?.addEventListener("click", exportApps);
-  document.getElementById("expAns")?.addEventListener("click", exportAnswers);
+  const expMenu = document.getElementById("expMenu");
+  document.getElementById("expApps")?.addEventListener("click", () => { expMenu.open = false; exportApps(); });
+  document.getElementById("expAns")?.addEventListener("click", () => { expMenu.open = false; exportAnswers(); });
+  expMenu?.addEventListener("keydown", (e) => { if (e.key === "Escape") { expMenu.open = false; expMenu.querySelector("summary").focus(); } });
   document.getElementById("dashEdit")?.addEventListener("click", () => { S.dashEdit = true; drawDashboard(); });
   document.getElementById("dashDone")?.addEventListener("click", () => { S.dashEdit = false; saveDashPrefs(true); drawDashboard(); });
   document.getElementById("dashAdd").addEventListener("click", () => openChartBuilder());
@@ -2415,6 +2425,9 @@ function drawDashboard() {
     });
   }
 }
+
+// Close any open dropdown menu when clicking elsewhere.
+document.addEventListener("click", (e) => { document.querySelectorAll("details.menu[open]").forEach((m) => { if (!m.contains(e.target)) m.open = false; }); });
 
 // ── Chart builder ──
 function openChartBuilder(w = null) {
