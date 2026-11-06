@@ -274,6 +274,104 @@ body:has(.actions) main { padding-bottom: 140px; }
 .export { display: flex; gap: 10px; flex-wrap: wrap; }
 /* Activity & comments */
 .activity { margin-top: 22px; scroll-margin-top: 16px; }
+.lvl-rows { display: grid; gap: 10px; margin-bottom: 8px; }
+.lvl-row { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 10rem) auto; gap: 12px; align-items: end; }
+#certSettings .block-body, .row-actions { display: grid; gap: 12px; }
+.row-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.cert-tools { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 18px; }
+.certificate { aspect-ratio: 1.414 / 1; max-width: 1000px; margin: 0 auto; background: var(--surface); border-radius: 6px; padding: clamp(10px, 2vw, 18px); box-shadow: 0 10px 40px rgb(0 0 0 / .08); position: relative; overflow: hidden; }
+.certificate::before { content: ""; position: absolute; width: 46%; aspect-ratio: 1; border-radius: 50%; background: var(--hl); opacity: .16; right: -12%; top: -22%; }
+.certificate::after { content: ""; position: absolute; width: 18%; aspect-ratio: 1; border-radius: 50%; background: var(--coral); opacity: .14; left: -5%; bottom: -7%; }
+.cert-inner { position: relative; z-index: 1; height: 100%; border: 2px solid var(--accent); outline: 1px solid var(--accent); outline-offset: -8px; border-radius: 4px; display: grid; justify-items: center; align-content: center; text-align: center; gap: clamp(4px, 1vw, 10px); padding: clamp(16px, 4vw, 48px); isolation: isolate; }
+.cert-brand img { height: clamp(32px, 5vw, 56px); width: auto; }
+.cert-brand .mark { font-size: clamp(1.2rem, 2.6vw, 1.8rem); }
+.cert-eyebrow { margin: 0; font-size: clamp(.62rem, 1.2vw, .82rem); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.cert-level { margin: 0; font-size: clamp(2rem, 6.5vw, 4.4rem) !important; color: var(--accent); }
+.cert-gold .cert-level { color: color-mix(in srgb, var(--hl) 55%, var(--ink)); }
+.cert-lead { margin: 0; font-style: italic; color: var(--muted); font-size: clamp(.8rem, 1.6vw, 1.05rem); }
+.cert-name { margin: 0; font-family: var(--display); font-size: clamp(1.4rem, 4vw, 2.7rem); line-height: 1.05; }
+.cert-sub { margin: 0; color: var(--muted); font-size: clamp(.72rem, 1.4vw, .95rem); }
+.cert-body { margin: 0; max-width: 52ch; font-size: clamp(.72rem, 1.4vw, .98rem); }
+.cert-seal svg { width: clamp(54px, 9vw, 110px); height: auto; }
+.cs-ring { fill: none; stroke: var(--accent); stroke-width: 3; stroke-dasharray: 4 3; }
+.cs-fill { fill: var(--accent); }
+.cert-gold .cs-fill { fill: var(--hl); }
+.cs-leaf { fill: var(--surface); }
+.cert-foot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; margin-top: clamp(4px, 1.5vw, 16px); font-size: clamp(.62rem, 1.2vw, .82rem); }
+.cert-foot > div { display: grid; gap: 4px; justify-items: center; }
+.cert-foot span { color: var(--muted); }
+.cert-line { display: block; width: 70%; height: 1px; background: var(--ink); margin-bottom: 4px; }
+.report { max-width: 980px; margin: 0 auto; display: grid; gap: 22px; }
+.rep-head { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.rep-logo { height: 48px; width: auto; }
+.rep-head h1 { margin: 4px 0; }
+.rep-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.rep-kpis > div { padding: 14px 16px; display: grid; gap: 4px; }
+.rep-kpis > div + div { border-left: 1px solid var(--line); }
+.rep-kpis strong { font-size: 1.9rem; font-family: var(--mono); }
+.rep-kpis small { color: var(--muted); }
+.rep-sec { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 10px; break-inside: avoid; }
+.rep-sec h2 { font-size: 1.2rem; }
+.rep-levels { display: flex; gap: 22px; flex-wrap: wrap; }
+.rep-levels > div { display: grid; gap: 4px; justify-items: start; }
+.rep-levels strong { font: 600 1.8rem var(--mono); }
+.rep-levels small { color: var(--muted); }
+.rep-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.rep-list { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: .9rem; }
+.rep-list li span { display: inline; }
+.rep-list li { display: list-item; }
+.rep-list li b { float: right; }
+.good { color: var(--ok); font-weight: 600; }
+.worse { color: var(--bad); font-weight: 600; }
+@media (max-width: 760px) { .rep-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rep-kpis > div:nth-child(3) { border-left: 0; } .rep-kpis > div:nth-child(n+3) { border-top: 1px solid var(--line); } .rep-two { grid-template-columns: minmax(0, 1fr); } .lvl-row { grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); } .cert-foot { grid-template-columns: minmax(0, 1fr); } }
+@media print {
+  @page { margin: 12mm; }
+  body { background: #fff !important; }
+  .bar, #actionsSlot, .noprint, #ctip, .toast, .skip { display: none !important; }
+  main, #app { padding: 0 !important; max-width: none !important; }
+  .certificate { box-shadow: none; max-width: none; width: 100%; break-inside: avoid; }
+  .rep-sec, .rep-kpis { box-shadow: none; }
+}
+.small-btn { padding: 6px 10px; font-size: .84rem; }
+.import-preview details { margin-top: 8px; font-size: .88rem; }
+.import-preview ul { margin: 6px 0 0; padding-left: 18px; max-height: 12rem; overflow: auto; }
+.import-actions { display: flex; gap: 10px 16px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+/* Certification seals */
+.seal { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 4px; border-radius: 999px; font-size: .78rem; font-weight: 600; white-space: nowrap; border: 1px solid var(--line); background: var(--surface); }
+.seal i { width: 14px; height: 14px; border-radius: 50%; background: var(--s1); box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 45%, transparent); }
+.seal-gold i { background: var(--hl); }
+.seal-gold { border-color: color-mix(in srgb, var(--hl) 60%, var(--line)); }
+.seal-green { border-color: color-mix(in srgb, var(--s1) 50%, var(--line)); }
+.projection { display: inline-flex; gap: 6px; align-items: center; }
+/* Due dates */
+.due { font: 500 .74rem/1.5 var(--mono); padding: 0 6px; border-radius: 4px; background: var(--sunk); color: var(--muted); white-space: nowrap; }
+.due-soon { background: var(--warn-soft); color: var(--warn); }
+.due-over { background: var(--bad-soft); color: var(--bad); font-weight: 600; }
+/* Banners & flags */
+.banner { padding: 14px 18px; margin-bottom: 16px; border-left: 4px solid var(--info); display: flex; gap: 12px; }
+.banner-flag { border-left-color: var(--bad); }
+.flag-list { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: .9rem; }
+.tag-ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.tag-mine { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.q-flagged { box-shadow: inset 4px 0 0 var(--bad); }
+.flag-callout { grid-column: 1 / -1; display: flex; gap: 10px; padding: 10px 12px; border-radius: var(--r); background: var(--bad-soft); font-size: .9rem; }
+.flag-callout p { margin: 4px 0 0; }
+.flag-ico { color: var(--bad); font-size: 1.1rem; line-height: 1.2; }
+.flag-done { color: var(--ok); font-weight: 600; }
+.flag-ctl { display: flex; gap: 8px 14px; flex-wrap: wrap; align-items: flex-end; margin-top: 8px; }
+.flag-input { flex: 1 1 18rem; }
+.req-changes { display: grid; gap: 10px; justify-items: start; border-top: 1px solid var(--line); }
+.req-changes p { margin: 0; max-width: 70ch; }
+/* Team */
+.team-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; }
+.team-list li { display: grid; grid-template-columns: minmax(0, 10rem) minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.team-list span { overflow-wrap: anywhere; }
+.team-add { display: grid; gap: 12px; justify-items: start; }
+.team-add .field { width: min(100%, 28rem); }
+.team-depts { width: 100% !important; border: 0; padding: 0; margin: 0; min-width: 0; }
+.team-depts legend { padding: 0; margin-bottom: 6px; }
+.check-chip { white-space: nowrap; }
+@media (max-width: 600px) { .team-list li { grid-template-columns: minmax(0, 1fr) auto; } }
 .replies { list-style: none; margin: 10px 0 0 4px; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 10px; }
 .tl-comment.internal .replies { border-left-color: color-mix(in srgb, var(--warn) 35%, var(--line)); }
 .thread-actions { display: flex; gap: 6px 14px; align-items: baseline; flex-wrap: wrap; margin-top: 8px; }
@@ -850,9 +948,50 @@ async function reloadQuestions() {
     sb.from("questions").select("*").eq("active", true).order("sort_order").order("question_id"),
   ]);
   if (d.error || q.error) throw d.error || q.error;
-  S.qs = q.data; S.allDepts = d.data;
-  S.depts = d.data.filter((x) => S.qs.some((y) => y.department_id === x.department_id));
+  S.allQs = q.data; S.allDepts = d.data;
+  useVersion(S.formCurrent);
 }
+// ── Form versions: each application keeps the questions of the version it started on ──
+const qsFor = (v) => (S.allQs || []).filter((q) => q.form_version === (v || S.formCurrent));
+function useVersion(v) {
+  S.viewVersion = v || S.formCurrent;
+  S.qs = qsFor(S.viewVersion);
+  S.depts = (S.allDepts || []).filter((x) => S.qs.some((y) => y.department_id === x.department_id));
+}
+const appVersion = (a) => a?.form_version || S.formCurrent;
+// ── Settings: certification levels, review target, current form version ──
+function applySettings(rows) {
+  const get = (k) => rows.find((r) => r.key === k)?.value;
+  const c = get("certification") || {};
+  S.cert = { placeholder: c.placeholder !== false, levels: (c.levels || [{ key: "green", name: "Green Seal", min: 60 }, { key: "gold", name: "Gold Seal", min: 80 }])
+    .map((l) => ({ ...l, min: +l.min })).sort((a, b) => a.min - b.min) };
+  S.reviewDays = +(get("review")?.target_days) || 10;
+  S.formCurrent = get("form")?.current || "PEACH v2.0";
+}
+const levelFor = (pct) => (pct == null ? null : [...S.cert.levels].reverse().find((l) => pct >= l.min) || null);
+const levelKey = (name) => S.cert.levels.find((l) => l.name === name)?.key || "green";
+// Final score the way certification counts it: verified points where entered, else the answer's points (wrap).
+function finalScore(resp, qs = S.qs) {
+  let earned = 0, available = 0, verified = 0, answered = 0;
+  for (const q of qs) {
+    if (q.is_innovation) continue;
+    const r = resp[q.question_id] || {}, o = optOf(q, r.wrap_answer);
+    if (o?.na) continue;
+    available += +q.points_possible || 0;
+    if (r.wrap_points != null) { earned += +r.wrap_points; verified++; } else if (o) earned += +o.points;
+    if (o || r.wrap_points != null) answered++;
+  }
+  return { pct: available ? (earned / available) * 100 : null, verified, answered };
+}
+const sealBadge = (name, extra = "") => (name ? `<span class="seal seal-${esc(levelKey(name))}" title="${esc(name)}${extra ? " · " + esc(extra) : ""}"><i aria-hidden="true"></i>${esc(name)}</span>` : "");
+// Review due dates
+const dueInfo = (a) => {
+  if (!a.review_due || !["submitted", "in_review"].includes(a.status)) return null;
+  const days = Math.round((new Date(a.review_due + "T12:00:00") - new Date(new Date().toISOString().slice(0, 10) + "T12:00:00")) / 86400000);
+  return { days, overdue: days < 0, soon: days >= 0 && days <= 2,
+    text: days < 0 ? `Overdue ${-days} day${days === -1 ? "" : "s"}` : days === 0 ? "Due today" : days === 1 ? "Due tomorrow" : `Due ${date(a.review_due)}` };
+};
+const dueBadge = (a) => { const d = dueInfo(a); return d ? `<span class="due ${d.overdue ? "due-over" : d.soon ? "due-soon" : ""}">${esc(d.text)}</span>` : ""; };
 // Contacts: people named as having answered a department or an action.
 const norm = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
 const contactById = (id) => (S.contacts || []).find((c) => c.contact_id === id) || null;
@@ -1018,16 +1157,18 @@ async function start() {
   $app.innerHTML = `<p class="loading">Loading your workspace…</p>`;
   try {
     const uid = S.session.user.id;
-    const [me, d, q, f] = await Promise.all([
+    const [me, d, q, f, st] = await Promise.all([
       sb.from("profiles").select("*").eq("id", uid).maybeSingle(),
       sb.from("departments").select("*").order("sort_order").order("department_id"),
       sb.from("questions").select("*").eq("active", true).order("sort_order").order("question_id"),
       sb.from("emission_factors").select("*").order("key"),
+      sb.from("app_settings").select("key,value").in("key", ["certification", "review", "form"]),
     ]);
     for (const r of [me, d, q]) if (r.error) throw r.error;
-    S.me = me.data; S.qs = q.data; S.factors = f.error ? [] : f.data;
-    S.allDepts = d.data;
-    S.depts = d.data.filter((x) => S.qs.some((q) => q.department_id === x.department_id));
+    S.me = me.data; S.factors = f.error ? [] : f.data;
+    applySettings(st.data || []);
+    S.allQs = q.data; S.allDepts = d.data;
+    useVersion(S.formCurrent);
     if (!S.me) { renderBar(); $app.innerHTML = notice("Your account isn't set up yet", "There's no profile for this login. Ask a staff member to check your account in Supabase."); return; }
     S.people = [];
     if (isReviewerish()) {
@@ -1044,6 +1185,7 @@ async function start() {
 
 function route() {
   if (!S.me) return;
+  if (S.viewVersion !== S.formCurrent) useVersion(S.formCurrent);
   if (location.hash.slice(1) !== "design" && S.theme) applyTheme(S.theme); // drop any unsaved preview
   if (S.actChannel) { sb.removeChannel(S.actChannel); S.actChannel = null; }
   S.dashRO?.disconnect(); S.dashRO = null; document.getElementById("chartDlg")?.close?.();
@@ -1051,6 +1193,8 @@ function route() {
   const h = location.hash.slice(1);
   const m = h.match(/^app-(\d+)$/);
   if (h === "new") return openApp(null);
+  const certM = h.match(/^cert-(\d+)$/); if (certM) return renderCertificate(+certM[1]);
+  if (h === "report" && isReviewerish()) return renderReport();
   if (m) return openApp(+m[1]);
   if ((h === "admin" || h === "people") && isStaff()) return renderPeople("users");
   if (h === "contacts" && isStaff()) return renderPeople("contacts");
@@ -1069,7 +1213,7 @@ function route() {
 
 function renderBar() {
   const h = location.hash.slice(1);
-  const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || h === "report" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
   document.getElementById("bar").innerHTML = `
     ${brandHTML()}
@@ -1077,6 +1221,394 @@ function renderBar() {
     <div class="who"><div class="bell-wrap" id="bell"></div><a class="me-link" href="#account" title="My account">${esc(S.me.full_name || S.me.email)}</a><span class="pill role">${esc(S.me.role)}</span><button class="link" id="signOut">Sign out</button></div>` : ""}`;
   document.getElementById("signOut")?.addEventListener("click", async () => { await sb.auth.signOut(); location.hash = ""; });
   if (S.me) drawBell();
+}
+
+// ── Staff settings: certification levels, review target, form versions ──
+function settingsSections(versions) {
+  const lv = S.cert.levels;
+  return `<section class="panel block" id="certSettings"><div class="block-head"><h3>Certification levels</h3>${S.cert.placeholder ? '<span class="tag ktag-warn">Placeholder cutoffs: confirm with EMA</span>' : '<span class="muted">Final score at wrap · verified points where entered</span>'}</div>
+      <div class="block-body"><div class="lvl-rows" id="lvlRows">${lv.map((l, i) => `<div class="lvl-row" data-i="${i}">
+          <label class="field"><span>Level name</span><input data-lk="name" value="${esc(l.name)}" maxlength="40"></label>
+          <label class="field"><span>Minimum score (%)</span><input data-lk="min" type="number" min="0" max="100" step="1" value="${l.min}"></label>
+          <button type="button" class="link danger small" data-lrm ${lv.length <= 1 ? "disabled" : ""}>Remove</button></div>`).join("")}</div>
+        <div class="row-actions"><button type="button" class="link" id="lvlAdd">+ Add a level</button></div>
+        <label class="field" style="max-width:16rem"><span>Review target (days after submission)</span><input id="reviewDays" type="number" min="1" max="120" value="${S.reviewDays}"></label>
+        <div class="row-actions"><button type="button" class="primary" id="lvlSave">Save settings</button><button type="button" id="recert">Recalculate approved applications</button></div>
+        <p class="muted small">The level is stamped when an application is approved, from its final PEACH score at wrap: verified points where a reviewer entered them, otherwise the points of the submitter's answer, with N/A actions left out. After changing cutoffs, recalculate to update applications already approved.</p></div></section>
+    <section class="panel block"><div class="block-head"><h3>Form version</h3><span class="muted">Current: <b>${esc(S.formCurrent)}</b>${versions.length > 1 ? ` · also ${esc(versions.filter((v) => v !== S.formCurrent).join(", "))}` : ""}</span></div>
+      <div class="block-body"><p class="muted" style="max-width:70ch">Applications keep the questions of the version they were started on, so changing questions never rescores old applications. Start a new version before making changes you don't want applied to applications already in progress; edits on this page then apply to the new version only.</p>
+        <div class="row-actions" id="verBox"><button type="button" id="verStart">Start a new version…</button></div></div></section>`;
+}
+function wireSettings() {
+  const rows = () => [...document.querySelectorAll(".lvl-row")].map((r) => ({ name: r.querySelector('[data-lk="name"]').value.trim(), min: num(r.querySelector('[data-lk="min"]').value) }));
+  document.getElementById("lvlAdd")?.addEventListener("click", () => {
+    const cur = rows(); S.cert.levels = [...cur.map((l, i) => ({ ...S.cert.levels[i], ...l })), { key: "level" + (cur.length + 1), name: "New level", min: Math.min(100, (cur.at(-1)?.min ?? 70) + 10) }]; renderQuestions();
+  });
+  document.querySelectorAll("[data-lrm]").forEach((b) => b.addEventListener("click", () => { const i = +b.closest(".lvl-row").dataset.i; S.cert.levels.splice(i, 1); renderQuestions(); }));
+  document.getElementById("lvlSave")?.addEventListener("click", async () => {
+    const lv = rows();
+    if (lv.some((l) => !l.name || l.min == null || l.min < 0 || l.min > 100)) return toast("Each level needs a name and a minimum between 0 and 100.", "bad");
+    if (new Set(lv.map((l) => l.min)).size !== lv.length) return toast("Two levels can't have the same minimum.", "bad");
+    const days = num(document.getElementById("reviewDays").value);
+    if (!days || days < 1 || days > 120) return toast("The review target must be between 1 and 120 days.", "bad");
+    const levels = lv.sort((a, b) => a.min - b.min).map((l, i) => ({ key: /gold/i.test(l.name) ? "gold" : /green/i.test(l.name) ? "green" : "level" + (i + 1), name: l.name, min: l.min }));
+    const [a, b] = await Promise.all([
+      sb.from("app_settings").upsert({ key: "certification", value: { basis: "wrap", placeholder: false, levels }, updated_by: S.me.id }, { onConflict: "key" }),
+      sb.from("app_settings").upsert({ key: "review", value: { target_days: days }, updated_by: S.me.id }, { onConflict: "key" }),
+    ]);
+    if (a.error || b.error) return fail(a.error || b.error);
+    S.cert = { placeholder: false, levels }; S.reviewDays = days;
+    toast("Settings saved. Recalculate to apply new cutoffs to approved applications."); renderQuestions();
+  });
+  document.getElementById("recert")?.addEventListener("click", async () => {
+    const { data, error } = await sb.rpc("recertify_all");
+    if (error) return fail(error);
+    toast(`Recalculated ${data ?? 0} approved application${data === 1 ? "" : "s"}`);
+  });
+  document.getElementById("verStart")?.addEventListener("click", () => {
+    const box = document.getElementById("verBox");
+    const m = S.formCurrent.match(/^(.*?)(\d+)\.(\d+)$/), suggest = m ? `${m[1]}${m[2]}.${+m[3] + 1}` : S.formCurrent + " (new)";
+    box.innerHTML = `<label class="field" style="max-width:16rem"><span>New version name</span><input id="verName" value="${esc(suggest)}" maxlength="40"></label>
+      <button type="button" class="primary" id="verGo">Copy ${esc(S.formCurrent)} and make it current</button><button type="button" id="verCancel">Cancel</button>`;
+    document.getElementById("verCancel").addEventListener("click", () => renderQuestions());
+    document.getElementById("verGo").addEventListener("click", async () => {
+      const name = document.getElementById("verName").value.trim();
+      const { data, error } = await sb.rpc("start_form_version", { new_version: name });
+      if (error) return fail(error);
+      S.formCurrent = name; await reloadQuestions();
+      toast(`${name} started with ${data} actions. New applications use it; existing ones keep their version.`); renderQuestions();
+    });
+  });
+}
+
+// ── Certificate (printable) ──
+async function renderCertificate(id) {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Loading certificate…</p>`;
+  const { data: a, error } = await sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,status,cert_level,cert_score,certified_at,form_version").eq("production_id", id).maybeSingle();
+  if (error) return fail(error);
+  if (!a || a.status !== "approved" || !a.cert_level) { $app.innerHTML = notice("No certificate yet", "Certificates are issued when an application is approved with a score at or above a certification level.", `<a class="btn" href="#app-${id}">Back to the application</a>`); return; }
+  const t = S.theme || THEME_DEFAULT, key = levelKey(a.cert_level), year = new Date(a.certified_at || Date.now()).getFullYear();
+  const no = `EMA-${key === "gold" ? "GLD" : key === "green" ? "GRN" : "LVL"}-${year}-${String(a.production_id).padStart(4, "0")}`;
+  const when = new Date(a.certified_at || Date.now()).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  $app.innerHTML = `
+    <div class="cert-tools noprint"><a class="back" href="#app-${id}">← Back to the application</a><button class="primary" id="certPrint">Print or save as PDF</button></div>
+    <article class="certificate cert-${esc(key)}" aria-label="Certificate">
+      <div class="cert-inner">
+        <div class="cert-brand">${t.logo_url ? `<img src="${esc(t.logo_url)}" alt="${esc(t.org)}">` : `<span class="brand"><span class="mark">${esc(t.org)}</span></span>`}</div>
+        <p class="cert-eyebrow">${esc(t.org)} · ${esc(t.name)}</p>
+        <h1 class="cert-level">${esc(a.cert_level)}</h1>
+        <p class="cert-lead">is awarded to</p>
+        <p class="cert-name">${esc(a.production_name)}</p>
+        <p class="cert-sub">${esc([a.production_type, a.production_sub_type, a.studio_affiliation].filter(Boolean).join(" · "))}</p>
+        <p class="cert-body">for sustainable production practices verified against the ${esc(a.form_version || "PEACH")} checklist, with a final score of <b>${Math.round(a.cert_score)}%</b> of available points.</p>
+        <div class="cert-seal" aria-hidden="true"><svg viewBox="0 0 120 120" width="120" height="120"><circle cx="60" cy="60" r="56" class="cs-ring"/><circle cx="60" cy="60" r="44" class="cs-fill"/>
+          <path d="M60 32c-14 10-18 24-12 38 4-9 10-15 18-19-7 6-12 14-14 24 14-2 22-16 18-30-2-6-5-10-10-13z" class="cs-leaf"/></svg></div>
+        <div class="cert-foot"><div><span class="cert-line"></span><span>Environmental Media Association</span></div>
+          <div><b>${esc(when)}</b><span>Date certified</span></div><div><b class="mono">${esc(no)}</b><span>Certificate number</span></div></div>
+      </div>
+    </article>`;
+  document.getElementById("certPrint").addEventListener("click", () => window.print());
+}
+
+// ── Leadership report (printable) ──
+async function renderReport() {
+  renderBar();
+  $app.innerHTML = `<p class="loading">Building the report…</p>`;
+  const [p, r] = await Promise.all([
+    sb.from("productions").select("*"),
+    fetchAll(() => sb.from("responses").select("production_id,question_id,wrap_answer,wrap_points").order("response_id")),
+  ]);
+  if (p.error || r.error) return fail(p.error || r.error);
+  const period = S.reportPeriod || "all", cutoff = period === "all" ? null : new Date(Date.now() - +period * 86400000).toISOString().slice(0, 10);
+  const appsAll = p.data.filter((a) => appVersion(a) === S.formCurrent && a.status !== "draft");
+  const apps = cutoff ? appsAll.filter((a) => (a.submission_date || "") >= cutoff) : appsAll;
+  const respBy = {}; for (const x of r.data) (respBy[x.production_id] ||= {})[x.question_id] = x;
+  const approved = apps.filter((a) => a.status === "approved"), decided = apps.filter((a) => a.status === "approved" || a.status === "rejected");
+  const certified = approved.filter((a) => a.cert_level), open = apps.filter((a) => a.status === "submitted" || a.status === "in_review");
+  const avg = (v) => (v.length ? v.reduce((t, x) => t + x, 0) / v.length : null);
+  const med = (v) => { if (!v.length) return null; const s = [...v].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const turn = med(certified.filter((a) => a.submission_date && a.certified_at).map((a) => Math.max(0, Math.round((new Date(a.certified_at) - new Date(a.submission_date + "T12:00:00")) / 86400000))));
+  const avgScore = avg(certified.map((a) => +a.cert_score));
+  const lvls = [...S.cert.levels].reverse().map((l) => ({ l, n: certified.filter((a) => a.cert_level === l.name).length }));
+  const others = apps.filter((a) => !a.cert_level);
+  const metricRows = METRICS.map((m) => ({ m, a: avg(certified.map(m.get).filter((v) => v != null)), b: avg(others.map(m.get).filter((v) => v != null)),
+    na: certified.filter((x) => m.get(x) != null).length, nb: others.filter((x) => m.get(x) != null).length }));
+  const practices = S.qs.filter((q) => !q.is_innovation).map((q) => { const st = apps.map((a) => ansState(q, respBy[a.production_id]?.[q.question_id]?.wrap_answer)).filter((x) => x === "yes" || x === "no");
+    return { q, n: st.length, v: st.length ? Math.round((st.filter((x) => x === "yes").length / st.length) * 100) : null }; }).filter((x) => x.v != null && x.n >= 2).sort((a, b) => b.v - a.v);
+  const types = [...new Set(apps.map((a) => a.production_type || "Other"))].map((t) => { const l = apps.filter((a) => (a.production_type || "Other") === t);
+    return { t, n: l.length, cert: l.filter((a) => a.cert_level).length, score: avg(l.filter((a) => a.cert_score != null).map((a) => +a.cert_score)) }; }).sort((a, b) => b.n - a.n);
+  const sample = apps.some((a) => a.footprint_is_sample), t = S.theme || THEME_DEFAULT;
+  const periodLabel = { all: "All time", 30: "Last 30 days", 90: "Last 90 days", 365: "Last 12 months" }[period];
+  const better = (m, a, b) => { const d = mdiff(m, a, b); return d == null ? "–" : `<span class="${mgood(m, d) ? "good" : mgood(m, d) === false ? "worse" : ""}">${mdiffText(m, d)}</span>`; };
+  $app.innerHTML = `
+    <div class="cert-tools noprint"><a class="back" href="#dashboard">← Dashboard</a>
+      <div class="seg" role="group" aria-label="Period">${[["all", "All time"], ["365", "12 months"], ["90", "90 days"], ["30", "30 days"]].map(([k, l]) => `<button data-period="${k}" aria-pressed="${String(period) === k}">${l}</button>`).join("")}</div>
+      <button class="primary" id="repPrint">Print or save as PDF</button></div>
+    <article class="report">
+      <header class="rep-head"><div>${t.logo_url ? `<img src="${esc(t.logo_url)}" alt="${esc(t.org)}" class="rep-logo">` : `<span class="brand"><span class="mark">${esc(t.org)}</span></span>`}</div>
+        <div><p class="eyebrow">${esc(t.org)} ${esc(t.name)} · ${esc(S.formCurrent)}</p><h1>Program report</h1><p class="muted">${esc(periodLabel)} · prepared ${esc(new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }))} by ${esc(S.me.full_name || S.me.email)}</p></div></header>
+      <section class="rep-kpis">
+        <div><span class="label">Applications submitted</span><strong>${apps.length}</strong></div>
+        <div><span class="label">Certified</span><strong>${certified.length}</strong><small>${decided.length ? `${pct(approved.length, decided.length)}% approval rate` : "No decisions yet"}</small></div>
+        <div><span class="label">Average certified score</span><strong>${avgScore == null ? "–" : Math.round(avgScore) + "%"}</strong></div>
+        <div><span class="label">Median time to certify</span><strong>${turn == null ? "–" : turn + " days"}</strong><small>${open.length} in review now${open.filter((a) => dueInfo(a)?.overdue).length ? `, ${open.filter((a) => dueInfo(a)?.overdue).length} overdue` : ""}</small></div>
+      </section>
+      <section class="rep-sec"><h2>Certifications</h2>
+        <div class="rep-levels">${lvls.map((x) => `<div>${sealBadge(x.l.name)}<strong>${x.n}</strong><small>${x.l.min}% and above</small></div>`).join("")}</div>
+        ${S.cert.placeholder ? `<p class="muted small">Cutoffs are placeholders until EMA confirms them.</p>` : ""}</section>
+      <section class="rep-sec"><h2>Footprint: certified vs. not certified</h2>
+        <p class="muted small">Average per shoot day. ${certified.length} certified and ${others.length} other submitted productions.${sample ? " Includes invented sample figures from the demo data." : ""}</p>
+        <div class="table-scroll"><table><thead><tr><th>Measure</th><th class="num">Certified</th><th class="num">Not certified</th><th class="num">Difference</th></tr></thead>
+          <tbody>${metricRows.map(({ m, a, b, na, nb }) => `<tr><td>${esc(m.label)}</td><td class="num">${mfmt(m, a)} <span class="muted small">(${na})</span></td><td class="num">${mfmt(m, b)} <span class="muted small">(${nb})</span></td><td class="num">${better(m, a, b)}</td></tr>`).join("")}</tbody></table></div></section>
+      <div class="rep-two">
+        <section class="rep-sec"><h2>Most adopted practices</h2><ol class="rep-list">${practices.slice(0, 6).map((x) => `<li><span>${esc(qTitle(x.q))}</span><b class="mono">${x.v}%</b></li>`).join("") || "<li class='muted'>Not enough answers yet</li>"}</ol></section>
+        <section class="rep-sec"><h2>Least adopted practices</h2><ol class="rep-list">${practices.slice(-6).reverse().map((x) => `<li><span>${esc(qTitle(x.q))}</span><b class="mono">${x.v}%</b></li>`).join("") || "<li class='muted'>Not enough answers yet</li>"}</ol></section>
+      </div>
+      <section class="rep-sec"><h2>By production type</h2><div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Submitted</th><th class="num">Certified</th><th class="num">Average certified score</th></tr></thead>
+        <tbody>${types.map((x) => `<tr><td>${esc(x.t)}</td><td class="num">${x.n}</td><td class="num">${x.cert}</td><td class="num">${x.score == null ? "–" : Math.round(x.score) + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submissions in this period.</td></tr>`}</tbody></table></div></section>
+      <footer class="rep-foot muted small">Scores are PEACH points earned as a share of points available, with N/A actions left out. Certified scores use verified points where reviewers entered them. Footprint CO₂ uses the emission factors on the Questions page.</footer>
+    </article>`;
+  document.getElementById("repPrint").addEventListener("click", () => window.print());
+  document.querySelectorAll("[data-period]").forEach((b) => b.addEventListener("click", () => { S.reportPeriod = b.dataset.period; renderReport(); }));
+}
+
+// ── Import a filled-in PEACH workbook (.xlsx) ──
+// Reads the PEACH sheet: code in column C, prep answer in L, wrap answer in N,
+// evidence in Q, and "Answered by" lines above each department. Nothing is saved
+// until the person reviews the filled-in form and clicks Save.
+function loadSheetJS() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return (S.xlsxLoading ||= new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = () => res(window.XLSX); s.onerror = () => { S.xlsxLoading = null; rej(new Error("Couldn't load the spreadsheet reader. Check your connection and try again.")); };
+    document.head.appendChild(s);
+  }));
+}
+function matchOption(q, v) {
+  if (v == null) return null;
+  let t = String(v).trim();
+  if (!t || /^choose one$/i.test(t)) return null;
+  const opts = optsOf(q), hit = (x) => opts.find((o) => o.label.toLowerCase() === String(x).toLowerCase());
+  if (hit(t)) return hit(t).label;
+  if (typeof v === "number" && v >= 0 && v <= 1 && hit(`${Math.round(v * 100)}%`)) return hit(`${Math.round(v * 100)}%`).label;
+  const loose = { y: "Yes", n: "No", na: "N/A", "n.a.": "N/A", "not applicable": "N/A" }[t.toLowerCase()];
+  if (loose && hit(loose)) return hit(loose).label;
+  const starts = opts.filter((o) => o.label.toLowerCase().startsWith(t.toLowerCase()));
+  return starts.length === 1 ? starts[0].label : undefined; // undefined = present but unrecognised
+}
+async function parsePeachWorkbook(file) {
+  const XLSX = await loadSheetJS();
+  const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const ws = wb.Sheets["PEACH"] || wb.Sheets[wb.SheetNames.find((n) => /peach/i.test(n)) || wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null, blankrows: true });
+  const byCode = new Map(S.qs.filter((q) => q.code).map((q) => [q.code.toUpperCase(), q]));
+  const out = { answers: {}, answerers: {}, unknown: [], unmatched: [], name: null, rowsRead: 0 };
+  let pendingBy = null;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [];
+    if (i < 6 && /production name/i.test(String(r[10] || ""))) out.name = r.slice(11, 18).find((x) => x != null && String(x).trim()) ?? null;
+    if (/^answered by/i.test(String(r[15] || "").trim())) { const v = String(r[16] ?? "").trim(); pendingBy = v && !/add name/i.test(v) ? v : null; continue; }
+    const rawCode = r[2]; if (!rawCode || !/^[A-Za-z]+\d+[a-z]?$/.test(String(rawCode).trim())) continue;
+    let code = String(rawCode).trim().toUpperCase();
+    if (code === "CAT7" && /craft/i.test(String(r[1] || ""))) code = "CRAFT6"; // the workbook reuses CAT7 for Craft Services
+    const q = byCode.get(code);
+    out.rowsRead++;
+    if (!q) { out.unknown.push(code); continue; }
+    if (pendingBy && out.answerers[q.department_id] == null) out.answerers[q.department_id] = pendingBy;
+    pendingBy = null;
+    const prep = matchOption(q, r[11]), wrap = matchOption(q, r[13]), expl = r[16] != null && String(r[16]).trim() ? String(r[16]).trim() : null;
+    if (prep === undefined) out.unmatched.push(`${q.code} prep: "${r[11]}"`);
+    if (wrap === undefined) out.unmatched.push(`${q.code} wrap: "${r[13]}"`);
+    const a = { prep: prep || null, wrap: wrap || null, expl };
+    if (a.prep || a.wrap || a.expl) out.answers[q.question_id] = a;
+  }
+  return out;
+}
+function setControl(name, label) {
+  const sel = document.querySelector(`select[name="${name}"]`);
+  if (sel) { sel.value = label ?? ""; return; }
+  document.querySelectorAll(`input[name="${name}"]`).forEach((i) => (i.checked = i.value === label));
+}
+function wireImport(app) {
+  const inp = document.getElementById("xlsImport"); if (!inp) return;
+  inp.addEventListener("change", async () => {
+    const file = inp.files[0]; inp.value = ""; if (!file) return;
+    const panel = document.getElementById("importPanel");
+    panel.innerHTML = `<div class="panel banner"><div>Reading ${esc(file.name)}…</div></div>`;
+    try {
+      const res = await parsePeachWorkbook(file);
+      const n = Object.keys(res.answers).length, prep = Object.values(res.answers).filter((a) => a.prep).length, wrap = Object.values(res.answers).filter((a) => a.wrap).length;
+      const people = Object.keys(res.answerers).length;
+      if (!res.rowsRead) { panel.innerHTML = `<div class="panel banner banner-flag"><div><b>That file doesn't look like a PEACH workbook.</b> Use the PEACH v2.0 Excel form with its "PEACH" sheet.</div></div>`; return; }
+      panel.innerHTML = `<div class="panel banner import-preview"><div>
+        <b>${esc(file.name)}: answers for ${n} of ${S.qs.length} actions</b> <span class="muted">(${prep} prep, ${wrap} wrap${people ? `, ${people} department contact${people === 1 ? "" : "s"}` : ""})</span>
+        ${res.unmatched.length ? `<details><summary>${res.unmatched.length} answer${res.unmatched.length === 1 ? "" : "s"} didn't match a choice and will be skipped</summary><ul>${res.unmatched.slice(0, 40).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details>` : ""}
+        ${res.unknown.length ? `<p class="muted small">Codes not in this form version, skipped: ${esc(res.unknown.slice(0, 12).join(", "))}${res.unknown.length > 12 ? "…" : ""}</p>` : ""}
+        <div class="import-actions">
+          <label class="check"><input type="radio" name="impMode" value="empty" checked>Only fill blank answers</label>
+          <label class="check"><input type="radio" name="impMode" value="all">Replace existing answers</label>
+          <button type="button" class="primary" id="impApply" ${n || people ? "" : "disabled"}>Fill in the form</button><button type="button" id="impCancel">Cancel</button>
+        </div></div></div>`;
+      document.getElementById("impCancel").addEventListener("click", () => (panel.innerHTML = ""));
+      document.getElementById("impApply").addEventListener("click", () => {
+        const all = document.querySelector("input[name=impMode]:checked").value === "all", { checked } = readForm();
+        let filled = 0;
+        for (const [qid, a] of Object.entries(res.answers)) {
+          for (const [stage, val] of [["prep", a.prep], ["wrap", a.wrap]]) {
+            if (!val) continue; const name = `${stage}-${qid}`;
+            if (all || !checked(name)) { setControl(name, val); filled++; }
+          }
+          const ex = document.getElementById("expl-" + qid);
+          if (a.expl && ex && (all || !ex.value.trim())) ex.value = a.expl;
+        }
+        for (const [did, who] of Object.entries(res.answerers)) {
+          const el = document.getElementById("dans-" + did), [nm, ...rest] = who.split(/\s*[,–—-]\s+|\s*,\s*/);
+          if (el && (all || !el.value.trim())) { el.value = nm; const t = document.getElementById("dtitle-" + did); if (t && rest.length && (all || !t.value.trim())) t.value = rest.join(", "); }
+        }
+        updateTally();
+        panel.innerHTML = `<div class="panel banner" role="status"><div><b>Filled in ${filled} answer${filled === 1 ? "" : "s"} from the workbook.</b> Review them below, then click Save. Nothing is saved until you do.</div></div>`;
+      });
+    } catch (e) { panel.innerHTML = ""; fail(e); }
+  });
+}
+// ── Certification on the application page ──
+function appSealMeta(app) {
+  if (app.production_id == null) return "";
+  if (app.status === "approved" && app.cert_level) return `${sealBadge(app.cert_level, `${Math.round(app.cert_score)}%`)}<a class="link" href="#cert-${app.production_id}">Certificate</a>`;
+  if (app.status === "approved") return `<span class="muted">Below the ${esc(S.cert.levels[0]?.name || "certification")} cutoff</span>`;
+  const f = finalScore(S.current?.resp || {}), lv = levelFor(f.pct);
+  if (!f.answered) return "";
+  return `<span class="projection" title="Based on ${f.verified ? "verified points where entered, otherwise " : ""}wrap answers">${lv ? `On track for ${sealBadge(lv.name)}` : `Below ${esc(S.cert.levels[0]?.name || "certification")}`} <span class="mono muted">${Math.round(f.pct)}%</span></span>`;
+}
+// ── Banners: changes requested, delegated departments ──
+function appBanners(app, P) {
+  const flagged = S.qs.filter((q) => S.current.resp[q.question_id]?.flagged_at);
+  let out = "";
+  if (flagged.length && (P.answers || P.delegate || P.own || (isReviewerish() && app.status === "draft"))) {
+    const todo = flagged.filter((q) => !S.current.resp[q.question_id].flag_addressed_at);
+    out += `<div class="panel banner banner-flag" role="status"><div><b>${app.status === "draft" ? "Changes requested" : "Flagged for changes"} on ${flagged.length} action${flagged.length === 1 ? "" : "s"}</b>${todo.length < flagged.length ? ` <span class="muted">· ${flagged.length - todo.length} updated</span>` : ""}
+      <ul class="flag-list">${flagged.map((q) => `<li><a href="#q-${q.question_id}" data-jumpq="${q.question_id}">${esc(qTitle(q))}</a>${S.current.resp[q.question_id].flag_addressed_at ? ' <span class="tag tag-ok">Updated</span>' : ""}</li>`).join("")}</ul></div></div>`;
+  }
+  if (P.delegate && !P.answers) {
+    const names = [...P.myDepts].map((d) => S.allDepts.find((x) => x.department_id === d)?.name).filter(Boolean);
+    out += `<div class="panel banner" role="status"><div><b>You've been asked to answer ${esc(names.join(", "))}.</b> Other departments are read-only for you; the application's owner submits it when everything is in.</div></div>`;
+  }
+  return out;
+}
+// ── Reviewer flags on individual actions ──
+function flagCallout(r) {
+  return `<div class="flag-callout"><span class="flag-ico" aria-hidden="true">⚑</span><div><b>Reviewer asked for changes</b>${r.flagged_by ? ` <span class="muted">· ${esc(whoName(r.flagged_by))}</span>` : ""}
+    ${r.flag_note ? `<p>${esc(r.flag_note)}</p>` : ""}${r.flag_addressed_at ? `<p class="flag-done">✓ Updated after the request · ${esc(since(r.flag_addressed_at))}</p>` : ""}</div></div>`;
+}
+function flagControl(q, r) {
+  const id = q.question_id;
+  return `<div class="flag-ctl" data-flagq="${id}">${r.flagged_at
+    ? `<button type="button" class="link small" data-flag-edit>Edit flag</button><button type="button" class="link small" data-flag-clear>Clear flag</button>`
+    : `<button type="button" class="link small" data-flag-edit>⚑ Flag for changes</button>`}</div>`;
+}
+async function setFlag(qid, note) {
+  const { app, resp } = S.current, pid = app.production_id, cur = resp[qid];
+  const patch = note == null ? { flagged_at: null, flag_note: null } : { flagged_at: new Date().toISOString(), flag_note: note || null };
+  let res;
+  if (cur?.response_id) res = await sb.from("responses").update(patch).eq("response_id", cur.response_id).select().single();
+  else res = await sb.from("responses").insert({ production_id: pid, question_id: qid, ...patch }).select().single();
+  if (res.error) return fail(res.error);
+  resp[qid] = { ...(cur || {}), ...(res.data || patch), ...(note == null ? { flagged_at: null, flag_note: null, flagged_by: null, flag_addressed_at: null } : {}) };
+  if (note != null && !resp[qid].flagged_by) resp[qid].flagged_by = S.me.id;
+  drawApp(); toast(note == null ? "Flag cleared" : "Flagged");
+}
+function wireFlags(app) {
+  document.querySelectorAll("[data-jumpq]").forEach((a) => a.addEventListener("click", (e) => {
+    e.preventDefault(); const qid = +a.dataset.jumpq, q = S.qs.find((x) => x.question_id === qid);
+    const det = document.querySelector(`details.dept[data-dept="${q.department_id}"]`); if (det) det.open = true;
+    document.getElementById("q-" + qid)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }));
+  document.querySelectorAll("[data-flagq]").forEach((box) => {
+    const qid = +box.dataset.flagq, r = S.current.resp[qid] || {};
+    box.querySelector("[data-flag-clear]")?.addEventListener("click", () => setFlag(qid, null));
+    box.querySelector("[data-flag-edit]")?.addEventListener("click", () => {
+      box.innerHTML = `<label class="field flag-input"><span>What should the production change?</span><input id="fl-${qid}" value="${esc(r.flag_note || "")}" placeholder="e.g. Upload the hauler's diversion report" maxlength="500"></label>
+        <button type="button" class="primary" data-flag-save>${r.flagged_at ? "Update flag" : "Flag"}</button><button type="button" data-flag-cancel>Cancel</button>`;
+      const inp = document.getElementById("fl-" + qid); inp.focus();
+      inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); setFlag(qid, inp.value.trim()); } });
+      box.querySelector("[data-flag-save]").addEventListener("click", () => setFlag(qid, inp.value.trim()));
+      box.querySelector("[data-flag-cancel]").addEventListener("click", () => drawApp());
+    });
+  });
+  document.getElementById("reqChanges")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget, flagged = S.qs.filter((q) => S.current.resp[q.question_id]?.flagged_at);
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = `Confirm: return to the submitter with ${flagged.length} flag${flagged.length === 1 ? "" : "s"}`; return; }
+    setBusy(true);
+    try {
+      const pid = app.production_id;
+      const body = `Changes requested on ${flagged.length} action${flagged.length === 1 ? "" : "s"}:\n` + flagged.map((q) => `• ${qTitle(q)}${S.current.resp[q.question_id].flag_note ? ` — ${S.current.resp[q.question_id].flag_note}` : ""}`).join("\n");
+      // Keep (or take) the assignment so the reviewer can follow the application while it's back with the submitter.
+      const { error } = await sb.from("productions").update({ status: "draft", assigned_reviewer: app.assigned_reviewer || S.me.id }).eq("production_id", pid);
+      if (error) throw error;
+      await sb.from("application_comments").insert({ production_id: pid, author: S.me.id, body, internal: false });
+      sb.functions.invoke("notify", { body: { production_id: pid } }).catch(() => {});
+      toast("Sent back to the submitter with the flagged actions");
+      location.hash = "applications";
+    } catch (err) { fail(err); } finally { setBusy(false); }
+  });
+}
+function requestChangesBlock(app) {
+  const n = S.qs.filter((q) => S.current.resp[q.question_id]?.flagged_at).length;
+  if (app.status === "draft" || app.status === "approved") return "";
+  return `<div class="block-body req-changes"><p class="muted">${n ? `${n} action${n === 1 ? " is" : "s are"} flagged.` : "Flag individual actions above (⚑ Flag for changes) to ask for specific changes."} Requesting changes returns the application to the submitter as a draft with the list of flagged actions; they can resubmit after updating them.</p>
+    <button type="button" class="danger-outline" id="reqChanges" ${n ? "" : "disabled"}>Request changes…</button></div>`;
+}
+// ── Department delegates ("who's answering") ──
+function deptDelegateTag(did, P) {
+  const list = (S.delegates || []).filter((d) => d.department_id === did);
+  if (!list.length) return "";
+  const mine = list.some((d) => d.user_id === S.me.id);
+  return `<span class="tag ${mine ? "tag-mine" : "tag-shared"}" title="${esc(list.map((d) => d.email).join(", "))}">${mine ? "Assigned to you" : `Assigned: ${esc(list[0].email)}${list.length > 1 ? ` +${list.length - 1}` : ""}`}</span>`;
+}
+function teamSection(app) {
+  const byDept = S.depts.map((d) => ({ d, list: (S.delegates || []).filter((x) => x.department_id === d.department_id) }));
+  const assigned = byDept.filter((x) => x.list.length);
+  return `<section class="panel block team" id="team"><div class="block-head"><div><h2>Who's answering</h2><p class="muted small" style="margin-top:4px">Ask department heads to answer their own sections. They can only edit the departments you give them, and only while this is a draft.</p></div></div>
+    <div class="block-body">
+      ${assigned.length ? `<ul class="team-list">${assigned.map(({ d, list }) => list.map((x) => `<li data-del="${x.delegate_id}"><b>${esc(d.name)}</b><span>${esc(x.email)}</span>
+        <span class="muted small">${x.user_id ? "Has an account" : "Invited · waiting for sign-up"}</span><button type="button" class="link danger small" data-unassign>Remove</button></li>`).join("")).join("")}</ul>` : `<p class="muted">Nobody else is answering yet.</p>`}
+      <div class="team-add">
+        <label class="field"><span>Email</span><input type="email" id="tm-email" placeholder="name@production.com" autocomplete="off"></label>
+        <fieldset class="field team-depts"><legend class="label">Departments they'll answer</legend><div class="chips">${S.depts.map((d) => `<label class="chip check-chip"><input type="checkbox" value="${d.department_id}">${esc(d.name)}</label>`).join("")}</div></fieldset>
+        <button type="button" class="primary" id="tm-add">Add and send invitation</button>
+      </div></div></section>`;
+}
+function wireTeam(app) {
+  document.getElementById("tm-add")?.addEventListener("click", async () => {
+    const email = document.getElementById("tm-email").value.trim().toLowerCase();
+    const depts = [...document.querySelectorAll(".team-depts input:checked")].map((i) => +i.value);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return toast("Enter a valid email address.", "bad");
+    if (!depts.length) return toast("Pick at least one department.", "bad");
+    if (email === (S.me.email || "").toLowerCase()) return toast("That's you; you can already answer everything.", "bad");
+    setBusy(true);
+    try {
+      const fresh = depts.filter((d) => !(S.delegates || []).some((x) => x.department_id === d && x.email === email));
+      if (fresh.length) {
+        const { data, error } = await sb.from("production_delegates").insert(fresh.map((d) => ({ production_id: app.production_id, department_id: d, email, invited_by: S.me.id }))).select();
+        if (error) throw error;
+        S.delegates.push(...data);
+      }
+      let msg = `${email} can now answer ${fresh.length} department${fresh.length === 1 ? "" : "s"}`;
+      try {
+        const res = await adminCall({ action: "invite_delegate", production_id: app.production_id, email, redirect_to: location.origin + location.pathname });
+        msg += res.existing ? ". They've been notified in the portal." : res.invited ? ". Invitation email sent." : res.error ? `. ${res.error}` : ".";
+      } catch (e) { msg += `. The invitation email couldn't be sent (${friendly(e)}); they can sign up with this address.`; }
+      toast(msg); drawApp(); document.getElementById("team")?.scrollIntoView({ block: "start" });
+    } catch (e) { fail(e); } finally { setBusy(false); }
+  });
+  document.querySelectorAll("[data-unassign]").forEach((b) => b.addEventListener("click", async () => {
+    const id = +b.closest("li").dataset.del;
+    const { error } = await sb.from("production_delegates").delete().eq("delegate_id", id);
+    if (error) return fail(error);
+    S.delegates = S.delegates.filter((x) => x.delegate_id !== id); drawApp(); toast("Removed");
+  }));
 }
 
 // ── Activity log & comments (application page) ─────────────────────────────
@@ -1415,7 +1947,7 @@ async function renderList() {
   renderBar();
   $app.innerHTML = `<p class="loading">Loading applications…</p>`;
   const { data, error } = await sb.from("productions")
-    .select("production_id,production_name,production_type,production_sub_type,studio_affiliation,status,submission_date,submitted_by,assigned_reviewer,updated_at," + FOOTPRINT_COLS)
+    .select("production_id,production_name,production_type,production_sub_type,studio_affiliation,status,submission_date,submitted_by,assigned_reviewer,updated_at,review_due,cert_level,cert_score,form_version," + FOOTPRINT_COLS)
     .order("updated_at", { ascending: false });
   if (error) { fail(error); $app.innerHTML = notice("Couldn't load applications", friendly(error)); return; }
   S.apps = data; S.scores = {};
@@ -1424,7 +1956,8 @@ async function renderList() {
     const r = await fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer").in("production_id", ids).order("response_id"));
     if (!r.error) {
       const by = answersByApp(r.data);
-      for (const [pid, a] of Object.entries(by)) S.scores[pid] = { prep: peachScore(a.prep), wrap: peachScore(a.wrap) };
+      const verOf = Object.fromEntries(data.map((a) => [a.production_id, appVersion(a)]));
+      for (const [pid, a] of Object.entries(by)) { const qs = qsFor(verOf[pid]); S.scores[pid] = { prep: peachScore(a.prep, qs), wrap: peachScore(a.wrap, qs) }; }
     }
   }
   const submitter = role() === "submitter";
@@ -1480,7 +2013,7 @@ function drawRows() {
       const s = S.scores[a.production_id];
       return `<tr class="row" data-id="${a.production_id}">
         <td><a class="name" href="#app-${a.production_id}">${esc(a.production_name)}</a><div class="sub">${esc([a.production_type, a.production_sub_type, a.studio_affiliation].filter(Boolean).join(" · "))}</div></td>
-        <td>${pill(a.status)}</td>
+        <td>${pill(a.status)}${a.cert_level ? " " + sealBadge(a.cert_level) : ""}${showRev ? " " + dueBadge(a) : ""}</td>
         <td class="mono">${esc(date(a.submission_date)) || '<span class="muted">–</span>'}</td>
         ${showRev ? `<td>${esc(personName(a.assigned_reviewer)) || '<span class="muted">Unassigned</span>'}</td>` : ""}
         <td class="num">${scoreCell(s?.prep)}</td>
@@ -1517,7 +2050,7 @@ function drawBoard() {
         ${perDay != null ? `<span class="mono" title="Tonnes CO₂ per shoot day">${t1(perDay)} t/day</span>` : ""}
       </div>
       <div class="kfoot">
-        <span class="${waiting != null && waiting > 7 ? "kstale" : "muted"}">${waiting != null ? `Waiting ${waiting} day${waiting === 1 ? "" : "s"}` : `Updated ${ago(daysSince(a.updated_at))}`}</span>
+        ${a.cert_level ? sealBadge(a.cert_level) : dueInfo(a) ? dueBadge(a) : `<span class="${waiting != null && waiting > 7 ? "kstale" : "muted"}">${waiting != null ? `Waiting ${waiting} day${waiting === 1 ? "" : "s"}` : `Updated ${ago(daysSince(a.updated_at))}`}</span>`}
         ${move ? `<label class="kmove"><span class="sr">Move ${esc(a.production_name)} to</span><select data-move="${a.production_id}">${cols.map((c) => `<option value="${c}" ${a.status === c ? "selected" : ""}>${STATUS[c]}</option>`).join("")}</select></label>` : ""}
       </div>
     </article>`;
@@ -1580,35 +2113,46 @@ async function openApp(id) {
   renderBar();
   let app, resp = [];
   if (id == null) {
-    app = { production_id: null, status: "draft", submitted_by: S.me.id };
-    S.deptAnswerers = {}; await loadContacts();
+    app = { production_id: null, status: "draft", submitted_by: S.me.id, form_version: S.formCurrent };
+    S.deptAnswerers = {}; S.delegates = []; await loadContacts();
   } else {
     $app.innerHTML = `<p class="loading">Loading application…</p>`;
-    const [a, r, da] = await Promise.all([
+    const [a, r, da, dl] = await Promise.all([
       sb.from("productions").select("*").eq("production_id", id).maybeSingle(),
       sb.from("responses").select("*").eq("production_id", id),
       sb.from("department_answerers").select("department_id,contact_id").eq("production_id", id),
+      sb.from("production_delegates").select("*").eq("production_id", id).order("created_at"),
       loadContacts(),
     ]);
+    S.delegates = dl.error ? [] : dl.data || [];
     S.deptAnswerers = Object.fromEntries((da.data || []).map((x) => [x.department_id, x.contact_id]));
     if (a.error || r.error) { const e = a.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load this application", friendly(e)); return; }
     if (!a.data) { $app.innerHTML = notice("Application not found", "It may have been removed, or you don't have access to it.", `<a class="btn" href="#applications">Back to applications</a>`); return; }
     app = a.data; resp = r.data;
   }
+  useVersion(appVersion(app));
   S.current = { app, resp: Object.fromEntries(resp.map((x) => [x.question_id, x])), confirm: false };
-  if (S.openFor !== id) { S.openFor = id; S.openDepts = new Set(S.depts.slice(0, 1).map((d) => d.department_id)); }
+  if (S.openFor !== id) {
+    S.openFor = id;
+    const mine = myDelegateDepts(app);
+    S.openDepts = new Set(mine.size ? [...mine] : S.depts.slice(0, 1).map((d) => d.department_id));
+  }
   drawApp();
 }
 
+const myDelegateDepts = (app) => new Set(app?.status === "draft" ? (S.delegates || []).filter((d) => d.user_id === S.me.id).map((d) => d.department_id) : []);
 function perms(app) {
   const own = app.submitted_by === S.me.id, staff = isStaff(), draft = app.status === "draft";
+  const answers = staff || (own && draft), mine = answers ? new Set() : myDelegateDepts(app);
   return {
-    own, draft,
+    own, draft, answers,
     details: staff || (own && draft),
-    answers: staff || (own && draft),
     score: staff || (role() === "reviewer" && !draft),
     submit: own && draft,
     del: staff || (own && draft),
+    team: answers && app.production_id != null,
+    delegate: mine.size > 0, myDepts: mine,
+    canDept: (did) => answers || mine.has(did),
   };
 }
 
@@ -1626,10 +2170,10 @@ function drawApp() {
     if (!qs.length) return "";
     const ans = contactById(S.deptAnswerers[d.department_id]);
     return `<details class="dept" data-dept="${d.department_id}" ${S.openDepts.has(d.department_id) ? "open" : ""}>
-      <summary class="dept-head"><h3>${esc(d.name)}</h3><span class="dept-sum mono" id="dsum-${d.department_id}"></span></summary>
+      <summary class="dept-head"><h3>${esc(d.name)}</h3>${deptDelegateTag(d.department_id, P)}<span class="dept-sum mono" id="dsum-${d.department_id}"></span></summary>
       <div class="answerer">
         <span class="label">Answered by</span>
-        ${P.answers ? `<input name="dans-${d.department_id}" id="dans-${d.department_id}" list="contact-names" value="${esc(ans?.full_name)}" placeholder="Name" aria-label="${esc(d.name)} answered by: name" autocomplete="off">
+        ${P.canDept(d.department_id) ? `<input name="dans-${d.department_id}" id="dans-${d.department_id}" list="contact-names" value="${esc(ans?.full_name)}" placeholder="Name" aria-label="${esc(d.name)} answered by: name" autocomplete="off">
           <input name="dtitle-${d.department_id}" id="dtitle-${d.department_id}" value="${esc(ans?.title)}" placeholder="Title" aria-label="${esc(d.name)} answered by: title">
           <span class="muted hint">Pick someone used before, or type a new name.</span>`
         : `<span>${ans ? `<b>${esc(ans.full_name)}</b>${ans.title ? `, ${esc(ans.title)}` : ""}` : '<span class="muted">Not recorded</span>'}</span>`}
@@ -1644,9 +2188,11 @@ function drawApp() {
     <div class="page-head">
       <div><p class="eyebrow">${isNew ? "New application" : "Application #" + app.production_id}</p>
         <h1>${esc(app.production_name || "Untitled production")}</h1>
-        ${isNew ? "" : `<div class="meta">${pill(app.status)}${app.submission_date ? `<span>Submitted ${esc(date(app.submission_date))}</span>` : ""}${app.source_file ? `<span class="mono">${esc(app.source_file)}</span>` : ""}${isReviewerish() && app.submitted_by ? `<span>By ${esc(personName(app.submitted_by) || "unknown")}</span>` : ""}<button type="button" class="link" id="toActivity">Activity &amp; comments<span id="actCount"></span></button></div>`}
+        ${isNew ? "" : `<div class="meta">${pill(app.status)}${app.submission_date ? `<span>Submitted ${esc(date(app.submission_date))}</span>` : ""}${app.source_file ? `<span class="mono">${esc(app.source_file)}</span>` : ""}${isReviewerish() && app.submitted_by ? `<span>By ${esc(personName(app.submitted_by) || "unknown")}</span>` : ""}${appSealMeta(app)}${isReviewerish() ? dueBadge(app) : ""}<button type="button" class="link" id="toActivity">Activity &amp; comments<span id="actCount"></span></button></div>`}
       </div>
     </div>
+    ${isNew ? "" : appBanners(app, P)}
+    <div id="importPanel"></div>
     <div class="panel tally" id="tally"></div>
     <form id="appForm" novalidate>
       <section class="panel block"><div class="block-head"><h2>Production details</h2>${P.details ? "" : '<span class="muted">Locked after submission</span>'}</div>
@@ -1657,13 +2203,15 @@ function drawApp() {
             <input type="number" min="${k === "shoot_days" ? 1 : 0}" step="${k === "shoot_days" ? 1 : "any"}" inputmode="decimal" name="${k}" id="d-${k}" value="${app[k] ?? ""}" ${dis(P.details)}></label>`).join("")}
           <div class="field co2-out"><span>Per shoot day</span><output id="co2-out"></output></div>
         </div></section>
+      ${P.team ? teamSection(app) : ""}
       <section class="panel block"><div class="block-head"><div><h2>PEACH checklist</h2><p class="muted" style="font-size:.88rem;margin-top:4px">${S.qs.length} actions across ${S.depts.length} departments. Answer at prep, then again at wrap. N/A takes a question out of the points available.</p></div>
-        <div class="dept-tools"><button type="button" class="link" id="openAll">Expand all</button><button type="button" class="link" id="closeAll">Collapse all</button></div></div>${depts}</section>
+        <div class="dept-tools">${P.answers && !isNew ? `<label class="btn small-btn" title="Fill answers from a completed PEACH workbook (.xlsx)">Import from Excel<input type="file" class="sr" id="xlsImport" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>` : ""}<button type="button" class="link" id="openAll">Expand all</button><button type="button" class="link" id="closeAll">Collapse all</button></div></div>${depts}</section>
       ${P.score && !isNew ? `<section class="panel block"><div class="block-head"><h2>Review</h2><button type="button" class="link" id="autofill">Fill points from answers</button></div>
         <div class="block-body grid">
           <label class="field"><span>Status</span><select id="rv-status">${Object.entries(STATUS).filter(([k]) => isStaff() || k !== "draft").map(([k, l]) => `<option value="${k}" ${app.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+          <label class="field"><span>Review due</span><input type="date" id="rv-due" value="${esc(app.review_due || "")}"></label>
           <label class="field"><span>Assigned reviewer</span><select id="rv-assign"><option value="">Unassigned</option>${reviewers.map((p) => `<option value="${esc(p.id)}" ${app.assigned_reviewer === p.id ? "selected" : ""}>${esc(p.full_name || p.email)}</option>`).join("")}</select></label>
-        </div></section>` : ""}
+        </div>${requestChangesBlock(app)}</section>` : ""}
     </form>
     ${isNew ? "" : `<section class="panel block activity" id="activity" aria-labelledby="actTitle">
       <div class="block-head"><h2 id="actTitle">Activity &amp; comments</h2>
@@ -1705,7 +2253,7 @@ function drawApp() {
   document.getElementById("openAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = true)));
   document.getElementById("closeAll").addEventListener("click", () => form.querySelectorAll("details.dept").forEach((d) => (d.open = false)));
   updateTally();
-  if (!isNew) { loadEvidence(); loadActivity(app.production_id); wireActivity(app); }
+  if (!isNew) { loadEvidence(); loadActivity(app.production_id); wireActivity(app); wireFlags(app); wireTeam(app); wireImport(app); }
 }
 
 // ── Evidence files ─────────────────────────────────────────────────────────
@@ -1763,7 +2311,7 @@ async function viewEvidence(path) {
 }
 
 function question(q, r, P, showEarned) {
-  const id = q.question_id, pts = +q.points_possible || 0, dis = P.answers ? "" : "disabled";
+  const id = q.question_id, pts = +q.points_possible || 0, canEdit = P.canDept(q.department_id), dis = canEdit ? "" : "disabled";
   const raw = q.question_text.replace(/^\[Innovation\]\s*/i, "");
   const m = raw.match(/^([^:]{2,70}):\s*([\s\S]*)$/);
   const title = m ? m[1] : null, body = m ? m[2] : raw;
@@ -1777,7 +2325,8 @@ function question(q, r, P, showEarned) {
   };
   const tags = [q.code, q.is_innovation ? `+${fmt(pts)} bonus` : `${fmt(pts)} pts`, q.category].filter(Boolean);
   const deptAns = contactById(S.deptAnswerers?.[q.department_id]), own = contactById(r.answered_by);
-  return `<div class="q ${isYesNo(q) ? "" : "q-tier"}" data-q="${id}" data-dept="${q.department_id}">
+  return `<div class="q ${isYesNo(q) ? "" : "q-tier"} ${r.flagged_at ? "q-flagged" : ""}" data-q="${id}" data-dept="${q.department_id}" id="q-${id}">
+    ${r.flagged_at ? flagCallout(r) : ""}
     <div class="q-text">
       ${q.parent_label ? `<span class="eyebrow">${esc(q.parent_label)}</span>` : ""}
       <p>${title ? `<b>${esc(title)}.</b> ` : ""}${esc(body)}</p>
@@ -1787,14 +2336,14 @@ function question(q, r, P, showEarned) {
     <div class="q-ans">${ctl("Prep", r.prep_answer)}${ctl("Wrap", r.wrap_answer)}</div>
     <div class="q-wide">
       <div class="expl-row">
-        <label class="field"><span>Evidence or explanation</span><textarea name="expl-${id}" id="expl-${id}" rows="2" placeholder="${P.answers ? "What was done, by whom, and any supporting detail" : ""}" ${dis}>${esc(r.explanation)}</textarea></label>
-        ${P.answers ? `<label class="field ans-by"><span>Answered by</span><input name="aby-${id}" id="aby-${id}" list="contact-names" value="${esc(own?.full_name)}" placeholder="Same as department${deptAns ? ` (${esc(deptAns.full_name)})` : ""}" autocomplete="off"></label>`
+        <label class="field"><span>Evidence or explanation</span><textarea name="expl-${id}" id="expl-${id}" rows="2" placeholder="${canEdit ? "What was done, by whom, and any supporting detail" : ""}" ${dis}>${esc(r.explanation)}</textarea></label>
+        ${canEdit ? `<label class="field ans-by"><span>Answered by</span><input name="aby-${id}" id="aby-${id}" list="contact-names" value="${esc(own?.full_name)}" placeholder="Same as department${deptAns ? ` (${esc(deptAns.full_name)})` : ""}" autocomplete="off"></label>`
           : `<div class="field ans-by"><span>Answered by</span><p class="ans-by-val">${own ? esc(own.full_name) : deptAns ? `${esc(deptAns.full_name)} <span class="muted">(department)</span>` : '<span class="muted">Not recorded</span>'}</p></div>`}
       </div>
       <div class="evidence" data-ev="${id}">
         <span class="label">Files</span>
         <ul class="files" id="files-${id}"><li class="muted">${S.current.app.production_id == null ? "" : "Loading…"}</li></ul>
-        ${P.answers ? (S.current.app.production_id == null
+        ${canEdit ? (S.current.app.production_id == null
           ? `<span class="muted ev-hint">Save the draft to attach photos or documents.</span>`
           : `<label class="btn ev-add">Attach files<input type="file" class="sr" id="up-${id}" data-up="${id}" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"></label>`) : ""}
       </div>
@@ -1802,7 +2351,7 @@ function question(q, r, P, showEarned) {
           <label class="field"><span>Verified prep pts</span><input type="number" name="pp-${id}" id="pp-${id}" min="0" max="${pts}" step="0.5" inputmode="decimal" value="${r.prep_points ?? ""}"></label>
           <label class="field"><span>Verified wrap pts</span><input type="number" name="wp-${id}" id="wp-${id}" min="0" max="${pts}" step="0.5" inputmode="decimal" value="${r.wrap_points ?? ""}"></label>
           <label class="field note"><span>Reviewer note</span><input name="note-${id}" id="note-${id}" value="${esc(r.reviewer_notes)}"></label>
-        </div>` : showEarned ? `<div class="earned"><span>Verified prep <b>${fmt(r.prep_points)}</b> / ${fmt(pts)}</span><span>Verified wrap <b>${fmt(r.wrap_points)}</b> / ${fmt(pts)}</span>${r.reviewer_notes ? `<span>Reviewer note: ${esc(r.reviewer_notes)}</span>` : ""}</div>` : ""}
+        </div>${flagControl(q, r)}` : showEarned ? `<div class="earned"><span>Verified prep <b>${fmt(r.prep_points)}</b> / ${fmt(pts)}</span><span>Verified wrap <b>${fmt(r.wrap_points)}</b> / ${fmt(pts)}</span>${r.reviewer_notes ? `<span>Reviewer note: ${esc(r.reviewer_notes)}</span>` : ""}</div>` : ""}
     </div>
   </div>`;
 }
@@ -1860,7 +2409,12 @@ function autofill() {
 
 function drawActions() {
   const { app, confirm } = S.current; const P = perms(app);
-  if (!P.details && !P.answers && !P.score) { $actions.innerHTML = ""; return; }
+  if (!P.details && !P.answers && !P.score && !P.delegate) { $actions.innerHTML = ""; return; }
+  if (P.delegate && !P.answers && !P.score) {
+    $actions.innerHTML = `<div class="actions"><div class="wrap"><span class="hint">You can answer ${[...P.myDepts].map((d) => esc(S.allDepts.find((x) => x.department_id === d)?.name || "")).join(", ")}. The owner submits the application.</span><button class="primary" id="save">Save my answers</button></div></div>`;
+    document.getElementById("save").addEventListener("click", () => saveApp());
+    return;
+  }
   let hint = "";
   if (P.submit && !confirm) hint = "Drafts are only visible to you and staff.";
   else if (!P.answers && P.score) hint = "Answers are locked. You're scoring.";
@@ -1899,7 +2453,7 @@ async function saveApp({ submit = false } = {}) {
       if (FOOTPRINT.some(([k]) => (app[k] ?? null) !== det[k])) det.footprint_is_sample = false;
       if (!det.production_name) { document.getElementById("d-production_name").focus(); throw new Error("Add the production name before saving."); }
       if (id == null) {
-        const { data, error } = await sb.from("productions").insert({ ...det, submitted_by: S.me.id, status: "draft" }).select().single();
+        const { data, error } = await sb.from("productions").insert({ ...det, submitted_by: S.me.id, status: "draft", form_version: S.formCurrent }).select().single();
         if (error) throw error; id = data.production_id;
       } else {
         const { error } = await sb.from("productions").update(det).eq("production_id", id);
@@ -1909,8 +2463,9 @@ async function saveApp({ submit = false } = {}) {
     }
     // Who answered: department level, then per-answer overrides.
     const byQ = {};
-    if (P.answers) {
+    if (P.answers || P.delegate) {
       for (const d of S.depts) {
+        if (!P.canDept(d.department_id)) continue;
         const nameEl = document.getElementById("dans-" + d.department_id); if (!nameEl) continue;
         const name = nameEl.value.trim(), title = (document.getElementById("dtitle-" + d.department_id)?.value || "").trim();
         if (name) {
@@ -1925,6 +2480,7 @@ async function saveApp({ submit = false } = {}) {
         }
       }
       for (const q of S.qs) {
+        if (!P.canDept(q.department_id)) continue;
         const v = (document.getElementById("aby-" + q.question_id)?.value || "").trim();
         byQ[q.question_id] = v ? await ensureContact(v, null, q.department_id) : null;
       }
@@ -1933,7 +2489,7 @@ async function saveApp({ submit = false } = {}) {
     for (const q of S.qs) {
       const qid = q.question_id, prev = S.current.resp[qid];
       const row = { production_id: id, question_id: qid }; let any = !!prev;
-      if (P.answers) {
+      if (P.canDept(q.department_id)) {
         row.prep_answer = checked("prep-" + qid); row.wrap_answer = checked("wrap-" + qid);
         row.explanation = String(fd.get("expl-" + qid) || "").trim() || null;
         row.answered_by = byQ[qid] ?? null;
@@ -1955,7 +2511,7 @@ async function saveApp({ submit = false } = {}) {
     }
     const st = document.getElementById("rv-status"), as = document.getElementById("rv-assign");
     if (P.score && st) {
-      const { error } = await sb.from("productions").update({ status: st.value, assigned_reviewer: as.value || null }).eq("production_id", id);
+      const { error } = await sb.from("productions").update({ status: st.value, assigned_reviewer: as.value || null, review_due: document.getElementById("rv-due")?.value || null }).eq("production_id", id);
       if (error) throw error;
     }
     if (submit) {
@@ -1985,8 +2541,10 @@ async function renderDashboard() {
     sb.from("app_settings").select("value").eq("key", "dashboard_default").maybeSingle(),
   ]);
   if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load the dashboard", friendly(e)); return; }
-  const apps = p.data, by = answersByApp(r.data);
-  S.dash = { apps, resp: r.data, by };
+  const older = p.data.filter((a) => appVersion(a) !== S.formCurrent).length;
+  const apps = p.data.filter((a) => appVersion(a) === S.formCurrent), by = answersByApp(r.data);
+  S.dash = { apps, resp: r.data, by, older };
+  const respBy = {}; for (const x of r.data) (respBy[x.production_id] ||= {})[x.question_id] = x;
   const count = (st) => apps.filter((a) => a.status === st).length;
   const live = apps.filter((a) => a.status !== "draft");
   const decided = apps.filter((a) => a.status === "approved" || a.status === "rejected");
@@ -2034,6 +2592,28 @@ async function renderDashboard() {
     types: sec("By production type", "Submitted applications", `<div class="table-scroll"><table><thead><tr><th>Type</th><th class="num">Applications</th><th class="num">Approved</th><th class="num">Avg. PEACH score at wrap</th></tr></thead>
       <tbody>${types.map((t) => `<tr><td>${esc(t.t)}</td><td class="num">${t.n}</td><td class="num">${t.approved}</td><td class="num">${t.wrap == null ? '<span class="muted">–</span>' : t.wrap + "%"}</td></tr>`).join("") || `<tr><td colspan="4" class="muted">No submitted applications yet.</td></tr>`}</tbody></table></div>`),
   };
+  // Certification: certified (approved) by level, and where in-progress applications are heading.
+  const inProg = apps.filter((a) => a.status === "submitted" || a.status === "in_review");
+  const proj = inProg.map((a) => levelFor(finalScore(respBy[a.production_id] || {}).pct)?.name || null);
+  const lvRows = [...S.cert.levels].reverse().map((l) => ({ l, certified: apps.filter((a) => a.status === "approved" && a.cert_level === l.name).length, track: proj.filter((x) => x === l.name).length }));
+  const below = { certified: apps.filter((a) => a.status === "approved" && !a.cert_level).length, track: proj.filter((x) => !x).length };
+  S.dash.html.levels = sec("Certification", `${S.cert.placeholder ? "Placeholder cutoffs · " : ""}${S.cert.levels.map((l) => `${esc(l.name)} ${l.min}%+`).join(" · ")}`, `<div class="table-scroll"><table>
+      <thead><tr><th>Level</th><th class="num">Certified</th><th class="num" title="Submitted or in review, based on verified points where entered, otherwise wrap answers">On track</th></tr></thead>
+      <tbody>${lvRows.map((x) => `<tr><td>${sealBadge(x.l.name)}</td><td class="num">${x.certified}</td><td class="num">${x.track}</td></tr>`).join("")}
+        <tr><td class="muted">Below ${esc(S.cert.levels[0]?.name || "cutoff")}</td><td class="num">${below.certified}</td><td class="num">${below.track}</td></tr></tbody></table></div>
+      <div class="block-body"><a class="link" href="#report">Open the leadership report →</a></div>`);
+  // Reviewer workload: open, overdue, due within a week, decided in the last 30 days.
+  const open = apps.filter((a) => a.status === "submitted" || a.status === "in_review");
+  const recent = (a) => (a.status === "approved" || a.status === "rejected") && daysSince(a.updated_at) != null && daysSince(a.updated_at) <= 30;
+  const people = [...new Set([...open.map((a) => a.assigned_reviewer), ...apps.filter(recent).map((a) => a.assigned_reviewer)])];
+  const wl = people.map((id) => { const mine = open.filter((a) => (a.assigned_reviewer || null) === (id || null));
+    return { id, open: mine.length, over: mine.filter((a) => dueInfo(a)?.overdue).length, week: mine.filter((a) => { const d = dueInfo(a); return d && !d.overdue && d.days <= 7; }).length,
+      done: apps.filter((a) => recent(a) && (a.assigned_reviewer || null) === (id || null)).length }; })
+    .sort((a, b) => (a.id ? 0 : 1) - (b.id ? 0 : 1) || b.over - a.over || b.open - a.open);
+  S.dash.html.workload = sec("Reviewer workload", `Review target: ${S.reviewDays} days`, `<div class="table-scroll"><table>
+      <thead><tr><th>Reviewer</th><th class="num">Open</th><th class="num">Overdue</th><th class="num">Due in 7 days</th><th class="num">Decided (30 days)</th></tr></thead>
+      <tbody>${wl.map((x) => `<tr><td>${x.id ? esc(personName(x.id) || "Former user") : '<span class="muted">Unassigned</span>'}</td><td class="num">${x.open}</td><td class="num">${x.over ? `<span class="due due-over">${x.over}</span>` : 0}</td><td class="num">${x.week}</td><td class="num">${x.done}</td></tr>`).join("")
+        || `<tr><td colspan="5" class="muted">Nothing waiting for review.</td></tr>`}</tbody></table></div>`);
   S.dashPrefs = { layout: prefs.data?.layout || [], charts: prefs.data?.charts || [] };
   S.sharedCharts = shared.error ? [] : shared.data || [];
   S.dashDefault = def.data?.value?.layout || null;
@@ -2050,6 +2630,8 @@ const DASH_BUILTIN = {
   departments: { title: "By department", size: "half" },
   practices: { title: "Practices at wrap", size: "half" },
   types: { title: "By production type", size: "full" },
+  levels: { title: "Certification", size: "half" },
+  workload: { title: "Reviewer workload", size: "half" },
 };
 const DASH_DEFAULT = Object.entries(DASH_BUILTIN).map(([id, w]) => ({ id, size: w.size }));
 // Widths on a 6-column grid; heights apply to charts drawn by the chart builder.
@@ -2079,6 +2661,10 @@ const DIMS = {
   compliance: { label: "Compliance (75% PEACH at wrap)", get: (a) => { const s = appScore(a, "wrap"); return !s ? "Not scored" : s.pct >= 75 ? "Compliant" : "Below 75%"; },
     order: (v) => ["Compliant", "Below 75%", "Not scored"].indexOf(v) },
   band: { label: "PEACH score band (wrap)", get: (a) => scoreBand(appScore(a, "wrap")?.pct), order: (v) => BANDS.indexOf(v) },
+  level: { label: "Certification level", get: (a) => a.cert_level || (a.status === "approved" ? "Below cutoff" : "Not certified yet"),
+    order: (v) => { const i = S.cert.levels.findIndex((l) => l.name === v); return i >= 0 ? -i : v === "Below cutoff" ? 1 : 2; } },
+  timing: { label: "Review timing", get: (a) => { const d = dueInfo(a); return !d ? "Not in review" : d.overdue ? "Overdue" : d.days <= 7 ? "Due within a week" : "On schedule"; },
+    order: (v) => ["Overdue", "Due within a week", "On schedule", "Not in review"].indexOf(v) },
 };
 function measures() {
   const cats = [...new Set(S.qs.filter((q) => !q.is_innovation).map((q) => q.category))];
@@ -2091,6 +2677,7 @@ function measures() {
     ...cats.map((c) => ({ key: "cat:" + c, group: "PEACH score", label: `PEACH score: ${c}`, unit: "%", stage: true,
       get: (a, st) => appScore(a, st, S.qs.filter((q) => q.category === c && !q.is_innovation))?.pct ?? null })),
     { key: "bonus", group: "PEACH score", label: "Innovation bonus points", unit: "pts", stage: true, get: (a, st) => appScore(a, st)?.bonus ?? null },
+    { key: "certscore", group: "PEACH score", label: "Final score at certification", unit: "%", get: (a) => (a.cert_score != null ? +a.cert_score : null) },
     { key: "co2t", group: "Footprint", label: "CO₂ for the whole shoot", unit: "t", get: tonnesCO2 },
     ...METRICS.map((m) => ({ key: "m:" + m.key, group: "Footprint", label: m.label, unit: m.unit, get: m.get })),
   ];
@@ -2358,12 +2945,12 @@ function drawDashboard() {
       <div class="block-body"><div class="chart" data-wid="${esc(w.id)}"></div></div></section>`;
   $app.innerHTML = `
     <div class="page-head">
-      <div><p class="eyebrow">PEACH v2.0 · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p><h1>Program dashboard</h1></div>
+      <div><p class="eyebrow">${esc(S.formCurrent)}${S.dash.older ? ` · ${S.dash.older} older-version application${S.dash.older === 1 ? "" : "s"} not shown` : ""} · ${new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}</p><h1>Program dashboard</h1></div>
       <div class="export">
         ${edit ? `<button id="dashAdd">Add chart</button><button class="primary" id="dashDone">Done</button>`
           : `<details class="menu" id="expMenu"><summary class="btn">Export <span aria-hidden="true">▾</span></summary>
               <div class="menu-list" role="menu"><button role="menuitem" id="expApps">Applications (CSV)</button><button role="menuitem" id="expAns">All answers (CSV)</button></div></details>
-            <button id="dashEdit">Customize</button><button class="primary" id="dashAdd">Add chart</button>`}
+            <a class="btn" href="#report">Report</a><button id="dashEdit">Customize</button><button class="primary" id="dashAdd">Add chart</button>`}
       </div>
     </div>
     ${edit ? `<div class="panel dash-editbar" role="status">
@@ -2615,14 +3202,14 @@ async function renderCompare(qid) {
   renderBar();
   $app.innerHTML = `<p class="loading">Loading productions…</p>`;
   const [p, r] = await Promise.all([
-    sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,production_location,submission_date,assigned_reviewer,status,footprint_is_sample," + FOOTPRINT_COLS).neq("status", "draft"),
+    sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,production_location,form_version,cert_level,cert_score,review_due,submission_date,assigned_reviewer,status,footprint_is_sample," + FOOTPRINT_COLS).neq("status", "draft"),
     fetchAll(() => sb.from("responses").select("production_id,question_id,prep_answer,wrap_answer").order("response_id")),
   ]);
   if (p.error || r.error) { const e = p.error || r.error; fail(e); $app.innerHTML = notice("Couldn't load productions", friendly(e)); return; }
   const ans = {};
   const active = new Set(S.qs.map((q) => q.question_id));
   for (const x of r.data) if (active.has(x.question_id)) (ans[x.production_id] ||= {})[x.question_id] = { prep: x.prep_answer || null, wrap: x.wrap_answer || null };
-  S.cmpData = { apps: p.data, ans };
+  S.cmpData = { apps: p.data.filter((a) => appVersion(a) === S.formCurrent), ans };
   if (qid && S.qs.some((q) => q.question_id === qid)) { S.cmp.q = qid; S.cmp.mode = "practice"; }
   if (!S.cmp.q) S.cmp.q = S.qs[0]?.question_id;
   drawCompare();
@@ -3468,7 +4055,8 @@ async function renderQuestions() {
     sb.from("questions").select("*").order("sort_order").order("question_id"),
   ]);
   if (d.error || q.error) return fail(d.error || q.error);
-  const depts = d.data, all = q.data, active = all.filter((x) => x.active), retired = all.filter((x) => !x.active);
+  const depts = d.data, everything = q.data, all = everything.filter((x) => x.form_version === S.formCurrent), active = all.filter((x) => x.active), retired = all.filter((x) => !x.active);
+  const versions = [...new Set(everything.map((x) => x.form_version).filter(Boolean))];
   const optText = (x) => optsOf(x).map((o) => `${o.label}${o.na ? "" : " · " + fmt(o.points)}`).join("  |  ");
   const row = (x) => `<div class="qrow" data-qid="${x.question_id}">
       <div class="qrow-head"><span class="tag">${esc(x.code || "pilot")}</span>${x.is_innovation ? '<span class="tag tag-innov">Innovation</span>' : ""}<span class="tag">${esc(x.category || "–")}</span>
@@ -3494,10 +4082,11 @@ async function renderQuestions() {
         </div></div>
     </details>`; };
   $app.innerHTML = `
-    <div class="page-head"><div><p class="eyebrow">Staff · PEACH v2.0</p><h1>Questions</h1>
+    <div class="page-head"><div><p class="eyebrow">Staff · ${esc(S.formCurrent)}</p><h1>Questions</h1>
       <p class="muted" style="max-width:66ch">${active.length} actions in use, worth ${fmt(possible())} base points plus ${fmt(bonusPossible())} Innovation bonus points. Changes apply to every application, including ones already scored. Tiered answer choices come from the PEACH workbook and aren't edited here.</p></div></div>
     ${depts.filter((dep) => active.some((x) => x.department_id === dep.department_id)).map(deptBlock).join("")}
-    ${retired.length ? `<details class="panel block qdept"><summary class="block-head"><h3>Retired pilot questions</h3><span class="mono muted">${retired.length} · kept so old answers aren't lost</span></summary>${retired.map(row).join("")}</details>` : ""}
+    ${settingsSections(versions)}
+    ${retired.length ? `<details class="panel block qdept"><summary class="block-head"><h3>Actions not in use</h3><span class="mono muted">${retired.length} · kept so old answers aren't lost</span></summary>${retired.map(row).join("")}</details>` : ""}
     <section class="panel block"><div class="block-head"><h3>Emission factors</h3><span class="muted">kg CO₂ per unit · used for every footprint</span></div>
       ${(S.factors || []).map((f) => `<div class="admin-row factor-row" data-fkey="${esc(f.key)}">
         <div><b>${esc(f.label)}</b> <span class="muted">per ${esc(f.unit)}</span><div class="muted" style="font-size:.8rem">${esc(f.source || "")}</div></div>
@@ -3509,6 +4098,7 @@ async function renderQuestions() {
       <div class="admin-row" style="grid-template-columns:minmax(0,1fr) auto"><input id="newDept" placeholder="e.g. Visual Effects" aria-label="Department name"><button class="primary" id="addDept">Add department</button></div></section>`;
   const vals = (el) => { const o = {}; el.querySelectorAll("[data-k]").forEach((i) => (o[i.dataset.k] = i.type === "checkbox" ? i.checked : i.type === "number" ? num(i.value) : i.value.trim() || null)); return o; };
   const refresh = async () => { try { await reloadQuestions(); } catch (e) { fail(e); } };
+  wireSettings();
   $app.querySelectorAll("[data-save]").forEach((b) => b.addEventListener("click", async () => {
     const r = b.closest("[data-qid]"), x = all.find((y) => y.question_id === +r.dataset.qid), v = vals(r);
     if (!v.question_text) return toast("An action needs text.", "bad");
@@ -3524,7 +4114,7 @@ async function renderQuestions() {
     const r = b.closest("[data-new]"), v = vals(r);
     if (!v.question_text) return toast("Type the action first.", "bad");
     if (v.points_possible == null || v.points_possible < 0) return toast("Enter the points for Yes.", "bad");
-    const { error } = await sb.from("questions").insert({ ...v, department_id: +r.dataset.new, active: true, form_version: "Custom", is_ema_relevant: true,
+    const { error } = await sb.from("questions").insert({ ...v, department_id: +r.dataset.new, active: true, form_version: S.formCurrent, is_ema_relevant: true,
       sort_order: Math.max(0, ...all.map((y) => y.sort_order || 0)) + 1,
       answer_options: [{ label: "Yes", points: v.points_possible, na: false }, { label: "No", points: 0, na: false }, { label: "N/A", points: 0, na: true }] });
     if (error) return fail(error); toast("Action added"); await refresh(); renderQuestions();
