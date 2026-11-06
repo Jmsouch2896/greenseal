@@ -309,26 +309,63 @@ tr.xf-on td { background: var(--accent-soft); }
 .lvl-row { display: grid; grid-template-columns: minmax(0, 16rem) minmax(0, 10rem) auto; gap: 12px; align-items: end; }
 #certSettings .block-body, .row-actions { display: grid; gap: 12px; }
 .row-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+.design-tabs { display: inline-flex; margin-bottom: 14px; }
+.design-tabs .btn { border: 0; border-radius: 0; text-decoration: none; }
+.design-tabs .btn.on { background: var(--accent); color: var(--accent-ink); }
+.cert-design { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+.cd-preview { padding: 14px; background: var(--bg); }
+.cd-preview-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.cd-preview .certificate { font-size: 0.82em; box-shadow: 0 4px 18px rgb(0 0 0 / .08); }
+.cd-layout { display: grid; gap: 16px; }
+.cd-toggles { display: flex; gap: 8px 16px; flex-wrap: wrap; }
+.certificate.cert-portrait { aspect-ratio: 1 / 1.414; max-width: 720px; }
+.cert-portrait .cert-inner { gap: 2.4cqi; padding: 8cqi 6cqi; }
+.cert-portrait .cert-level { font-size: 10.5cqi !important; }
+.cert-portrait .cert-name { font-size: 7.4cqi; }
+.cert-portrait .cert-eyebrow { font-size: 1.9cqi; }
+.cert-portrait .cert-lead, .cert-portrait .cert-sub { font-size: 2.5cqi; }
+.cert-portrait .cert-body { font-size: 2.6cqi; max-width: 46ch; }
+.cert-portrait .cert-brand img { height: 9cqi; } .cert-portrait .cert-brand .mark { font-size: 4cqi; }
+.cert-portrait .cert-seal svg { width: 18cqi; }
+.cert-portrait .cert-foot { font-size: 1.9cqi; margin-top: 4cqi; }
+.cert-border-single .cert-inner { outline: 0; }
+.cert-border-none .cert-inner { border: 0; outline: 0; }
+.cert-head-brand .cert-level, .cert-gold.cert-head-brand .cert-level { color: var(--accent); }
+.certificate.no-decor::before, .certificate.no-decor::after { display: none; }
+.cert-sig { max-height: 48px; max-width: 70%; object-fit: contain; margin-bottom: -6px; }
+.cert-foot b { font-weight: 600; }
+.cert-meta { max-width: 1000px; margin: 14px auto 0; display: grid; gap: 4px; }
+.verified { margin: 0; display: inline-flex; gap: 8px; align-items: center; font-weight: 600; color: var(--ok); }
+.verified span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--ok); color: var(--surface); font-size: .8rem; }
+#sendDlg { width: min(560px, calc(100vw - 24px)); padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); }
+#sendDlg::backdrop { background: rgb(20 24 18 / .45); }
+.send-body { padding: 16px 18px; display: grid; gap: 14px; }
+.send-body p { margin: 0; }
+.send-result:empty { display: none; }
+.send-result { padding: 8px 12px; border-radius: var(--r); background: var(--info-soft); font-size: .9rem; }
+.send-result.bad { background: var(--bad-soft); color: var(--bad); }
+.send-result.warn { background: var(--warn-soft); color: var(--ink); }
+@media (max-width: 860px) { .cert-design { grid-template-columns: minmax(0, 1fr); } }
 .cert-tools { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 18px; }
-.certificate { aspect-ratio: 1.414 / 1; max-width: 1000px; margin: 0 auto; background: var(--surface); border-radius: 6px; padding: clamp(10px, 2vw, 18px); box-shadow: 0 10px 40px rgb(0 0 0 / .08); position: relative; overflow: hidden; }
+.certificate { container-type: inline-size; aspect-ratio: 1.414 / 1; max-width: 1000px; margin: 0 auto; background: var(--surface); border-radius: 6px; padding: clamp(4.50px, 2cqi, 18px); box-shadow: 0 10px 40px rgb(0 0 0 / .08); position: relative; overflow: hidden; }
 .certificate::before { content: ""; position: absolute; width: 46%; aspect-ratio: 1; border-radius: 50%; background: var(--hl); opacity: .16; right: -12%; top: -22%; }
 .certificate::after { content: ""; position: absolute; width: 18%; aspect-ratio: 1; border-radius: 50%; background: var(--coral); opacity: .14; left: -5%; bottom: -7%; }
-.cert-inner { position: relative; z-index: 1; height: 100%; border: 2px solid var(--accent); outline: 1px solid var(--accent); outline-offset: -8px; border-radius: 4px; display: grid; justify-items: center; align-content: center; text-align: center; gap: clamp(4px, 1vw, 10px); padding: clamp(16px, 4vw, 48px); isolation: isolate; }
-.cert-brand img { height: clamp(32px, 5vw, 56px); width: auto; }
-.cert-brand .mark { font-size: clamp(1.2rem, 2.6vw, 1.8rem); }
-.cert-eyebrow { margin: 0; font-size: clamp(.62rem, 1.2vw, .82rem); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.cert-level { margin: 0; font-size: clamp(2rem, 6.5vw, 4.4rem) !important; color: var(--accent); }
+.cert-inner { position: relative; z-index: 1; height: 100%; border: 2px solid var(--accent); outline: 1px solid var(--accent); outline-offset: -8px; border-radius: 4px; display: grid; justify-items: center; align-content: center; text-align: center; gap: clamp(1.80px, 1cqi, 10px); padding: clamp(7.20px, 4cqi, 48px); isolation: isolate; }
+.cert-brand img { height: clamp(14.40px, 5cqi, 56px); width: auto; }
+.cert-brand .mark { font-size: clamp(0.54rem, 2.6cqi, 1.8rem); }
+.cert-eyebrow { margin: 0; font-size: clamp(0.28rem, 1.2cqi, .82rem); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.cert-level { margin: 0; font-size: clamp(0.90rem, 6.5cqi, 4.4rem) !important; color: var(--accent); }
 .cert-gold .cert-level { color: color-mix(in srgb, var(--hl) 55%, var(--ink)); }
-.cert-lead { margin: 0; font-style: italic; color: var(--muted); font-size: clamp(.8rem, 1.6vw, 1.05rem); }
-.cert-name { margin: 0; font-family: var(--display); font-size: clamp(1.4rem, 4vw, 2.7rem); line-height: 1.05; }
-.cert-sub { margin: 0; color: var(--muted); font-size: clamp(.72rem, 1.4vw, .95rem); }
-.cert-body { margin: 0; max-width: 52ch; font-size: clamp(.72rem, 1.4vw, .98rem); }
-.cert-seal svg { width: clamp(54px, 9vw, 110px); height: auto; }
+.cert-lead { margin: 0; font-style: italic; color: var(--muted); font-size: clamp(0.36rem, 1.6cqi, 1.05rem); }
+.cert-name { margin: 0; font-family: var(--display); font-size: clamp(0.63rem, 4cqi, 2.7rem); line-height: 1.05; }
+.cert-sub { margin: 0; color: var(--muted); font-size: clamp(0.32rem, 1.4cqi, .95rem); }
+.cert-body { margin: 0; max-width: 52ch; font-size: clamp(0.32rem, 1.4cqi, .98rem); }
+.cert-seal svg { width: clamp(24.30px, 9cqi, 110px); height: auto; }
 .cs-ring { fill: none; stroke: var(--accent); stroke-width: 3; stroke-dasharray: 4 3; }
 .cs-fill { fill: var(--accent); }
 .cert-gold .cs-fill { fill: var(--hl); }
 .cs-leaf { fill: var(--surface); }
-.cert-foot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; margin-top: clamp(4px, 1.5vw, 16px); font-size: clamp(.62rem, 1.2vw, .82rem); }
+.cert-foot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; width: 100%; margin-top: clamp(1.80px, 1.5cqi, 16px); font-size: clamp(0.28rem, 1.2cqi, .82rem); }
 .cert-foot > div { display: grid; gap: 4px; justify-items: center; }
 .cert-foot span { color: var(--muted); }
 .cert-line { display: block; width: 70%; height: 1px; background: var(--ink); margin-bottom: 4px; }
@@ -998,6 +1035,7 @@ function applySettings(rows) {
     .map((l) => ({ ...l, min: +l.min })).sort((a, b) => a.min - b.min) };
   S.reviewDays = +(get("review")?.target_days) || 10;
   S.formCurrent = get("form")?.current || "PEACH v2.0";
+  S.certCfg = cleanCertCfg(get("certificate"));
 }
 const levelFor = (pct) => (pct == null ? null : [...S.cert.levels].reverse().find((l) => pct >= l.min) || null);
 const levelKey = (name) => S.cert.levels.find((l) => l.name === name)?.key || "green";
@@ -1180,6 +1218,7 @@ async function boot() {
 }
 
 async function start() {
+  if (location.hash.startsWith("#verify-")) return renderVerify(location.hash.slice(8));
   S.me = null; $actions.innerHTML = ""; S.notes = []; S.bellOpen = false;
   if (S.noteChannel) { sb.removeChannel(S.noteChannel); S.noteChannel = null; }
   clearInterval(S.notePoll);
@@ -1193,7 +1232,7 @@ async function start() {
       sb.from("departments").select("*").order("sort_order").order("department_id"),
       sb.from("questions").select("*").eq("active", true).order("sort_order").order("question_id"),
       sb.from("emission_factors").select("*").order("key"),
-      sb.from("app_settings").select("key,value").in("key", ["certification", "review", "form"]),
+      sb.from("app_settings").select("key,value").in("key", ["certification", "review", "form", "certificate"]),
     ]);
     for (const r of [me, d, q]) if (r.error) throw r.error;
     S.me = me.data; S.factors = f.error ? [] : f.data;
@@ -1215,9 +1254,11 @@ async function start() {
 }
 
 function route() {
-  if (!S.me) return;
+  if (location.hash.startsWith("#verify-")) return renderVerify(location.hash.slice(8));
+  if (!S.me) { if (S.verifying) { S.verifying = false; start(); } return; }
   if (S.viewVersion !== S.formCurrent) useVersion(S.formCurrent);
   if (location.hash.slice(1) !== "design" && S.theme) applyTheme(S.theme); // drop any unsaved preview
+  document.getElementById("sendDlg")?.close?.();
   if (S.actChannel) { sb.removeChannel(S.actChannel); S.actChannel = null; }
   S.dashRO?.disconnect(); S.dashRO = null; document.getElementById("chartDlg")?.close?.();
   $actions.innerHTML = "";
@@ -1232,6 +1273,7 @@ function route() {
   if (h === "companies" && isStaff()) return renderPeople("companies");
   if (h === "account") return renderAccount();
   if (h === "design" && isStaff()) return renderDesign();
+  if (h === "design-certificate" && isStaff()) return renderCertDesign();
   if (h === "questions" && isStaff()) return renderQuestions();
   if (h === "dashboard" && isReviewerish()) return renderDashboard();
   const cm = h.match(/^(?:analysis|compare)(?:-(\d+))?$/);
@@ -1244,7 +1286,7 @@ function route() {
 
 function renderBar() {
   const h = location.hash.slice(1);
-  const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || h === "report" || (h === "" && isStaff()) ? "dashboard" : "list";
+  const cur = h === "admin" || h === "people" || h === "contacts" || h === "companies" ? "people" : h === "design" || h === "design-certificate" ? "design" : h === "questions" ? "questions" : h.startsWith("compare") || h.startsWith("analysis") ? "compare" : h === "board" ? "list" : h === "dashboard" || h === "report" || (h === "" && isStaff()) ? "dashboard" : "list";
   const link = (key, href, label) => `<a href="${href}" ${cur === key ? 'aria-current="page"' : ""}>${label}</a>`;
   document.getElementById("bar").innerHTML = `
     ${brandHTML()}
@@ -1312,34 +1354,237 @@ function wireSettings() {
   });
 }
 
-// ── Certificate (printable) ──
+// ── Certificate: design settings, shared renderer, printable page, sending, public link ──
+const CERT_DEFAULT = {
+  lead: "is awarded to",
+  body: "for sustainable production practices verified against the {version} checklist, with a final score of {score} of available points.",
+  signer_name: "", signer_title: "Environmental Media Association", signature_url: null,
+  border: "double", orientation: "landscape", heading_color: "level",
+  show: { logo: true, score: true, number: true, seal: true, decor: true, studio: true },
+  number_format: "EMA-{LVL}-{YEAR}-{ID}",
+};
+function cleanCertCfg(v) {
+  const d = CERT_DEFAULT, x = v || {}, str = (s, n, fb) => (typeof s === "string" ? s.slice(0, n) : fb);
+  return {
+    lead: str(x.lead, 80, d.lead), body: str(x.body, 400, d.body),
+    signer_name: str(x.signer_name, 80, d.signer_name), signer_title: str(x.signer_title, 100, d.signer_title),
+    signature_url: typeof x.signature_url === "string" && /^https:\/\/[^\s"'<>]+$/.test(x.signature_url) ? x.signature_url : null,
+    border: ["double", "single", "none"].includes(x.border) ? x.border : d.border,
+    orientation: ["landscape", "portrait"].includes(x.orientation) ? x.orientation : d.orientation,
+    heading_color: ["level", "brand"].includes(x.heading_color) ? x.heading_color : d.heading_color,
+    show: Object.fromEntries(Object.keys(d.show).map((k) => [k, x.show?.[k] !== false])),
+    number_format: str(x.number_format, 40, d.number_format) || d.number_format,
+  };
+}
+function certNumber(a, cfg) {
+  const key = levelKey(a.cert_level), year = new Date(a.certified_at || Date.now()).getFullYear();
+  return cfg.number_format.replaceAll("{LVL}", key === "gold" ? "GLD" : key === "green" ? "GRN" : "LVL")
+    .replaceAll("{YEAR}", year).replaceAll("{ID}", String(a.production_id).padStart(4, "0")).replaceAll("{LEVEL}", a.cert_level || "");
+}
+function certificateHTML(a, cfg = S.certCfg || CERT_DEFAULT, theme = S.theme || THEME_DEFAULT) {
+  const key = levelKey(a.cert_level);
+  const when = new Date(a.certified_at || Date.now()).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  const fill = (t) => esc(t).replaceAll("{level}", esc(a.cert_level)).replaceAll("{production}", esc(a.production_name))
+    .replaceAll("{score}", cfg.show.score ? `<b>${Math.round(a.cert_score)}%</b>` : "a qualifying share").replaceAll("{version}", esc(a.form_version || "PEACH"))
+    .replaceAll("{date}", esc(when)).replaceAll("{studio}", esc(a.studio_affiliation || ""));
+  const sub = [a.production_type, a.production_sub_type, cfg.show.studio ? a.studio_affiliation : null].filter(Boolean).join(" · ");
+  return `<article class="certificate cert-${esc(key)} cert-${cfg.orientation} cert-border-${cfg.border} cert-head-${cfg.heading_color} ${cfg.show.decor ? "" : "no-decor"}" aria-label="Certificate">
+    <div class="cert-inner">
+      ${cfg.show.logo ? `<div class="cert-brand">${theme.logo_url ? `<img src="${esc(theme.logo_url)}" alt="${esc(theme.org)}">` : `<span class="brand"><span class="mark">${esc(theme.org)}</span></span>`}</div>` : ""}
+      <p class="cert-eyebrow">${esc(theme.org)} · ${esc(theme.name)}</p>
+      <h1 class="cert-level">${esc(a.cert_level)}</h1>
+      ${cfg.lead ? `<p class="cert-lead">${esc(cfg.lead)}</p>` : ""}
+      <p class="cert-name">${esc(a.production_name)}</p>
+      ${sub ? `<p class="cert-sub">${esc(sub)}</p>` : ""}
+      ${cfg.body ? `<p class="cert-body">${fill(cfg.body)}</p>` : ""}
+      ${cfg.show.seal ? `<div class="cert-seal" aria-hidden="true"><svg viewBox="0 0 120 120" width="120" height="120"><circle cx="60" cy="60" r="56" class="cs-ring"/><circle cx="60" cy="60" r="44" class="cs-fill"/>
+        <path d="M60 32c-14 10-18 24-12 38 4-9 10-15 18-19-7 6-12 14-14 24 14-2 22-16 18-30-2-6-5-10-10-13z" class="cs-leaf"/></svg></div>` : ""}
+      <div class="cert-foot">
+        <div>${cfg.signature_url ? `<img class="cert-sig" src="${esc(cfg.signature_url)}" alt="Signature">` : ""}<span class="cert-line"></span>${cfg.signer_name ? `<b>${esc(cfg.signer_name)}</b>` : ""}<span>${esc(cfg.signer_title)}</span></div>
+        <div><b>${esc(when)}</b><span>Date certified</span></div>
+        ${cfg.show.number ? `<div><b class="mono">${esc(certNumber(a, cfg))}</b><span>Certificate number</span></div>` : ""}
+      </div>
+    </div></article>`;
+}
 async function renderCertificate(id) {
   renderBar();
   $app.innerHTML = `<p class="loading">Loading certificate…</p>`;
-  const { data: a, error } = await sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,status,cert_level,cert_score,certified_at,form_version").eq("production_id", id).maybeSingle();
+  const [{ data: a, error }, sends] = await Promise.all([
+    sb.from("productions").select("production_id,production_name,production_type,production_sub_type,studio_affiliation,status,cert_level,cert_score,certified_at,form_version,cert_token,submitted_by").eq("production_id", id).maybeSingle(),
+    sb.from("certificate_sends").select("*").eq("production_id", id).order("created_at", { ascending: false }).limit(20),
+  ]);
   if (error) return fail(error);
   if (!a || a.status !== "approved" || !a.cert_level) { $app.innerHTML = notice("No certificate yet", "Certificates are issued when an application is approved with a score at or above a certification level.", `<a class="btn" href="#app-${id}">Back to the application</a>`); return; }
-  const t = S.theme || THEME_DEFAULT, key = levelKey(a.cert_level), year = new Date(a.certified_at || Date.now()).getFullYear();
-  const no = `EMA-${key === "gold" ? "GLD" : key === "green" ? "GRN" : "LVL"}-${year}-${String(a.production_id).padStart(4, "0")}`;
-  const when = new Date(a.certified_at || Date.now()).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  const canSend = isReviewerish() || a.submitted_by === S.me.id, link = publicCertLink(a);
+  const sent = (sends.data || []).filter((x) => x.status === "sent");
   $app.innerHTML = `
-    <div class="cert-tools noprint"><a class="back" href="#app-${id}">← Back to the application</a><button class="primary" id="certPrint">Print or save as PDF</button></div>
-    <article class="certificate cert-${esc(key)}" aria-label="Certificate">
-      <div class="cert-inner">
-        <div class="cert-brand">${t.logo_url ? `<img src="${esc(t.logo_url)}" alt="${esc(t.org)}">` : `<span class="brand"><span class="mark">${esc(t.org)}</span></span>`}</div>
-        <p class="cert-eyebrow">${esc(t.org)} · ${esc(t.name)}</p>
-        <h1 class="cert-level">${esc(a.cert_level)}</h1>
-        <p class="cert-lead">is awarded to</p>
-        <p class="cert-name">${esc(a.production_name)}</p>
-        <p class="cert-sub">${esc([a.production_type, a.production_sub_type, a.studio_affiliation].filter(Boolean).join(" · "))}</p>
-        <p class="cert-body">for sustainable production practices verified against the ${esc(a.form_version || "PEACH")} checklist, with a final score of <b>${Math.round(a.cert_score)}%</b> of available points.</p>
-        <div class="cert-seal" aria-hidden="true"><svg viewBox="0 0 120 120" width="120" height="120"><circle cx="60" cy="60" r="56" class="cs-ring"/><circle cx="60" cy="60" r="44" class="cs-fill"/>
-          <path d="M60 32c-14 10-18 24-12 38 4-9 10-15 18-19-7 6-12 14-14 24 14-2 22-16 18-30-2-6-5-10-10-13z" class="cs-leaf"/></svg></div>
-        <div class="cert-foot"><div><span class="cert-line"></span><span>Environmental Media Association</span></div>
-          <div><b>${esc(when)}</b><span>Date certified</span></div><div><b class="mono">${esc(no)}</b><span>Certificate number</span></div></div>
-      </div>
-    </article>`;
+    <div class="cert-tools noprint"><a class="back" href="#app-${id}">← Back to the application</a>
+      <div class="export">${canSend ? `<button id="certSend">Send…</button>` : ""}<button id="certCopy">Copy public link</button><button class="primary" id="certPrint">Print or save as PDF</button></div></div>
+    ${certificateHTML(a)}
+    <div class="cert-meta noprint">
+      <p class="muted small">Public link: anyone with it can view and verify this certificate, without signing in. <a href="${esc(link)}" target="_blank" rel="noopener">Open it</a>${isStaff() ? ` · <button type="button" class="link small" id="certReset">Make a new link</button> (the old one stops working)` : ""}</p>
+      ${sent.length ? `<p class="muted small">Sent: ${sent.slice(0, 5).map((x) => `${esc(x.recipients.join(", "))} · ${esc(since(x.created_at))}`).join("; ")}</p>` : ""}
+    </div>`;
   document.getElementById("certPrint").addEventListener("click", () => window.print());
+  document.getElementById("certCopy").addEventListener("click", () => copyText(link, "Public link copied"));
+  document.getElementById("certSend")?.addEventListener("click", () => openSendDialog(a));
+  document.getElementById("certReset")?.addEventListener("click", async (e) => {
+    const b = e.currentTarget;
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Confirm: replace the link"; return; }
+    const { error } = await sb.from("productions").update({ cert_token: crypto.randomUUID() }).eq("production_id", id);
+    if (error) return fail(error);
+    toast("New public link made; the old one no longer works"); renderCertificate(id);
+  });
+}
+const publicCertLink = (a) => `${location.origin}${location.pathname}#verify-${a.cert_token}`;
+async function copyText(text, msg) {
+  try { await navigator.clipboard.writeText(text); toast(msg); }
+  catch { window.prompt ? window.prompt("Copy this link", text) : toast(text); }
+}
+async function openSendDialog(a) {
+  let dlg = document.getElementById("sendDlg");
+  if (!dlg) { dlg = document.createElement("dialog"); dlg.id = "sendDlg"; document.body.appendChild(dlg); }
+  let owner = "";
+  if (a.submitted_by === S.me.id) owner = S.me.email || "";
+  else { const p = S.people.find((x) => x.id === a.submitted_by); owner = p?.email || ""; }
+  dlg.innerHTML = `<form method="dialog" class="send-form" novalidate>
+    <div class="builder-head"><h2>Send the certificate</h2><button type="button" class="link" data-close>Close</button></div>
+    <div class="send-body">
+      <p class="muted">${esc(a.production_name)} · ${esc(a.cert_level)}. The email shows the certificate and a link to view, verify and download it.</p>
+      <label class="field"><span>To <span class="muted">(separate addresses with commas; up to 10)</span></span><input id="sdTo" value="${esc(owner)}" placeholder="name@studio.com, producer@production.com" autocomplete="off"></label>
+      <label class="field"><span>Message <span class="muted">(optional)</span></span><textarea id="sdMsg" rows="4" maxlength="2000" placeholder="Congratulations on earning the ${esc(a.cert_level)}!"></textarea></label>
+      <p class="send-result" id="sdResult" role="status"></p>
+    </div>
+    <div class="builder-foot"><button type="button" data-close>Cancel</button><button type="submit" class="primary" id="sdGo">Send</button></div></form>`;
+  dlg.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => dlg.close()));
+  dlg.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const to = document.getElementById("sdTo").value.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
+    const out = document.getElementById("sdResult"), go = document.getElementById("sdGo");
+    if (!to.length) { out.className = "send-result bad"; out.textContent = "Add at least one email address."; return; }
+    const badOnes = to.filter((x) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x));
+    if (badOnes.length) { out.className = "send-result bad"; out.textContent = `Check these addresses: ${badOnes.join(", ")}`; return; }
+    go.disabled = true; out.className = "send-result"; out.textContent = "Sending…";
+    try {
+      const { data, error } = await sb.functions.invoke("send-certificate", { body: { production_id: a.production_id, recipients: to, message: document.getElementById("sdMsg").value, portal_url: location.origin + location.pathname } });
+      let msg = data?.error;
+      if (error) { try { const j = await error.context?.json?.(); msg = j?.error || error.message; } catch { msg = error.message; } }
+      if (msg) throw new Error(msg);
+      if (data?.code === "no_email") {
+        out.className = "send-result warn";
+        out.innerHTML = `Email isn't set up for the portal yet, so nothing was sent. Share the public link instead: <button type="button" class="link" id="sdCopy">Copy link</button>`;
+        document.getElementById("sdCopy").addEventListener("click", () => copyText(publicCertLink(a), "Public link copied"));
+        go.disabled = false; return;
+      }
+      dlg.close(); toast(`Certificate sent to ${to.length} ${to.length === 1 ? "person" : "people"}`); renderCertificate(a.production_id);
+    } catch (err) { out.className = "send-result bad"; out.textContent = friendly(err); go.disabled = false; }
+  });
+  dlg.showModal(); document.getElementById("sdTo").focus();
+}
+// Public page: #verify-<token>. Works signed in or out.
+async function renderVerify(token) {
+  S.verifying = true;
+  $actions.innerHTML = "";
+  if (!S.me) renderBar(); else renderBar();
+  const t = S.theme || THEME_DEFAULT;
+  $app.innerHTML = `<p class="loading">Checking the certificate…</p>`;
+  const okToken = /^[0-9a-f-]{36}$/i.test(token);
+  const [r, c] = await Promise.all([
+    okToken ? sb.rpc("certificate_by_token", { token }) : Promise.resolve({ data: [] }),
+    sb.from("app_settings").select("value").eq("key", "certificate").maybeSingle(),
+  ]);
+  const a = r.data?.[0];
+  if (!S.cert) S.cert = { levels: [{ key: "green", name: "Green Seal", min: 60 }, { key: "gold", name: "Gold Seal", min: 80 }] };
+  if (!a) { $app.innerHTML = notice("Certificate not found", "This link isn't valid, or the certificate has been replaced. Ask the production for an up-to-date link."); return; }
+  const cfg = cleanCertCfg(c.data?.value);
+  $app.innerHTML = `
+    <div class="cert-tools noprint"><p class="verified"><span aria-hidden="true">✓</span> Verified ${esc(t.org)} certificate</p><button class="primary" id="certPrint">Print or save as PDF</button></div>
+    ${certificateHTML(a, cfg, t)}
+    <p class="muted small cert-meta noprint">This page is the official record of ${esc(a.production_name)}'s ${esc(a.cert_level)}, issued through the ${esc(t.org)} ${esc(t.name)}.</p>`;
+  document.getElementById("certPrint").addEventListener("click", () => window.print());
+}
+
+// ── Certificate designer (staff) ──
+const designTabs = (cur) => `<div class="seg design-tabs" role="tablist" aria-label="Design">
+  <a role="tab" class="btn ${cur === "design" ? "on" : ""}" href="#design" aria-selected="${cur === "design"}">Portal look</a>
+  <a role="tab" class="btn ${cur === "cert" ? "on" : ""}" href="#design-certificate" aria-selected="${cur === "cert"}">Certificate</a></div>`;
+async function renderCertDesign(draft = null) {
+  renderBar();
+  const d = (S.certDraft = structuredClone(cleanCertCfg(draft || S.certCfg || CERT_DEFAULT)));
+  S.certPreviewLevel ||= S.cert.levels.at(-1)?.name;
+  const sample = () => ({ production_id: 42, production_name: "Sample Production", production_type: "Film", production_sub_type: "Feature", studio_affiliation: "Harbor Light Pictures",
+    cert_level: S.certPreviewLevel, cert_score: (S.cert.levels.find((l) => l.name === S.certPreviewLevel)?.min ?? 80) + 6, certified_at: new Date().toISOString(), form_version: S.formCurrent });
+  const tog = (k, label) => `<label class="check"><input type="checkbox" data-show="${k}" ${d.show[k] ? "checked" : ""}>${label}</label>`;
+  const radios = (name, opts, val) => `<div class="chips">${opts.map(([v, l]) => `<label class="chip check-chip"><input type="radio" name="${name}" value="${v}" ${val === v ? "checked" : ""}>${l}</label>`).join("")}</div>`;
+  $app.innerHTML = `
+    ${designTabs("cert")}
+    <div class="page-head"><div><p class="eyebrow">Staff</p><h1>Certificate</h1>
+      <p class="muted" style="max-width:64ch">Design the certificate productions receive. Colors, fonts and the logo come from the portal look. Changes apply to every certificate, including ones already issued, once you save.</p></div></div>
+    <div class="design cert-design">
+      <form class="design-form" id="cdForm" novalidate>
+        <section class="panel block"><div class="block-head"><h2>Wording</h2></div><div class="block-body grid">
+          <label class="field" style="grid-column:1/-1"><span>Line above the production name</span><input id="cd-lead" maxlength="80" value="${esc(d.lead)}"></label>
+          <label class="field" style="grid-column:1/-1"><span>Citation</span><textarea id="cd-body" rows="3" maxlength="400">${esc(d.body)}</textarea>
+            <small class="muted">You can use {level}, {production}, {score}, {version}, {studio} and {date}.</small></label>
+        </div></section>
+        <section class="panel block"><div class="block-head"><h2>Signature</h2></div><div class="block-body grid">
+          <label class="field"><span>Signer's name</span><input id="cd-signer" maxlength="80" value="${esc(d.signer_name)}" placeholder="e.g. Debbie Levin"></label>
+          <label class="field"><span>Signer's title or organization</span><input id="cd-title" maxlength="100" value="${esc(d.signer_title)}"></label>
+          <div class="field" style="grid-column:1/-1"><span>Signature image <span class="muted">(PNG with a transparent background works best, up to 1 MB)</span></span>
+            <div class="row-actions"><label class="btn">Upload signature<input type="file" class="sr" id="cd-sig" accept="image/png,image/webp,image/svg+xml,image/jpeg"></label>${d.signature_url ? `<button type="button" class="link danger" id="cd-sigrm">Remove signature</button>` : ""}</div></div>
+        </div></section>
+        <section class="panel block"><div class="block-head"><h2>Layout</h2></div><div class="block-body cd-layout">
+          <fieldset class="field"><legend class="label">Orientation</legend>${radios("cd-orient", [["landscape", "Landscape"], ["portrait", "Portrait"]], d.orientation)}</fieldset>
+          <fieldset class="field"><legend class="label">Border</legend>${radios("cd-border", [["double", "Double"], ["single", "Single"], ["none", "None"]], d.border)}</fieldset>
+          <fieldset class="field"><legend class="label">Level name color</legend>${radios("cd-headc", [["level", "Match the level (gold, green)"], ["brand", "Primary brand color"]], d.heading_color)}</fieldset>
+          <fieldset class="field"><legend class="label">Show</legend><div class="cd-toggles">${tog("logo", "Logo")}${tog("studio", "Studio")}${tog("score", "Score")}${tog("seal", "Seal")}${tog("number", "Certificate number")}${tog("decor", "Background circles")}</div></fieldset>
+          <label class="field" style="max-width:22rem"><span>Certificate number format</span><input id="cd-num" maxlength="40" value="${esc(d.number_format)}"><small class="muted">{LVL} (GLD/GRN), {LEVEL}, {YEAR}, {ID}</small></label>
+        </div></section>
+      </form>
+      <aside class="design-preview panel cd-preview" aria-label="Preview">
+        <div class="cd-preview-head"><span class="label">Preview</span><div class="chips">${S.cert.levels.map((l) => `<button type="button" class="chip" data-plevel="${esc(l.name)}" aria-pressed="${S.certPreviewLevel === l.name}">${esc(l.name)}</button>`).join("")}</div></div>
+        <div id="cdPreview"></div>
+      </aside>
+    </div>`;
+  const pv = () => { document.getElementById("cdPreview").innerHTML = certificateHTML(sample(), S.certDraft); drawCertActions(); };
+  const read = () => {
+    const x = S.certDraft;
+    x.lead = document.getElementById("cd-lead").value; x.body = document.getElementById("cd-body").value;
+    x.signer_name = document.getElementById("cd-signer").value; x.signer_title = document.getElementById("cd-title").value;
+    x.number_format = document.getElementById("cd-num").value || CERT_DEFAULT.number_format;
+    x.orientation = document.querySelector("input[name=cd-orient]:checked").value; x.border = document.querySelector("input[name=cd-border]:checked").value;
+    x.heading_color = document.querySelector("input[name=cd-headc]:checked").value;
+    document.querySelectorAll("[data-show]").forEach((c) => (x.show[c.dataset.show] = c.checked));
+    pv();
+  };
+  document.getElementById("cdForm").addEventListener("input", read);
+  document.getElementById("cdForm").addEventListener("change", read);
+  document.querySelectorAll("[data-plevel]").forEach((b) => b.addEventListener("click", () => { S.certPreviewLevel = b.dataset.plevel; document.querySelectorAll("[data-plevel]").forEach((x) => x.setAttribute("aria-pressed", x === b)); pv(); }));
+  document.getElementById("cd-sigrm")?.addEventListener("click", () => { S.certDraft.signature_url = null; pv(); document.getElementById("cd-sigrm").remove(); });
+  document.getElementById("cd-sig").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+    if (f.size > 1024 * 1024) return toast("That image is over 1 MB. Use a smaller file.", "bad");
+    const ext = ({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/svg+xml": "svg" })[f.type];
+    if (!ext) return toast("Use a PNG, JPG, WebP or SVG image.", "bad");
+    const path = `signature-${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from("branding").upload(path, f, { contentType: f.type, upsert: false });
+    if (error) return fail(error);
+    S.certDraft.signature_url = sb.storage.from("branding").getPublicUrl(path).data.publicUrl; pv(); toast("Signature uploaded. Save to use it.");
+  });
+  pv();
+}
+function drawCertActions() {
+  const changed = JSON.stringify(S.certDraft) !== JSON.stringify(S.certCfg);
+  $actions.innerHTML = `<div class="actions"><div class="wrap"><span class="hint">${changed ? "Unsaved changes." : "This is the certificate everyone gets."}</span>
+    <button id="cdReset">Reset to default</button><button id="cdDiscard" ${changed ? "" : "disabled"}>Discard changes</button><button class="primary" id="cdSave" ${changed ? "" : "disabled"}>Save certificate</button></div></div>`;
+  document.getElementById("cdReset").addEventListener("click", () => renderCertDesign(CERT_DEFAULT));
+  document.getElementById("cdDiscard").addEventListener("click", () => renderCertDesign());
+  document.getElementById("cdSave").addEventListener("click", async () => {
+    const value = cleanCertCfg(S.certDraft);
+    const { error } = await sb.from("app_settings").upsert({ key: "certificate", value, updated_by: S.me.id }, { onConflict: "key" });
+    if (error) return fail(error);
+    S.certCfg = value; toast("Certificate design saved"); renderCertDesign();
+  });
 }
 
 // ── Leadership report (printable) ──
@@ -1507,7 +1752,7 @@ function wireImport(app) {
 // ── Certification on the application page ──
 function appSealMeta(app) {
   if (app.production_id == null) return "";
-  if (app.status === "approved" && app.cert_level) return `${sealBadge(app.cert_level, `${Math.round(app.cert_score)}%`)}<a class="link" href="#cert-${app.production_id}">Certificate</a>`;
+  if (app.status === "approved" && app.cert_level) return `${sealBadge(app.cert_level, `${Math.round(app.cert_score)}%`)}<a class="link" href="#cert-${app.production_id}">Certificate &amp; sending</a>`;
   if (app.status === "approved") return `<span class="muted">Below the ${esc(S.cert.levels[0]?.name || "certification")} cutoff</span>`;
   const f = finalScore(S.current?.resp || {}), lv = levelFor(f.pct);
   if (!f.answered) return "";
@@ -1664,10 +1909,11 @@ function eventText(e) {
     case "scoring": return `updated verified points or notes on ${n} action${n === 1 ? "" : "s"}`;
     case "evidence_added": return `uploaded evidence: ${d.file || "a file"}`;
     case "evidence_removed": return `removed evidence: ${d.file || "a file"}`;
+    case "certificate_sent": return `emailed the certificate to ${(d.recipients || []).join(", ")}`;
     default: return e.kind;
   }
 }
-const EVENT_ICON = { created: "＋", status: "◆", assigned: "◎", details: "✎", footprint: "✎", answers: "✓", scoring: "★", evidence_added: "⇪", evidence_removed: "⇩" };
+const EVENT_ICON = { certificate_sent: "✉", created: "＋", status: "◆", assigned: "◎", details: "✎", footprint: "✎", answers: "✓", scoring: "★", evidence_added: "⇪", evidence_removed: "⇩" };
 function activityComposer(app) {
   const own = app.submitted_by === S.me.id;
   if (!isReviewerish() && !own) return "";
@@ -4057,6 +4303,7 @@ function renderDesign() {
     document.head.appendChild(l);
   }
   $app.innerHTML = `
+    ${designTabs("design")}
     <div class="page-head"><div><p class="eyebrow">Staff</p><h1>Design</h1>
       <p class="muted" style="max-width:62ch">Change how the portal looks for everyone, including the sign-in page. Changes preview across the page as you edit and apply to everyone once you save.</p></div></div>
     <div class="design">
