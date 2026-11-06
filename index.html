@@ -2005,7 +2005,7 @@ async function renderMapChart(el, spec, d, W, H) {
   for (const f of kit.fc.features) {
     const g = groupFor(f), p = path(f); if (!p) continue;
     const tip = g ? `<b>${esc(g.label)}</b><br>${esc(M.label)}: <b>${esc(fmtV(g.total))}</b><br>${g.list.length} production${g.list.length === 1 ? "" : "s"}` : `${esc(f.properties.name)}<br>No productions`;
-    svg += `<path class="rgn ch${g ? bin(g.total) : 0} ${g?.cls || ""}" d="${p}" ${g ? `data-key="${esc(g.key)}"` : ""} data-tip="${tip}"/>`;
+    svg += `<path class="rgn ch${g ? bin(g.total) : 0} ${g?.cls || ""}" d="${p}" ${g ? `data-key="${esc(g.key)}"` : ""} data-tip="${esc(tip)}"/>`;
   }
   svg += `<path class="rgn-mesh" d="${path(kit.mesh)}"/>`;
   if (spec.points !== false) {
@@ -2017,7 +2017,7 @@ async function renderMapChart(el, spec, d, W, H) {
     }
     for (const { xy, list } of spots.values()) {
       const tip = `<b>${esc([list[0].geo_city, list[0].geo_region].filter(Boolean).join(", ") || list[0].production_location || "")}</b><br>${list.slice(0, 6).map((a) => esc(a.production_name)).join("<br>")}${list.length > 6 ? `<br>+${list.length - 6} more` : ""}`;
-      svg += `<circle class="spot" cx="${xy[0].toFixed(1)}" cy="${xy[1].toFixed(1)}" r="${Math.min(12, 3.5 + Math.sqrt(list.length) * 1.8).toFixed(1)}" data-tip="${tip}"/>`;
+      svg += `<circle class="spot" cx="${xy[0].toFixed(1)}" cy="${xy[1].toFixed(1)}" r="${Math.min(12, 3.5 + Math.sqrt(list.length) * 1.8).toFixed(1)}" data-tip="${esc(tip)}"/>`;
     }
   }
   svg += `</svg>`;
